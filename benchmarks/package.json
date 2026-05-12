@@ -1,0 +1,23 @@
+{
+  "name": "@rift/benchmarks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bundle-size and microbenchmarks comparing Rift to Svelte 5",
+  "scripts": {
+    "bench": "node scripts/run-all.mjs",
+    "bench:bundle": "node bundle-size/measure.mjs",
+    "bench:reactivity": "node reactivity/run.mjs",
+    "build:rift": "node bundle-size/rift-app/build.mjs",
+    "build:svelte": "node bundle-size/svelte-app/build.mjs"
+  },
+  "dependencies": {
+    "@rift/client": "workspace:*",
+    "@rift/compiler": "workspace:*",
+    "@rift/runtime": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "svelte": "^5.0.0"
+  }
+}
