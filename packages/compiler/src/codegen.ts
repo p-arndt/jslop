@@ -139,7 +139,10 @@ function emitNode(
     const childrenLit =
       childStrs.length === 0 ? "[]" : `[\n${pad}    ${childStrs.join(`,\n${pad}    `)}\n${pad}  ]`;
     const paramList = node.index ? `(${node.as}, ${node.index})` : `(${node.as})`;
-    return `{ kind: "each", each: () => (${eachExpr}), build: ${paramList} => (${childrenLit}) }`;
+    const keyPart = node.key
+      ? `, key: ${paramList} => (${rewriteExpr(node.key, innerReactive)})`
+      : "";
+    return `{ kind: "each", each: () => (${eachExpr}), build: ${paramList} => (${childrenLit})${keyPart} }`;
   }
   if (node.kind === "component") {
     const idx = childCtx.counter++;

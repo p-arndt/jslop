@@ -2,7 +2,7 @@ export type ViewNode =
   | { kind: "element"; tag: string; attrs: Record<string, string>; events: Record<string, string>; children: ViewNode[] }
   | { kind: "component"; name: string; props: Record<string, string>; children: ViewNode[] }
   | { kind: "if"; test: string; consequent: ViewNode[]; alternate: ViewNode[] }
-  | { kind: "each"; each: string; as: string; index: string | null; children: ViewNode[] }
+  | { kind: "each"; each: string; as: string; index: string | null; key: string | null; children: ViewNode[] }
   | { kind: "text"; value: string }
   | { kind: "expr"; expr: string };
 
@@ -387,10 +387,16 @@ function parseEachBlock(c: Cursor): ViewNode {
     if (!indexName) throw c.err("expected index binding name");
     c.skipWs();
   }
+  let keyExpr: string | null = null;
+  if (c.peek() === "(") {
+    keyExpr = readBalanced(c, "(", ")").trim();
+    if (!keyExpr) throw c.err("empty key expression");
+    c.skipWs();
+  }
   c.expect("}");
   const children = parseChildrenUntil(c, (cur) => cur.src.startsWith("{/each}", cur.i), null);
   c.expect("{/each}");
-  return { kind: "each", each, as: asName, index: indexName, children };
+  return { kind: "each", each, as: asName, index: indexName, key: keyExpr, children };
 }
 
 function readBalancedToBrace(c: Cursor): string {

@@ -7,6 +7,63 @@ let currentSubscriber: Subscriber | null = null;
 let batchDepth = 0;
 const pendingNotify = new Set<Cell<unknown>>();
 
+export interface Scope {
+  readonly cleanups: Array<() => void>;
+  readonly children: Set<Scope>;
+  parent: Scope | null;
+  disposed: boolean;
+}
+
+let currentScope: Scope | null = null;
+
+export function createScope(parent: Scope | null = currentScope): Scope {
+  const scope: Scope = {
+    cleanups: [],
+    children: new Set(),
+    parent,
+    disposed: false,
+  };
+  if (parent) parent.children.add(scope);
+  return scope;
+}
+
+export function getCurrentScope(): Scope | null {
+  return currentScope;
+}
+
+export function runInScope<T>(scope: Scope, fn: () => T): T {
+  const prev = currentScope;
+  currentScope = scope;
+  try {
+    return fn();
+  } finally {
+    currentScope = prev;
+  }
+}
+
+export function disposeScope(scope: Scope): void {
+  if (scope.disposed) return;
+  scope.disposed = true;
+  for (const child of [...scope.children]) disposeScope(child);
+  scope.children.clear();
+  const cleanups = scope.cleanups.splice(0);
+  for (let i = cleanups.length - 1; i >= 0; i--) {
+    try {
+      cleanups[i]!();
+    } catch (e) {
+      console.error("[rift] scope cleanup threw:", e);
+    }
+  }
+  if (scope.parent) {
+    scope.parent.children.delete(scope);
+    scope.parent = null;
+  }
+}
+
+export function onCleanup(fn: () => void): void {
+  if (currentScope && !currentScope.disposed) currentScope.cleanups.push(fn);
+}
+
 export interface Cell<T> {
   readonly kind: "cell";
   get(): T;
@@ -51,6 +108,10 @@ export function cell<T>(initial: T): Cell<T> {
 
 export function effect(fn: () => void | (() => void)): () => void {
   let cleanup: void | (() => void);
+  // Snapshot the scope at creation time so re-runs (which may be triggered
+  // from arbitrary other scopes via cell.set) still own their child scopes
+  // under the correct parent.
+  const ownerScope = currentScope;
 
   const sub: Subscriber = {
     deps: new Set(),
@@ -61,19 +122,25 @@ export function effect(fn: () => void | (() => void)): () => void {
         subs.delete(sub);
       }
       sub.deps.clear();
-      const prev = currentSubscriber;
+      const prevSub = currentSubscriber;
+      const prevScope = currentScope;
       currentSubscriber = sub;
+      currentScope = ownerScope;
       try {
         cleanup = fn();
       } finally {
-        currentSubscriber = prev;
+        currentSubscriber = prevSub;
+        currentScope = prevScope;
       }
     },
   };
 
   sub.run();
 
-  return () => {
+  let disposed = false;
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
     if (typeof cleanup === "function") cleanup();
     for (const dep of sub.deps) {
       const subs = (dep as unknown as { __subs: Set<Subscriber> }).__subs;
@@ -81,6 +148,8 @@ export function effect(fn: () => void | (() => void)): () => void {
     }
     sub.deps.clear();
   };
+  if (currentScope && !currentScope.disposed) currentScope.cleanups.push(dispose);
+  return dispose;
 }
 
 export interface Derived<T> {

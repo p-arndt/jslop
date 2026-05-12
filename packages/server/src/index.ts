@@ -5,7 +5,12 @@ export type RenderNode =
   | { kind: "bind"; get: () => string }
   | { kind: "component"; name: string; instance: RiftInstance; view: RenderNode }
   | { kind: "if"; test: () => unknown; consequent: RenderNode[]; alternate: RenderNode[] }
-  | { kind: "each"; each: () => Iterable<unknown>; build: (item: unknown, index: number) => RenderNode[] }
+  | {
+      kind: "each";
+      each: () => Iterable<unknown>;
+      build: (item: unknown, index: number) => RenderNode[];
+      key?: (item: unknown, index: number) => unknown;
+    }
   | {
       kind: "element";
       tag: string;
@@ -83,12 +88,19 @@ function renderNode(node: RenderNode): string {
     const source = node.each();
     let i = 0;
     const itemsHtml: string[] = [];
+    const keyed = typeof node.key === "function";
     for (const item of source) {
       const itemChildren = node.build(item, i);
-      itemsHtml.push(`<rift-each-item>${itemChildren.map(renderNode).join("")}</rift-each-item>`);
+      const keyAttr = keyed
+        ? ` data-rift-key="${escapeAttr(String(node.key!(item, i)))}"`
+        : "";
+      itemsHtml.push(
+        `<rift-each-item${keyAttr}>${itemChildren.map(renderNode).join("")}</rift-each-item>`
+      );
       i++;
     }
-    return `<rift-each data-rift-count="${i}">${itemsHtml.join("")}</rift-each>`;
+    const keyedAttr = keyed ? ` data-rift-keyed="t"` : "";
+    return `<rift-each data-rift-count="${i}"${keyedAttr}>${itemsHtml.join("")}</rift-each>`;
   }
   if (node.kind === "component") {
     if (node.view.kind !== "element") {

@@ -15,7 +15,7 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 
 - ✅ `cell(v)` / `derived(fn)` / `effect(fn)` / `batch` / `untrack`
 - ✅ `isReactive` helper for prop normalization
-- ❌ Effect disposers tied to lifecycle. When `{#if}` swaps a branch or `{#each}` rebuilds, the effects from the discarded subtree stay subscribed to their cells. **Leak.** Need per-branch / per-item disposer scopes.
+- ✅ Effect disposer scopes (`createScope` / `runInScope` / `disposeScope` / `onCleanup`). Effects created inside a scope are auto-cleaned when the scope is disposed. Effects snapshot their owner scope at creation, so re-runs triggered from foreign scopes still own their child scopes correctly. Covered by 5 unit tests.
 - ❌ Async cells: `ServerValue<T>` shape from `PLAN.md` (`{ value, loading, error, refresh() }`). Required for `server data = await ...` in the DSL.
 
 ## Compiler
@@ -42,7 +42,7 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 - ✅ Boot reads capsule, restores state, walks view tree
 - ✅ Attaches event handlers from view nodes (as function values, not lookups)
 - ✅ Recursive `buildNode` for fresh DOM mounts (used by `{#if}` rebuilds and `{#each}`)
-- 🐛 List reconciliation is full-rebuild on any list change. Loses focus, scroll, animation state inside list items. **Need keyed `<For>` reconciliation.**
+- ✅ Keyed `{#each}` reconciliation: `{#each list as item, i (item.id)}` preserves DOM identity across reorder, dispose-on-remove, and insert-in-middle without rebuilding neighbors. Per-item effect scopes are disposed when an item is removed, so binds inside list items no longer leak. Unkeyed lists fall back to dispose-then-rebuild but now correctly tear down the previous items' effect scopes. Covered by 5 client integration tests.
 - 🐛 Components nested inside `{#each}` aren't truly supported — child instances aren't created per-item; their state isn't preserved across rebuilds.
 - ❌ Client-side navigation (SPA mode). Today every `<a>` is a full page load. Needs `<a>` interception + `history.pushState` + fetch new HTML + swap root.
 - ❌ Bind for `<input value={cell}>` is one-way (cell → DOM only). No `value` ↔ cell two-way binding sugar. Users have to wire `oninput` manually like the counter example does.
@@ -109,11 +109,12 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 
 ## Production readiness
 
-- ❌ Tests:
+- 🟡 Tests:
   - ✅ Compiler rewriter unit tests (19)
-  - ❌ Parser unit tests
-  - ❌ SSR snapshot tests
-  - ❌ Client boot tests (real DOM via happy-dom or jsdom, not the hand-rolled fake)
+  - 🟡 Parser unit tests (5 — `{#each}` key-syntax variants only; rest of grammar still uncovered)
+  - 🟡 SSR snapshot tests (3 — keyed/unkeyed `<rift-each>` rendering only)
+  - 🟡 Client tests (5 keyed/unkeyed reconciliation + leak prevention, against a hand-rolled stub DOM — replace with happy-dom)
+  - ✅ Runtime scope tests (5)
   - ❌ Router unit tests
   - ❌ E2E via Playwright against `pnpm dev`
 - ❌ Error boundaries
@@ -138,9 +139,10 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 
 If I had to pick a north star, in order:
 
-1. **Effect disposers + keyed list reconciliation** — fixes correctness/memory bugs that grow with app size. Foundational before anything is built on top.
-2. **Two-way binding sugar** (`bind:value={cell}` or similar) — removes the `oninput` boilerplate visible in the counter todos. Small but high-DX-impact.
-3. **Layouts + 404 routes** — turns routing from "matches URLs" into something you'd actually ship.
-4. **Production build path** (`vite build` → SSR bundle + Node adapter) — without this, Rift is dev-mode only.
-5. **Server functions** — the PLAN.md "killer protocol." Big scope but the most distinctive feature. Needs split bundling, RPC transport, security defaults.
-6. **Schema-native forms** — second killer feature from PLAN.md. Depends on server functions being landed first.
+1. ~~**Effect disposers + keyed list reconciliation**~~ — done. Scopes + keyed `{#each}` landed; per-item effect leak fixed.
+2. **Per-item child component state in `{#each}`** — the second sub-bullet of the list-reconciliation TODO. Now that DOM identity is preserved per key, the natural next step is preserving instance state for `<MyComp />` placed inside a list item.
+3. **Two-way binding sugar** (`bind:value={cell}` or similar) — removes the `oninput` boilerplate visible in the counter todos. Small but high-DX-impact.
+4. **Layouts + 404 routes** — turns routing from "matches URLs" into something you'd actually ship.
+5. **Production build path** (`vite build` → SSR bundle + Node adapter) — without this, Rift is dev-mode only.
+6. **Server functions** — the PLAN.md "killer protocol." Big scope but the most distinctive feature. Needs split bundling, RPC transport, security defaults.
+7. **Schema-native forms** — second killer feature from PLAN.md. Depends on server functions being landed first.

@@ -278,9 +278,71 @@
     "view-contents": {
       "patterns": [
         { "include": "#comments" },
+        { "include": "#view-block-if" },
+        { "include": "#view-block-each" },
+        { "include": "#view-block-else" },
+        { "include": "#view-block-close" },
         { "include": "#tag" },
         { "include": "#tag-interpolation" }
       ]
+    },
+
+    "view-block-if": {
+      "begin": "(\\{)(#if)\\b",
+      "beginCaptures": {
+        "1": { "name": "punctuation.section.embedded.begin.rift" },
+        "2": { "name": "keyword.control.conditional.rift" }
+      },
+      "end": "(\\})",
+      "endCaptures": {
+        "1": { "name": "punctuation.section.embedded.end.rift" }
+      },
+      "patterns": [
+        { "include": "#expression" }
+      ]
+    },
+
+    "view-block-each": {
+      "begin": "(\\{)(#each)\\b",
+      "beginCaptures": {
+        "1": { "name": "punctuation.section.embedded.begin.rift" },
+        "2": { "name": "keyword.control.loop.rift" }
+      },
+      "end": "(\\})",
+      "endCaptures": {
+        "1": { "name": "punctuation.section.embedded.end.rift" }
+      },
+      "patterns": [
+        {
+          "match": "\\b(as)\\b",
+          "name": "keyword.control.as.rift"
+        },
+        { "include": "#expression" }
+      ]
+    },
+
+    "view-block-else": {
+      "begin": "(\\{)(:else(?:\\s+if)?)\\b",
+      "beginCaptures": {
+        "1": { "name": "punctuation.section.embedded.begin.rift" },
+        "2": { "name": "keyword.control.conditional.rift" }
+      },
+      "end": "(\\})",
+      "endCaptures": {
+        "1": { "name": "punctuation.section.embedded.end.rift" }
+      },
+      "patterns": [
+        { "include": "#expression" }
+      ]
+    },
+
+    "view-block-close": {
+      "match": "(\\{)(/(?:if|each))(\\})",
+      "captures": {
+        "1": { "name": "punctuation.section.embedded.begin.rift" },
+        "2": { "name": "keyword.control.rift" },
+        "3": { "name": "punctuation.section.embedded.end.rift" }
+      }
     },
 
     "tag-interpolation": {
