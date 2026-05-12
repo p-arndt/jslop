@@ -278,6 +278,127 @@ test("unkeyed each: rebuild disposes prior item bind effects (no leak)", () => {
   assert.equal(mounts.length, 3);
 });
 
+test("keyed each: nested component instances persist across reorders", () => {
+  // Simulate what the compiler emits for a keyed each containing a child
+  // component: the build callback creates a fresh Child instance per item,
+  // and the keyed reconciler reuses entries for matching keys (so build is
+  // not re-invoked, and the same instance survives reorders).
+  let createdInstances = 0;
+  const Child = {
+    name: "Child",
+    create(props) {
+      createdInstances++;
+      const id = props.id;
+      return {
+        actions: {},
+        instanceId: createdInstances,
+        boundId: id,
+        buildView() {
+          return {
+            kind: "element",
+            tag: "div",
+            attrs: { "data-instance": String(this.instanceId), "data-id": String(this.boundId) },
+            events: {},
+            children: [],
+          };
+        },
+        serializeState: () => ({}),
+        restoreState: () => {},
+      };
+    },
+  };
+
+  const items = cell([
+    { id: "a", label: "A" },
+    { id: "b", label: "B" },
+    { id: "c", label: "C" },
+  ]);
+
+  const Parent = {
+    name: "Parent",
+    create() {
+      return {
+        actions: {},
+        buildView() {
+          return {
+            kind: "element",
+            tag: "ul",
+            attrs: {},
+            events: {},
+            children: [
+              {
+                kind: "each",
+                each: () => items.get(),
+                build: (item) => {
+                  const __c0 = Child.create({ id: item.id });
+                  return [
+                    {
+                      kind: "component",
+                      name: "Child",
+                      instance: __c0,
+                      view: __c0.buildView(),
+                    },
+                  ];
+                },
+                key: (item) => item.id,
+              },
+            ],
+          };
+        },
+        serializeState: () => ({}),
+        restoreState: () => {},
+      };
+    },
+  };
+
+  const { each } = setupRoot();
+  // Make root accept "Parent" not "List".
+  document.getElementById = (id) =>
+    id === "__rift_capsule"
+      ? {
+          textContent: JSON.stringify({
+            components: [{ cid: "r", name: "Parent", props: {}, state: {} }],
+          }),
+        }
+      : null;
+  boot({ Parent });
+
+  // Initial: 3 instances created.
+  assert.equal(createdInstances, 3);
+  const initialInstanceIds = each.children.map(
+    (item) => item.children[0].attrs["data-instance"]
+  );
+  assert.deepEqual(initialInstanceIds, ["1", "2", "3"]);
+
+  // Reorder: same keys, no new instances should be created.
+  items.set([
+    { id: "c", label: "C" },
+    { id: "a", label: "A" },
+    { id: "b", label: "B" },
+  ]);
+  assert.equal(createdInstances, 3, "no new Child instances on reorder");
+  const afterInstanceIds = each.children.map(
+    (item) => item.children[0].attrs["data-instance"]
+  );
+  assert.deepEqual(afterInstanceIds, ["3", "1", "2"]);
+
+  // Add a new item: exactly one new instance.
+  items.set([
+    { id: "c", label: "C" },
+    { id: "d", label: "D" },
+    { id: "a", label: "A" },
+    { id: "b", label: "B" },
+  ]);
+  assert.equal(createdInstances, 4);
+
+  // Remove an item: no new instances created.
+  items.set([
+    { id: "c", label: "C" },
+    { id: "a", label: "A" },
+  ]);
+  assert.equal(createdInstances, 4);
+});
+
 test("keyed each: inserting in the middle creates new DOM and keeps neighbors", () => {
   const items = cell([
     { id: "a", label: "A" },

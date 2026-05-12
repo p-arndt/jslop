@@ -42,7 +42,7 @@ export function generate(comp: ParsedComponent, opts: CodegenOptions = {}): stri
 
   const actionEntries = comp.fns.map((f) => `    ${f.name}`).join(",\n");
 
-  const childCtx = { counter: 0, decls: [] as string[] };
+  const childCtx: ChildCtx = { counter: 0, decls: [], inlineDecls: null };
   const viewExpr = emitNode(comp.view, reactiveNames, 4, childCtx);
   const childrenArr = childCtx.decls.length
     ? `[${childCtx.decls.map((_, i) => `__child_${i}`).join(", ")}]`
@@ -100,7 +100,18 @@ function indent(s: string, n: number): string {
 
 interface ChildCtx {
   counter: number;
+  /**
+   * Hoisted component declarations emitted at the parent component's create()
+   * scope. Used for components in static positions so their instances persist
+   * for the parent's lifetime and their state is serialized in __children.
+   */
   decls: string[];
+  /**
+   * When non-null, component declarations are emitted inline as statements
+   * inside the surrounding build callback (e.g. an each block), so each
+   * iteration gets its own instance with item-bound props.
+   */
+  inlineDecls: string[] | null;
 }
 
 function emitNode(
@@ -133,27 +144,46 @@ function emitNode(
     const innerReactive = reactiveNames.filter(
       (n) => n !== node.as && n !== node.index
     );
-    const subCtx: ChildCtx = { counter: childCtx.counter, decls: childCtx.decls };
+    // Open a new inline-declaration scope so any components nested inside the
+    // each are instantiated per-item rather than hoisted.
+    const buildLocals: string[] = [];
+    const subCtx: ChildCtx = {
+      counter: childCtx.counter,
+      decls: childCtx.decls,
+      inlineDecls: buildLocals,
+    };
     const childStrs = node.children.map((ch) => emitNode(ch, innerReactive, depth + 2, subCtx));
     childCtx.counter = subCtx.counter;
     const childrenLit =
       childStrs.length === 0 ? "[]" : `[\n${pad}    ${childStrs.join(`,\n${pad}    `)}\n${pad}  ]`;
     const paramList = node.index ? `(${node.as}, ${node.index})` : `(${node.as})`;
+    const buildBody =
+      buildLocals.length === 0
+        ? `(${childrenLit})`
+        : `{\n${pad}    ${buildLocals.join(`\n${pad}    `)}\n${pad}    return ${childrenLit};\n${pad}  }`;
     const keyPart = node.key
       ? `, key: ${paramList} => (${rewriteExpr(node.key, innerReactive)})`
       : "";
-    return `{ kind: "each", each: () => (${eachExpr}), build: ${paramList} => (${childrenLit})${keyPart} }`;
+    return `{ kind: "each", each: () => (${eachExpr}), build: ${paramList} => ${buildBody}${keyPart} }`;
   }
   if (node.kind === "component") {
     const idx = childCtx.counter++;
-    const varName = `__child_${idx}`;
     const propEntries = Object.entries(node.props).map(([k, v]) => {
       if (v.startsWith("__expr:")) {
+        // Pass props through unchanged: parent cells are passed by reference
+        // (so the child reacts to changes), and item bindings inside an each
+        // are plain values from the build callback's params.
         return `${JSON.stringify(k)}: (${v.slice("__expr:".length)})`;
       }
       return `${JSON.stringify(k)}: ${v}`;
     });
     const propsLit = `{ ${propEntries.join(", ")} }`;
+    if (childCtx.inlineDecls) {
+      const varName = `__c_${idx}`;
+      childCtx.inlineDecls.push(`const ${varName} = ${node.name}.create(${propsLit});`);
+      return `{ kind: "component", name: ${JSON.stringify(node.name)}, instance: ${varName}, view: ${varName}.buildView() }`;
+    }
+    const varName = `__child_${idx}`;
     childCtx.decls.push(`    const ${varName} = ${node.name}.create(${propsLit});`);
     return `{ kind: "component", name: ${JSON.stringify(node.name)}, instance: ${varName}, view: ${varName}.buildView() }`;
   }
