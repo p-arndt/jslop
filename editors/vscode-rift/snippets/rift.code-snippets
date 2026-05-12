@@ -1,0 +1,124 @@
+{
+  "Component": {
+    "prefix": "component",
+    "body": [
+      "component ${1:Name} {",
+      "  let ${2:count} = 0",
+      "",
+      "  function ${3:handler}() {",
+      "    $0",
+      "  }",
+      "",
+      "  view {",
+      "    <div></div>",
+      "  }",
+      "}"
+    ],
+    "description": "Rift component scaffold"
+  },
+  "Component with prop": {
+    "prefix": "componentprop",
+    "body": [
+      "component ${1:Name} {",
+      "  prop ${2:value} = ${3:0}",
+      "",
+      "  view {",
+      "    <div>$0</div>",
+      "  }",
+      "}"
+    ],
+    "description": "Rift component with a prop"
+  },
+  "Route": {
+    "prefix": "route",
+    "body": [
+      "route \"${1:/path}\" {",
+      "  server ${2:data} = await ${3:loader}()",
+      "",
+      "  view {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Rift route declaration"
+  },
+  "Schema": {
+    "prefix": "schema",
+    "body": [
+      "schema ${1:Name} {",
+      "  ${2:field}: ${3:string}",
+      "}"
+    ],
+    "description": "Rift schema declaration"
+  },
+  "function": {
+    "prefix": "function",
+    "body": ["function ${1:name}(${2:params}) {", "  $0", "}"],
+    "description": "Function declaration"
+  },
+  "server function": {
+    "prefix": "serverfunction",
+    "body": ["server function ${1:name}(${2:params}) {", "  $0", "}"],
+    "description": "Server function declaration"
+  },
+  "let": {
+    "prefix": "let",
+    "body": ["let ${1:name} = ${2:value}"],
+    "description": "Reactive local binding"
+  },
+  "prop": {
+    "prefix": "prop",
+    "body": ["prop ${1:name} = ${2:default}"],
+    "description": "Component prop"
+  },
+  "derived": {
+    "prefix": "derived",
+    "body": ["derived ${1:name} = ${2:expression}"],
+    "description": "Derived value"
+  },
+  "view": {
+    "prefix": "view",
+    "body": ["view {", "  $0", "}"],
+    "description": "View block"
+  },
+  "mount": {
+    "prefix": "mount",
+    "body": ["mount {", "  $0", "}"],
+    "description": "Mount lifecycle"
+  },
+  "when changes": {
+    "prefix": "when",
+    "body": ["when ${1:value} changes {", "  $0", "}"],
+    "description": "React to a value change"
+  },
+  "For": {
+    "prefix": "for",
+    "body": [
+      "<For each={${1:items}}>",
+      "  {(${2:item}) => <${3:Item} ${4:value}={${2:item}} />}",
+      "</For>"
+    ],
+    "description": "For-each list rendering"
+  },
+  "Await": {
+    "prefix": "await",
+    "body": [
+      "<Await value={${1:promise}}>",
+      "  <Pending>${2:Loading...}</Pending>",
+      "  <Resolved>{(${3:value}) => $0}</Resolved>",
+      "  <Error>{(err) => <pre>{err.message}</pre>}</Error>",
+      "</Await>"
+    ],
+    "description": "Await async value"
+  },
+  "Form": {
+    "prefix": "form",
+    "body": [
+      "<Form schema={${1:Schema}} action={${2:save}}>",
+      "  <Field name=\"${3:field}\" />",
+      "  <Submit>${4:Save}</Submit>",
+      "</Form>"
+    ],
+    "description": "Schema-driven form"
+  }
+}

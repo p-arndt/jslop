@@ -1,0 +1,10 @@
+component Display {
+  prop value = 0
+  prop label = "Count"
+
+  view {
+    <p>
+      <strong>{label}:</strong> <span>{value}</span>
+    </p>
+  }
+}

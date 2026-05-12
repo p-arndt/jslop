@@ -1,0 +1,31 @@
+component Index {
+  let count = 0
+
+  function inc() {
+    count++
+  }
+
+  view {
+    <main class="min-h-screen bg-slate-950 text-slate-100 px-6 py-16">
+      <div class="mx-auto max-w-2xl space-y-8">
+        <h1 class="text-4xl font-semibold tracking-tight">Rift Site</h1>
+        <nav class="flex gap-3 text-sm text-slate-400">
+          <a href="/" class="hover:text-slate-100">home</a>
+          <span class="text-slate-700">/</span>
+          <a href="/about" class="hover:text-slate-100">about</a>
+          <span class="text-slate-700">/</span>
+          <a href="/posts/hello-world" class="hover:text-slate-100">hello post</a>
+          <span class="text-slate-700">/</span>
+          <a href="/posts/rift" class="hover:text-slate-100">rift post</a>
+        </nav>
+        <p class="text-slate-300">Welcome. Count: <span class="font-mono text-emerald-400">{count}</span></p>
+        <button
+          onclick={inc}
+          class="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 active:bg-emerald-600"
+        >
+          +
+        </button>
+      </div>
+    </main>
+  }
+}
