@@ -8,7 +8,10 @@ export type ViewNode =
   | { kind: "expr"; expr: string };
 
 export interface ParsedImport {
-  name: string;
+  /** Default-import binding, or null when only named specifiers are present. */
+  defaultName: string | null;
+  /** Named specifiers: `{ A, B as Renamed }`. */
+  named: Array<{ imported: string; local: string }>;
   path: string;
 }
 
@@ -19,7 +22,6 @@ export interface ParsedProp {
 
 export interface ParsedComponent {
   name: string;
-  imports: ParsedImport[];
   props: ParsedProp[];
   /** Reactive cells, declared with `state`. */
   states: Array<{ name: string; init: string }>;
@@ -27,6 +29,11 @@ export interface ParsedComponent {
   lets: Array<{ name: string; init: string }>;
   fns: Array<{ name: string; params: string; body: string }>;
   view: ViewNode;
+}
+
+export interface ParsedFile {
+  imports: ParsedImport[];
+  components: ParsedComponent[];
 }
 
 class Cursor {
@@ -114,7 +121,7 @@ function readStringLiteral(c: Cursor): string {
   return out;
 }
 
-export function parseComponent(src: string): ParsedComponent {
+export function parseFile(src: string): ParsedFile {
   const c = new Cursor(src);
   const imports: ParsedImport[] = [];
 
@@ -122,17 +129,66 @@ export function parseComponent(src: string): ParsedComponent {
     c.skipWs();
     if (!c.consumeKeyword("import")) break;
     c.skipWs();
-    const name = c.matchIdent();
-    if (!name) throw c.err("expected import name");
+    let defaultName: string | null = null;
+    const named: ParsedImport["named"] = [];
+    // Either `import Foo from "..."`, `import { A, B as C } from "..."`,
+    // or `import Foo, { A } from "..."`.
+    if (c.peek() === "{") {
+      parseNamedSpecifiers(c, named);
+    } else {
+      const n = c.matchIdent();
+      if (!n) throw c.err("expected import name or '{'");
+      defaultName = n;
+      c.skipWs();
+      if (c.consume(",")) {
+        c.skipWs();
+        if (c.peek() !== "{") throw c.err("expected '{' after ',' in import");
+        parseNamedSpecifiers(c, named);
+      }
+    }
     c.skipWs();
     if (!c.consumeKeyword("from")) throw c.err("expected 'from'");
     const path = readStringLiteral(c);
     c.consume(";");
-    imports.push({ name, path });
+    imports.push({ defaultName, named, path });
   }
 
-  c.skipWs();
-  if (!c.consumeKeyword("component")) throw c.err("expected 'component'");
+  const components: ParsedComponent[] = [];
+  while (true) {
+    c.skipWs();
+    if (c.eof()) break;
+    if (!c.consumeKeyword("component")) throw c.err("expected 'component'");
+    components.push(parseComponentBody(c));
+  }
+
+  if (components.length === 0) throw new Error("file must declare at least one component");
+  return { imports, components };
+}
+
+function parseNamedSpecifiers(c: Cursor, out: ParsedImport["named"]): void {
+  c.expect("{");
+  while (true) {
+    c.skipWs();
+    if (c.peek() === "}") { c.i++; return; }
+    const imported = c.matchIdent();
+    if (!imported) throw c.err("expected named import specifier");
+    c.skipWs();
+    let local = imported;
+    if (c.consumeKeyword("as")) {
+      c.skipWs();
+      const a = c.matchIdent();
+      if (!a) throw c.err("expected local name after 'as'");
+      local = a;
+      c.skipWs();
+    }
+    out.push({ imported, local });
+    if (c.consume(",")) continue;
+    c.skipWs();
+    if (c.peek() !== "}") throw c.err("expected ',' or '}' in named import list");
+  }
+}
+
+function parseComponentBody(c: Cursor): ParsedComponent {
   const name = c.matchIdent();
   if (!name) throw c.err("expected component name");
   c.skipWs();
@@ -202,7 +258,17 @@ export function parseComponent(src: string): ParsedComponent {
   }
 
   if (!view) throw new Error(`component ${name} missing view`);
-  return { name, imports, props, states, lets, fns, view };
+  return { name, props, states, lets, fns, view };
+}
+
+/**
+ * Convenience: parse a file that is expected to declare exactly one component
+ * and return that component. Useful for tests and tooling that target a single
+ * component descriptor; for files that may declare several, use `parseFile`.
+ */
+export function parseComponent(src: string): ParsedComponent {
+  const file = parseFile(src);
+  return file.components[0]!;
 }
 
 function parseView(src: string): ViewNode {

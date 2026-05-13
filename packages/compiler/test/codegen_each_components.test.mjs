@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseComponent } from "../dist/parser.js";
+import { parseFile } from "../dist/parser.js";
 import { generate } from "../dist/codegen.js";
 
 test("component nested in each is emitted inline, not hoisted", () => {
@@ -12,7 +12,7 @@ component X {
     <ul>{#each items as item, i (item.id)}<Item value={item.label} idx={i} />{/each}</ul>
   }
 }`;
-  const out = generate(parseComponent(src));
+  const out = generate(parseFile(src));
   assert.match(out, /const __c_0 = Item\.create\(\{ "value": \(item\.label\), "idx": \(i\) \}\)/);
   // No hoisted decl for the each-nested component.
   assert.doesNotMatch(out, /const __child_0 = Item/);
@@ -32,7 +32,7 @@ component X {
     </div>
   }
 }`;
-  const out = generate(parseComponent(src));
+  const out = generate(parseFile(src));
   assert.match(out, /const __child_0 = Header\.create\(\{ "value": \(count\) \}\)/);
   assert.match(out, /const __children = \[__child_0\];/);
 });
@@ -50,7 +50,7 @@ component X {
     </div>
   }
 }`;
-  const out = generate(parseComponent(src));
+  const out = generate(parseFile(src));
   // Header is hoisted as __child_0.
   assert.match(out, /const __child_0 = Header\.create\(/);
   // Two Item instances per item — counter advances independently inside each.
@@ -72,7 +72,7 @@ component X {
     </table>
   }
 }`;
-  const out = generate(parseComponent(src));
+  const out = generate(parseFile(src));
   // The inner Cell should be declared inside the inner build callback,
   // referring to col (the inner item binding) — not row.
   assert.match(out, /const __c_0 = Cell\.create\(\{ "value": \(col\.v\) \}\)/);

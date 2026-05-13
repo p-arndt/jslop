@@ -8,3 +8,12 @@ component Display {
     </p>
   }
 }
+
+component Stepper {
+  prop label = "?"
+  prop onstep = () => {}
+
+  view {
+    <button onclick={onstep}>{label}</button>
+  }
+}

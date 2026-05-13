@@ -1,5 +1,4 @@
-import Display from "../components/Display.rift"
-import Stepper from "../components/Stepper.rift"
+import { Display, Stepper } from "../components/widgets.rift"
 
 component Index {
   state count = 0

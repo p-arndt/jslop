@@ -1,4 +1,4 @@
-import type { ParsedComponent, ViewNode } from "./parser.js";
+import type { ParsedComponent, ParsedFile, ParsedImport, ViewNode } from "./parser.js";
 import { rewriteFnBody, rewriteExpr } from "./rewrite.js";
 
 export interface CodegenOptions {
@@ -7,47 +7,77 @@ export interface CodegenOptions {
   compiledExtension?: string;
 }
 
-export function generate(comp: ParsedComponent, opts: CodegenOptions = {}): string {
+export function generate(input: ParsedFile | ParsedComponent, opts: CodegenOptions = {}): string {
   const runtimeImport = opts.runtimeImport ?? "@rift/runtime";
   const compiledExt = opts.compiledExtension ?? ".compiled.mjs";
+  // Accept a bare ParsedComponent as shorthand for "single-component file with
+  // no imports" — keeps small-test ergonomics working without forcing every
+  // caller through parseFile.
+  const file: ParsedFile =
+    "components" in input ? input : { imports: [], components: [input] };
 
+  const importLines = file.imports.map((imp) => emitImport(imp, compiledExt)).join("\n");
+
+  const blocks = file.components.map((c) => generateComponent(c)).join("\n\n");
+  // The first declared component is the file's default — keeps single-component
+  // files (the existing convention, including all routes/layouts) working
+  // unchanged when a consumer does `import Comp from "./File.rift"`.
+  const first = file.components[0]!;
+  const defaultLine = `export default ${first.name};`;
+
+  return `import { cell, isReactive } from "${runtimeImport}";
+${importLines}
+
+${blocks}
+
+${defaultLine}
+`;
+}
+
+function emitImport(imp: ParsedImport, compiledExt: string): string {
+  const path = imp.path.endsWith(".rift")
+    ? imp.path.slice(0, -".rift".length) + compiledExt
+    : imp.path;
+  const clause: string[] = [];
+  if (imp.defaultName) clause.push(imp.defaultName);
+  if (imp.named.length > 0) {
+    const specs = imp.named
+      .map((s) => (s.imported === s.local ? s.imported : `${s.imported} as ${s.local}`))
+      .join(", ");
+    clause.push(`{ ${specs} }`);
+  }
+  return `import ${clause.join(", ")} from ${JSON.stringify(path)};`;
+}
+
+function generateComponent(comp: ParsedComponent): string {
   const reactiveNames = [...comp.props.map((p) => p.name), ...comp.states.map((s) => s.name)];
-
-  const importLines = comp.imports
-    .map((imp) => {
-      const path = imp.path.endsWith(".rift")
-        ? imp.path.slice(0, -".rift".length) + compiledExt
-        : imp.path;
-      return `import ${imp.name} from ${JSON.stringify(path)};`;
-    })
-    .join("\n");
 
   const propDecls = comp.props
     .map((p) => {
       const fallback = p.defaultExpr ?? "undefined";
-      return `  const ${p.name} = isReactive(props?.${p.name}) ? props.${p.name} : cell(props?.${p.name} ?? (${fallback}));`;
+      return `    const ${p.name} = isReactive(props?.${p.name}) ? props.${p.name} : cell(props?.${p.name} ?? (${fallback}));`;
     })
     .join("\n");
 
   const stateDecls = comp.states
-    .map((s) => `  const ${s.name} = cell(${s.init});`)
+    .map((s) => `    const ${s.name} = cell(${s.init});`)
     .join("\n");
 
   const letDecls = comp.lets
-    .map((l) => `  let ${l.name} = ${l.init};`)
+    .map((l) => `    let ${l.name} = ${l.init};`)
     .join("\n");
 
   const fnDecls = comp.fns
     .map(
       (f) =>
-        `  function ${f.name}(${f.params}) {\n${indent(rewriteFnBody(f.body, reactiveNames), 4)}\n  }`
+        `    function ${f.name}(${f.params}) {\n${indent(rewriteFnBody(f.body, reactiveNames), 6)}\n    }`
     )
     .join("\n");
 
-  const actionEntries = comp.fns.map((f) => `    ${f.name}`).join(",\n");
+  const actionEntries = comp.fns.map((f) => `      ${f.name}`).join(",\n");
 
   const childCtx: ChildCtx = { counter: 0, decls: [], inlineDecls: null };
-  const viewExpr = emitNode(comp.view, reactiveNames, 4, childCtx);
+  const viewExpr = emitNode(comp.view, reactiveNames, 6, childCtx);
   const childrenArr = childCtx.decls.length
     ? `[${childCtx.decls.map((_, i) => `__child_${i}`).join(", ")}]`
     : "[]";
@@ -57,13 +87,10 @@ export function generate(comp: ParsedComponent, opts: CodegenOptions = {}): stri
   const stateSerialize = stateSerializeEntries.join(", ");
 
   const stateRestore = comp.states
-    .map((s) => `      if ("${s.name}" in s) ${s.name}.set(s.${s.name});`)
+    .map((s) => `        if ("${s.name}" in s) ${s.name}.set(s.${s.name});`)
     .join("\n");
 
-  return `import { cell, isReactive } from "${runtimeImport}";
-${importLines}
-
-export const __rift_component = {
+  return `export const ${comp.name} = {
   name: ${JSON.stringify(comp.name)},
   create(props = {}) {
 ${propDecls}
@@ -92,10 +119,7 @@ ${stateRestore}
     }
     return { actions, buildView, serializeState, restoreState, children: __children };
   }
-};
-
-export default __rift_component;
-`;
+};`;
 }
 
 function indent(s: string, n: number): string {
@@ -192,7 +216,7 @@ function emitNode(
       return `{ kind: "component", name: ${JSON.stringify(node.name)}, instance: ${varName}, view: ${varName}.buildView() }`;
     }
     const varName = `__child_${idx}`;
-    childCtx.decls.push(`    const ${varName} = ${node.name}.create(${propsLit});`);
+    childCtx.decls.push(`      const ${varName} = ${node.name}.create(${propsLit});`);
     return `{ kind: "component", name: ${JSON.stringify(node.name)}, instance: ${varName}, view: ${varName}.buildView() }`;
   }
   const attrEntries = Object.entries(node.attrs).map(([k, v]) => {
@@ -222,4 +246,3 @@ function emitNode(
 
   return `{ kind: "element", tag: ${JSON.stringify(node.tag)}, attrs: ${attrsStr}, events: ${eventsStr}, children: ${childrenStr} }`;
 }
-

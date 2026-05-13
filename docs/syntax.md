@@ -7,7 +7,7 @@ This is the **currently implemented** DSL. For aspirational syntax (server block
 A `.rift` file has, in order:
 
 1. Zero or more `import` declarations.
-2. Exactly one `component` block.
+2. One or more `component` blocks.
 
 ```tsx
 import Other from "./Other.rift"
@@ -16,9 +16,13 @@ component Name {
   // declarations
   view { <root /> }
 }
+
+component Helper {
+  view { <span/> }
+}
 ```
 
-The component name is the JS identifier the file exports as `default`.
+Every component becomes a named ES module export. The **first** declared component is also the `default` export, so `import Foo from "./File.rift"` resolves to the file's first block. Sibling components in the same file can reference each other directly (`<Helper/>` inside `Name`'s view) — they're real module-scope bindings.
 
 ## Declarations at a glance
 
@@ -35,10 +39,12 @@ The component name is the JS identifier the file exports as `default`.
 
 ```tsx
 import Default from "./path.rift"
+import { A, B as Renamed } from "./widgets.rift"
+import Default, { Extra } from "./mixed.rift"
 import Helper from "../lib/helpers.ts"
 ```
 
-Only the **default import** form is supported. `.rift` paths are automatically rewritten to the compiled extension (`.rift` → `.compiled.mjs` by default, or whatever the bundler passes — `@rift/vite` keeps `.rift` so it can re-run the transform).
+Default and named import forms are both supported (and can be combined, ES-style). The default specifier picks up the first `component` block in the target file; named specifiers pick the components by their declared names. `.rift` paths are automatically rewritten to the compiled extension (`.rift` → `.compiled.mjs` by default, or whatever the bundler passes — `@rift/vite` keeps `.rift` so it can re-run the transform).
 
 ## `prop`
 
@@ -140,10 +146,10 @@ Lowercase tag → real DOM element. Self-closing is supported (`<br />`). Childr
 
 ### Components
 
-A tag whose name starts with an uppercase letter is treated as a component reference. It must resolve to an imported component:
+A tag whose name starts with an uppercase letter is treated as a component reference. It must resolve to either an imported component or a sibling component declared in the same file:
 
 ```tsx
-import Stepper from "../components/Stepper.rift"
+import { Stepper } from "../components/widgets.rift"
 // ...
 <Stepper label="+" onstep={increment} />
 ```

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseComponent } from "../dist/parser.js";
+import { parseFile, parseComponent } from "../dist/parser.js";
 import { generate } from "../dist/codegen.js";
 
 test("state declaration is reactive: parsed into states[]", () => {

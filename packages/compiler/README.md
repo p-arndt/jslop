@@ -9,7 +9,7 @@ pnpm add @rift/compiler
 ## API
 
 ```ts
-import { compile, parseComponent, generate } from "@rift/compiler";
+import { compile, parseFile, parseComponent, generate } from "@rift/compiler";
 
 const js = compile(source, {
   runtimeImport: "@rift/runtime",   // default
@@ -17,11 +17,14 @@ const js = compile(source, {
 });
 ```
 
-`compile = parseComponent → generate`. Use them separately if you need the AST.
+`compile = parseFile → generate`. Use them separately if you need the AST.
 
 ```ts
-const parsed = parseComponent(source);    // ParsedComponent
-const js = generate(parsed, opts);        // string
+const file = parseFile(source);           // ParsedFile { imports, components }
+const js = generate(file, opts);          // string
+
+// Single-component shorthand (throws if the file has no components):
+const comp = parseComponent(source);      // ParsedComponent (= file.components[0])
 ```
 
 ## Pipeline
@@ -37,8 +40,9 @@ source ──► parser ──► ParsedComponent ──► codegen ──► JS
 
 Hand-rolled cursor parser. Recognizes:
 
-- `import Name from "./path.rift"`
-- `component Name { ... }`
+- `import Name from "./path.rift"` — default import
+- `import { A, B as Renamed } from "./path.rift"` — named imports (combinable with a default)
+- One or more `component Name { ... }` blocks per file
 - `prop name = defaultExpr`
 - `state name = initExpr` — reactive cell (participates in the view)
 - `let name = initExpr` — non-reactive mutable binding (plain JS)
@@ -65,13 +69,13 @@ Non-reactive `let` declarations at component scope are left as plain JS — they
 
 ### 3. Codegen (`codegen.ts`)
 
-Walks the parsed component and emits:
+Walks the parsed file and emits one descriptor per declared component, with the first also re-exported as `default` so legacy default-import callers keep working:
 
 ```js
 import { cell, isReactive } from "@rift/runtime";
-import Display from "./Display.compiled.mjs";
+import { Display } from "./widgets.compiled.mjs";
 
-export const __rift_component = {
+export const Counter = {
   name: "Counter",
   create(props = {}) {
     const count = cell(props?.count ?? 0);
@@ -80,9 +84,13 @@ export const __rift_component = {
     function serializeState() { return { count: count.peek(), children: ... }; }
     function restoreState(s) { if ("count" in s) count.set(s.count); ... }
     return { actions, buildView, serializeState, restoreState, children };
-  },
+  }
 };
-export default __rift_component;
+
+// Additional `component` blocks in the same .rift file become further
+// `export const Helper = { ... }` statements, in declaration order.
+
+export default Counter;
 ```
 
 The view tree is a JSON-ish structure: `{ kind: "element" | "component" | "text" | "bind" | "if" | "each", ... }`. `@rift/server` and `@rift/client` both walk it.

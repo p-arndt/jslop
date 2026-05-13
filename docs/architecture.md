@@ -42,11 +42,11 @@ Parses `.rift` files and emits ES modules.
 
 Three stages:
 
-1. **Parser** (`parser.ts`) — hand-rolled cursor-based DSL parser. Produces a `ParsedComponent` AST with imports, props, reactive `state` declarations, non-reactive `let` bindings, functions, and a `ViewNode` tree.
+1. **Parser** (`parser.ts`) — hand-rolled cursor-based DSL parser. Produces a `ParsedFile` AST with file-level imports (default and/or named specifiers) and one or more `ParsedComponent` entries; each component carries props, reactive `state` declarations, non-reactive `let` bindings, functions, and a `ViewNode` tree.
 2. **Rewriter** (`rewrite.ts`) — AST-aware JS rewriter built on `acorn` + `magic-string`. The reactive-name set is `props ∪ states` — `let` bindings are never in it, so identifier references to them pass through untouched. For names that *are* reactive, reads become `.get()`, writes become `.set(...)`, and compound assignments expand via `.peek()`. Shadow-aware: function parameters, function-local `const`/`let`, and `each` item/index bindings shadow same-named outer reactives.
-3. **Codegen** (`codegen.ts`) — walks the AST and emits a JS module with a default export `__rift_component = { name, create(props) }`. The `create()` function builds cells, declares functions, wires up children, and returns `{ actions, buildView, serializeState, restoreState, children }`.
+3. **Codegen** (`codegen.ts`) — walks the AST and emits an ES module with one `export const Name = { name, create(props) }` per component, and `export default <FirstComponent>` so default-import call sites still work. The `create()` function builds cells, declares functions, wires up children, and returns `{ actions, buildView, serializeState, restoreState, children }`.
 
-Public API: `compile(source, opts?)`, `parseComponent(source)`, `generate(parsed, opts?)`.
+Public API: `compile(source, opts?)`, `parseFile(source)`, `parseComponent(source)` (single-component shorthand), `generate(parsed, opts?)`.
 
 ### `@rift/router`
 

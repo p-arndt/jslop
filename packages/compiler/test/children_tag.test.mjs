@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseComponent } from "../dist/parser.js";
+import { parseComponent, parseFile } from "../dist/parser.js";
 import { generate } from "../dist/codegen.js";
 
 test("parses <children/> as kind:children", () => {
@@ -20,9 +20,8 @@ test("<children> rejects inner content", () => {
 });
 
 test("codegen emits children literal", () => {
-  const c = parseComponent(`component L {
+  const out = generate(parseFile(`component L {
     view { <main><children/></main> }
-  }`);
-  const out = generate(c);
+  }`));
   assert.match(out, /\{ kind: "children" \}/);
 });

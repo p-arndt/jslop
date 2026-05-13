@@ -44,8 +44,7 @@ pnpm --filter @rift/example-counter run serve   # node serve.mjs
 ## What a `.rift` file looks like
 
 ```tsx
-import Display from "../components/Display.rift"
-import Stepper from "../components/Stepper.rift"
+import { Display, Stepper } from "../components/widgets.rift"
 
 component Counter {
   state count = 0
@@ -68,7 +67,7 @@ component Counter {
 }
 ```
 
-That's it. `state` declarations become reactive cells; `let` declarations stay plain JS for per-instance bookkeeping. Functions are plain JS. The view is HTML-ish with `{expr}` interpolation, `on<event>` handlers, `{#if}`/`{:else}`/`{/if}`, and `{#each list as item, i}`.
+That's it. `state` declarations become reactive cells; `let` declarations stay plain JS for per-instance bookkeeping. Functions are plain JS. The view is HTML-ish with `{expr}` interpolation, `on<event>` handlers, `{#if}`/`{:else}`/`{/if}`, and `{#each list as item, i}`. A `.rift` file may declare any number of components; the first is the default export, the rest are named exports.
 
 See [docs/syntax.md](./docs/syntax.md) for the full DSL reference.
 
