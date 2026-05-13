@@ -10,6 +10,9 @@ used by the Rift framework.
   `meta`, `mount`, `cleanup`, `when ... changes`, `sync ... with`.
 - The reactive `state` keyword gets its own scope (`storage.type.reactive.rift`)
   so themes can color it distinctly from plain `let`/`const`.
+- The `<children/>` placeholder gets its own scope
+  (`keyword.other.children-placeholder.rift`) so it stands out from regular
+  HTML elements in layouts and component bodies.
 - Modifier keywords `server`, `client`, `browser` before bindings and
   functions.
 - Embedded markup inside `view { ... }` blocks: HTML elements, capitalized

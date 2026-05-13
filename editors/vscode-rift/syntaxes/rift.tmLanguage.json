@@ -374,6 +374,15 @@
     "tag": {
       "patterns": [
         {
+          "name": "meta.tag.children-placeholder.rift",
+          "match": "(<)(children)(\\s*/?>)",
+          "captures": {
+            "1": { "name": "punctuation.definition.tag.begin.rift" },
+            "2": { "name": "keyword.other.children-placeholder.rift" },
+            "3": { "name": "punctuation.definition.tag.end.rift" }
+          }
+        },
+        {
           "name": "meta.tag.close.rift",
           "begin": "(</)([A-Z][A-Za-z0-9_]*)",
           "beginCaptures": {
