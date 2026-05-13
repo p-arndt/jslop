@@ -11,7 +11,7 @@ export function generate(comp: ParsedComponent, opts: CodegenOptions = {}): stri
   const runtimeImport = opts.runtimeImport ?? "@rift/runtime";
   const compiledExt = opts.compiledExtension ?? ".compiled.mjs";
 
-  const reactiveNames = [...comp.props.map((p) => p.name), ...comp.lets.map((l) => l.name)];
+  const reactiveNames = [...comp.props.map((p) => p.name), ...comp.states.map((s) => s.name)];
 
   const importLines = comp.imports
     .map((imp) => {
@@ -29,8 +29,12 @@ export function generate(comp: ParsedComponent, opts: CodegenOptions = {}): stri
     })
     .join("\n");
 
+  const stateDecls = comp.states
+    .map((s) => `  const ${s.name} = cell(${s.init});`)
+    .join("\n");
+
   const letDecls = comp.lets
-    .map((l) => `  const ${l.name} = cell(${l.init});`)
+    .map((l) => `  let ${l.name} = ${l.init};`)
     .join("\n");
 
   const fnDecls = comp.fns
@@ -48,12 +52,12 @@ export function generate(comp: ParsedComponent, opts: CodegenOptions = {}): stri
     ? `[${childCtx.decls.map((_, i) => `__child_${i}`).join(", ")}]`
     : "[]";
 
-  const stateSerializeEntries = comp.lets.map((l) => `${l.name}: ${l.name}.peek()`);
+  const stateSerializeEntries = comp.states.map((s) => `${s.name}: ${s.name}.peek()`);
   stateSerializeEntries.push("children: __children.map((c) => c.serializeState())");
   const stateSerialize = stateSerializeEntries.join(", ");
 
-  const stateRestore = comp.lets
-    .map((l) => `      if ("${l.name}" in s) ${l.name}.set(s.${l.name});`)
+  const stateRestore = comp.states
+    .map((s) => `      if ("${s.name}" in s) ${s.name}.set(s.${s.name});`)
     .join("\n");
 
   return `import { cell, isReactive } from "${runtimeImport}";
@@ -63,6 +67,7 @@ export const __rift_component = {
   name: ${JSON.stringify(comp.name)},
   create(props = {}) {
 ${propDecls}
+${stateDecls}
 ${letDecls}
 ${fnDecls}
     const actions = {

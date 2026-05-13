@@ -40,7 +40,8 @@ Hand-rolled cursor parser. Recognizes:
 - `import Name from "./path.rift"`
 - `component Name { ... }`
 - `prop name = defaultExpr`
-- `let name = initExpr`
+- `state name = initExpr` — reactive cell (participates in the view)
+- `let name = initExpr` — non-reactive mutable binding (plain JS)
 - `function name(params) { body }`
 - `view { ... }`
 
@@ -54,13 +55,13 @@ Inside `view`:
 
 ### 2. Rewriter (`rewrite.ts`)
 
-AST-aware JS rewrite using `acorn` for parsing and `magic-string` for surgical edits. For each reactive identifier (a `prop` or `let` name):
+AST-aware JS rewrite using `acorn` for parsing and `magic-string` for surgical edits. For each reactive identifier (a `prop` or `state` name):
 
 - Reads → `name.get()`
 - Writes (`x = y`) → `x.set(y)`
 - Compound assignments (`x++`, `x += 1`) → `x.set(x.peek() + 1)`
 
-Shadow-aware: function parameters, locally declared `const`/`let`, and `{#each}` bindings shadow outer reactives. 19 unit tests in `test/`.
+Non-reactive `let` declarations at component scope are left as plain JS — they don't participate in the rewrite and shadow any outer reactive of the same name. Shadow-aware in general: function parameters, locally declared `const`/`let`, and `{#each}` bindings shadow outer reactives.
 
 ### 3. Codegen (`codegen.ts`)
 

@@ -20,6 +20,9 @@ export interface ParsedComponent {
   name: string;
   imports: ParsedImport[];
   props: ParsedProp[];
+  /** Reactive cells, declared with `state`. */
+  states: Array<{ name: string; init: string }>;
+  /** Plain non-reactive bindings, declared with `let`. */
   lets: Array<{ name: string; init: string }>;
   fns: Array<{ name: string; params: string; body: string }>;
   view: ViewNode;
@@ -135,6 +138,7 @@ export function parseComponent(src: string): ParsedComponent {
   const body = readBalanced(c, "{", "}");
 
   const inner = new Cursor(body);
+  const states: ParsedComponent["states"] = [];
   const lets: ParsedComponent["lets"] = [];
   const fns: ParsedComponent["fns"] = [];
   const props: ParsedProp[] = [];
@@ -156,6 +160,17 @@ export function parseComponent(src: string): ParsedComponent {
       }
       inner.consume(";");
       props.push({ name: pname, defaultExpr });
+    } else if (inner.consumeKeyword("state")) {
+      inner.skipWs();
+      const sname = inner.matchIdent();
+      if (!sname) throw inner.err("expected state name");
+      inner.skipWs();
+      inner.expect("=");
+      const initStart = inner.i;
+      while (!inner.eof() && inner.peek() !== "\n" && inner.peek() !== ";") inner.i++;
+      const init = inner.src.slice(initStart, inner.i).trim();
+      inner.consume(";");
+      states.push({ name: sname, init });
     } else if (inner.consumeKeyword("let")) {
       inner.skipWs();
       const lname = inner.matchIdent();
@@ -181,12 +196,12 @@ export function parseComponent(src: string): ParsedComponent {
       const viewBody = readBalanced(inner, "{", "}");
       view = parseView(viewBody.trim());
     } else {
-      throw inner.err("unknown declaration; expected 'prop', 'let', 'function', or 'view'");
+      throw inner.err("unknown declaration; expected 'prop', 'state', 'let', 'function', or 'view'");
     }
   }
 
   if (!view) throw new Error(`component ${name} missing view`);
-  return { name, imports, props, lets, fns, view };
+  return { name, imports, props, states, lets, fns, view };
 }
 
 function parseView(src: string): ViewNode {

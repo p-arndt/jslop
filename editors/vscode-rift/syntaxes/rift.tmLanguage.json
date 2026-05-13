@@ -200,7 +200,7 @@
     },
 
     "binding-decl": {
-      "match": "\\b(let|const|derived|local)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
+      "match": "\\b(state|let|const|derived|local)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
       "captures": {
         "1": { "name": "storage.type.var.rift" },
         "2": { "name": "variable.other.readwrite.rift" }
@@ -501,7 +501,7 @@
     },
 
     "keywords-storage": {
-      "match": "\\b(let|const|var|function|prop|derived|local|component|schema|style|route|import|from|export)\\b",
+      "match": "\\b(state|let|const|var|function|prop|derived|local|component|schema|style|route|import|from|export)\\b",
       "name": "storage.type.rift"
     },
 

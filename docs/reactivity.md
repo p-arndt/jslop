@@ -8,7 +8,7 @@ The runtime lives in `@rift/runtime` and gives you five primitives:
 - `batch(fn)` — defer notifications until `fn` returns; each subscriber runs at most once.
 - `untrack(fn)` — read cells without subscribing to them.
 
-You rarely call these directly — the compiler emits `cell(...)` for every `let`/`prop` and `effect(...)` for every `{expr}` and event attachment. But they're there when you need them (e.g. computed values in a `function`, or a custom JS helper imported into a `.rift` file).
+You rarely call these directly — the compiler emits `cell(...)` for every `state`/`prop` and `effect(...)` for every `{expr}` and event attachment. Plain `let` declarations are *not* cells and don't participate in the reactive graph. The primitives are there when you need them (e.g. computed values in a `function`, or a custom JS helper imported into a `.rift` file).
 
 ## `cell<T>(initial: T): Cell<T>`
 
@@ -138,7 +138,7 @@ For a component like:
 
 ```tsx
 component Counter {
-  let count = 0
+  state count = 0
 
   function inc() {
     count++

@@ -46,14 +46,14 @@ Props arrive from the parent's view (e.g. `<Counter count={5} />`). Internally t
 
 So inside the component body, `label` always reads like a reactive variable — no `.value`, no `.get()`.
 
-## `let`
+## `state`
 
-Declares a local reactive variable.
+Declares a reactive variable — a cell that participates in the view.
 
 ```tsx
-let count = 0
-let items = ["a", "b"]
-let user = { name: "Ada" }
+state count = 0
+state items = ["a", "b"]
+state user = { name: "Ada" }
 ```
 
 Compiles to `const count = cell(0)`. The rewriter then turns:
@@ -65,8 +65,24 @@ Compiles to `const count = cell(0)`. The rewriter then turns:
 
 Inside a `function`, all of the above Just Work. Outside (i.e. inside event handlers in the view), the same rewrite applies.
 
+`state` values are serialized into the SSR capsule and restored on the client — that's how component state survives the network boundary.
+
+## `let`
+
+Declares a **non-reactive** mutable variable, scoped to the component instance.
+
+```tsx
+let lastId = 0
+let cache = new Map()
+let abortCtrl = null
+```
+
+Compiles to a plain JS `let lastId = 0;`. Reads and writes are not rewritten, no cell is allocated, and the value is **not** part of `serializeState`. Use this for per-instance bookkeeping that doesn't drive the view: caches, ID counters, debounce handles, abort controllers, anything the view never reads.
+
+If a `let` identifier appears inside a `{expr}` interpolation in the view, it'll read its current value once but won't update when mutated — by design. Anything that should refresh the DOM goes in `state`.
+
 > [!NOTE]
-> `let` is the only state declaration today. There's no `const` (use plain JS at the top of a function), no `derived` keyword in the DSL yet (use `@rift/runtime`'s `derived` if you need it), and no async `server` keyword.
+> There's no `const` keyword at component scope yet (use plain JS inside a `function`, or `import` from a sibling `.ts`), no `derived` keyword in the DSL (use `@rift/runtime`'s `derived` if you need it), and no async `server` keyword.
 
 ## `function`
 
@@ -90,7 +106,7 @@ For the common case of "wire a text input back into a cell", you don't need a fu
 > [!IMPORTANT]
 > Use `function`, not `fn`. `fn` appears in `PLAN.md` but the implemented keyword is `function`.
 
-The function body is rewritten so reads/writes of `let` and `prop` identifiers go through their cells, while everything else stays as regular JavaScript.
+The function body is rewritten so reads/writes of `state` and `prop` identifiers go through their cells, while everything else (including `let` declarations) stays as regular JavaScript.
 
 ## `view`
 
@@ -152,7 +168,7 @@ Two-way sugar that combines a property bind (cell → DOM property) with the app
 
 Resolution rules:
 
-- The expression must be a writable lvalue (typically a `let` identifier). The compiler rewrites the synthesized assignment so `bind:value={draft}` becomes `draft.set(e.target.value)` under the hood.
+- The expression must be a writable reactive lvalue (typically a `state` identifier, or a reactive `prop`). The compiler rewrites the synthesized assignment so `bind:value={draft}` becomes `draft.set(e.target.value)` under the hood.
 - `bind:value` listens to `input` on `<input>` / `<textarea>` and `change` on `<select>`.
 - `bind:checked` listens to `change` and reads `e.target.checked` (booleans, no string coercion).
 - Combining `bind:value` with an explicit `value=` or `oninput=` on the same element is a parse error.
@@ -168,7 +184,7 @@ Any attribute starting with `on` followed by a lowercase letter (`onclick`, `oni
 <input oninput={(e) => draft = e.target.value} />
 ```
 
-The handler expression is rewritten just like a function body, so inline mutations to `let`/`prop` identifiers work:
+The handler expression is rewritten just like a function body, so inline mutations to `state`/`prop` identifiers work:
 
 ```tsx
 <button onclick={() => count++}>+</button>
@@ -236,19 +252,27 @@ Components nested inside `{#each}` are instantiated lazily inside the per-item b
 
 ## What the compiler does (at a glance)
 
-For each `let` and `prop`:
+For each `state` and `prop`:
 
 ```tsx
-let count = 0
+state count = 0
 // becomes:
 const count = cell(0);
 ```
 
+For each `let`:
+
+```tsx
+let lastId = 0
+// becomes:
+let lastId = 0;          // plain JS, untouched by the rewriter
+```
+
 For each function body and each `{expr}` in the view:
 
-- Identifiers shadowed by parameters, locals, or `each` bindings are left alone.
-- Identifiers that match a `let`/`prop` name become `name.get()` on read and `name.set(...)` on write.
-- Compound assignments (`++`, `--`, `+=`, etc.) are expanded against `.peek()`.
+- Identifiers shadowed by parameters, locals, `each` bindings, or component-scope `let` declarations are left alone.
+- Identifiers that match a `state`/`prop` name become `name.get()` on read and `name.set(...)` on write.
+- Compound assignments (`++`, `--`, `+=`, etc.) on reactive names are expanded against `.peek()`.
 
 The view is emitted as a tree of node descriptors (`{ kind: "element" | "text" | "bind" | "if" | "each" | "component", ... }`). `@rift/server` walks it to produce HTML; `@rift/client` walks the same tree (with `cell.set` calls re-running effects) to drive DOM updates.
 

@@ -74,7 +74,7 @@ Create `src/routes/index.rift`:
 
 ```tsx
 component Home {
-  let name = "world"
+  state name = "world"
 
   function shout() {
     name = name.toUpperCase()
@@ -91,8 +91,9 @@ component Home {
 
 The DSL gives you:
 
-- `let x = value` — declares a **reactive variable**. Mutations like `x++` or `x = ...` trigger updates.
-- `function foo() { ... }` — plain function. Reads/writes of `let` variables stay reactive.
+- `state x = value` — declares a **reactive variable**. Mutations like `x++` or `x = ...` trigger view updates and the value is persisted into the SSR capsule.
+- `let x = value` — declares a **non-reactive** mutable variable (per-instance caches, counters, debounce handles). Plain JS, never wrapped in a cell, never serialized.
+- `function foo() { ... }` — plain function. Reads/writes of `state`/`prop` identifiers stay reactive; `let` and other locals stay plain JS.
 - `prop x = default` — a prop with an optional default. Parents can pass either a plain value or a reactive cell.
 - `view { ... }` — the markup. One root element.
 

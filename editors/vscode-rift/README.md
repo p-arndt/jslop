@@ -6,8 +6,8 @@ used by the Rift framework.
 ## Features
 
 - Highlighting for Rift declarations: `component`, `route`, `schema`, `style`,
-  `prop`, `let`, `const`, `derived`, `local`, `fn`, `view`, `meta`, `mount`,
-  `cleanup`, `when ... changes`, `sync ... with`.
+  `prop`, `state`, `let`, `const`, `derived`, `local`, `fn`, `view`, `meta`,
+  `mount`, `cleanup`, `when ... changes`, `sync ... with`.
 - Modifier keywords `server`, `client`, `browser` before bindings and
   functions.
 - Embedded markup inside `view { ... }` blocks: HTML elements, capitalized

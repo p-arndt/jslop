@@ -32,7 +32,7 @@ Rift renders on the server, then **resumes** on the client without re-running th
 
 ## The state capsule
 
-When the server renders a component, it walks its `let` cells and writes their current values into a JSON blob embedded in the HTML:
+When the server renders a component, it walks its `state` cells (declarations like `state count = 0`) and writes their current values into a JSON blob embedded in the HTML. Non-reactive `let` bindings are *not* serialized — they're recomputed on the client:
 
 ```html
 <script id="__rift_state" type="application/json">

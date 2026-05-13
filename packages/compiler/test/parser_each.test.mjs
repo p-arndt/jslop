@@ -19,7 +19,7 @@ function findEach(node) {
 }
 
 test("each without key parses as before", () => {
-  const src = `component X { let items = []; view { <ul>{#each items as item}<li>{item}</li>{/each}</ul> } }`;
+  const src = `component X { state items = []; view { <ul>{#each items as item}<li>{item}</li>{/each}</ul> } }`;
   const c = parseComponent(src);
   const each = findEach(c.view);
   assert.equal(each.as, "item");
@@ -28,7 +28,7 @@ test("each without key parses as before", () => {
 });
 
 test("each with index, no key", () => {
-  const src = `component X { let items = []; view { <ul>{#each items as item, i}<li>{item}</li>{/each}</ul> } }`;
+  const src = `component X { state items = []; view { <ul>{#each items as item, i}<li>{item}</li>{/each}</ul> } }`;
   const c = parseComponent(src);
   const each = findEach(c.view);
   assert.equal(each.index, "i");
@@ -36,7 +36,7 @@ test("each with index, no key", () => {
 });
 
 test("each with key only", () => {
-  const src = `component X { let items = []; view { <ul>{#each items as item (item.id)}<li>{item.name}</li>{/each}</ul> } }`;
+  const src = `component X { state items = []; view { <ul>{#each items as item (item.id)}<li>{item.name}</li>{/each}</ul> } }`;
   const c = parseComponent(src);
   const each = findEach(c.view);
   assert.equal(each.as, "item");
@@ -45,7 +45,7 @@ test("each with key only", () => {
 });
 
 test("each with index and key", () => {
-  const src = `component X { let items = []; view { <ul>{#each items as item, i (item.id)}<li>{item.name}</li>{/each}</ul> } }`;
+  const src = `component X { state items = []; view { <ul>{#each items as item, i (item.id)}<li>{item.name}</li>{/each}</ul> } }`;
   const c = parseComponent(src);
   const each = findEach(c.view);
   assert.equal(each.as, "item");
@@ -54,7 +54,7 @@ test("each with index and key", () => {
 });
 
 test("each key can contain parens", () => {
-  const src = `component X { let items = []; view { <ul>{#each items as item (String(item.id))}<li/>{/each}</ul> } }`;
+  const src = `component X { state items = []; view { <ul>{#each items as item (String(item.id))}<li/>{/each}</ul> } }`;
   const c = parseComponent(src);
   const each = findEach(c.view);
   assert.equal(each.key, "String(item.id)");

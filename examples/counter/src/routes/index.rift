@@ -2,10 +2,10 @@ import Display from "../components/Display.rift"
 import Stepper from "../components/Stepper.rift"
 
 component Index {
-  let count = 0
-  let showHelp = false
-  let todos = ["learn rift", "build something"]
-  let draft = ""
+  state count = 0
+  state showHelp = false
+  state todos = ["learn rift", "build something"]
+  state draft = ""
 
   function increment() {
     count++

@@ -7,7 +7,7 @@ test("component nested in each is emitted inline, not hoisted", () => {
   const src = `
 import Item from './Item.rift'
 component X {
-  let items = []
+  state items = []
   view {
     <ul>{#each items as item, i (item.id)}<Item value={item.label} idx={i} />{/each}</ul>
   }
@@ -24,7 +24,7 @@ test("hoisted components outside each are unchanged", () => {
   const src = `
 import Header from './Header.rift'
 component X {
-  let count = 0
+  state count = 0
   view {
     <div>
       <Header value={count} />
@@ -42,7 +42,7 @@ test("hoisted and inline can coexist with independent counters", () => {
 import Header from './Header.rift'
 import Item from './Item.rift'
 component X {
-  let items = []
+  state items = []
   view {
     <div>
       <Header />
@@ -63,7 +63,7 @@ test("nested each: each inner each gets its own inline scope", () => {
   const src = `
 import Cell from './Cell.rift'
 component X {
-  let rows = []
+  state rows = []
   view {
     <table>
       {#each rows as row, r (row.id)}

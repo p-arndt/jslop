@@ -5,7 +5,7 @@ import { generate } from "../dist/codegen.js";
 
 test("bind:value on input synthesizes value attr + input handler", () => {
   const c = parseComponent(`component X {
-    let draft = ''
+    state draft = ''
     view { <input bind:value={draft} /> }
   }`);
   const root = c.view;
@@ -16,7 +16,7 @@ test("bind:value on input synthesizes value attr + input handler", () => {
 
 test("bind:value on select uses change event", () => {
   const c = parseComponent(`component X {
-    let pick = 'a'
+    state pick = 'a'
     view { <select bind:value={pick}><option value='a'>A</option></select> }
   }`);
   assert.equal(c.view.events.change, "(e) => { pick = e.target.value; }");
@@ -25,7 +25,7 @@ test("bind:value on select uses change event", () => {
 
 test("bind:checked uses change event and reads e.target.checked", () => {
   const c = parseComponent(`component X {
-    let agreed = false
+    state agreed = false
     view { <input type='checkbox' bind:checked={agreed} /> }
   }`);
   assert.equal(c.view.attrs.checked, "__prop:agreed");
@@ -36,7 +36,7 @@ test("bind: rejects unknown kinds", () => {
   assert.throws(
     () =>
       parseComponent(`component X {
-        let x = ''
+        state x = ''
         view { <input bind:foo={x} /> }
       }`),
     /unsupported bind:foo/
@@ -47,7 +47,7 @@ test("bind: conflicts with explicit attribute or handler", () => {
   assert.throws(
     () =>
       parseComponent(`component X {
-        let x = ''
+        state x = ''
         view { <input value='hi' bind:value={x} /> }
       }`),
     /conflicts with explicit value/
@@ -55,7 +55,7 @@ test("bind: conflicts with explicit attribute or handler", () => {
   assert.throws(
     () =>
       parseComponent(`component X {
-        let x = ''
+        state x = ''
         view { <input bind:value={x} oninput={() => {}} /> }
       }`),
     /conflicts with explicit oninput/
@@ -64,7 +64,7 @@ test("bind: conflicts with explicit attribute or handler", () => {
 
 test("codegen emits prop bind, no String() wrap, with rewriter applied", () => {
   const c = parseComponent(`component X {
-    let draft = ''
+    state draft = ''
     view { <input bind:value={draft} /> }
   }`);
   const out = generate(c);
@@ -82,7 +82,7 @@ test("codegen emits prop bind, no String() wrap, with rewriter applied", () => {
 
 test("codegen for bind:checked yields a boolean prop bind", () => {
   const c = parseComponent(`component X {
-    let agreed = false
+    state agreed = false
     view { <input type='checkbox' bind:checked={agreed} /> }
   }`);
   const out = generate(c);

@@ -84,4 +84,4 @@ Type guard used by compiled components for prop forwarding.
 
 ## How the compiler uses this
 
-For every `let` and `prop` in a `.rift` file, the compiler emits a `cell(...)`. For every `{expr}` in the view and every event attachment, the runtime wraps it in an `effect(...)`. See [docs/reactivity.md](../../docs/reactivity.md).
+For every `state` and `prop` in a `.rift` file, the compiler emits a `cell(...)`. Non-reactive `let` declarations are emitted as plain `let` bindings — they don't participate in the reactive graph. For every `{expr}` in the view and every event attachment, the runtime wraps it in an `effect(...)`. See [docs/reactivity.md](../../docs/reactivity.md).

@@ -20,7 +20,7 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 
 ## Compiler
 
-- ✅ Hand-rolled DSL parser (`component`, `let`, `function`, `prop`, `view`, `import`)
+- ✅ Hand-rolled DSL parser (`component`, `state`, `let`, `function`, `prop`, `view`, `import`)
 - ✅ AST-based identifier rewriter (acorn + magic-string), shadow-aware, 19 unit tests
 - ✅ View parser: elements, `{expr}`, `on<event>` handlers, capitalized tags as components, `{#if}…{:else}…{/if}`, `{#each list as item, i}…{/each}`
 - ❌ Source maps — codegen outputs no maps, so stack traces point at compiled coords

@@ -1,5 +1,5 @@
 component Index {
-  let count = 0
+  state count = 0
 
   function inc() {
     count++

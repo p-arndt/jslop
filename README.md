@@ -41,7 +41,7 @@ import Display from "../components/Display.rift"
 import Stepper from "../components/Stepper.rift"
 
 component Counter {
-  let count = 0
+  state count = 0
 
   function increment() {
     count++
@@ -61,7 +61,7 @@ component Counter {
 }
 ```
 
-That's it. `let` declarations become reactive cells. Functions are plain JS. The view is HTML-ish with `{expr}` interpolation, `on<event>` handlers, `{#if}`/`{:else}`/`{/if}`, and `{#each list as item, i}`.
+That's it. `state` declarations become reactive cells; `let` declarations stay plain JS for per-instance bookkeeping. Functions are plain JS. The view is HTML-ish with `{expr}` interpolation, `on<event>` handlers, `{#if}`/`{:else}`/`{/if}`, and `{#each list as item, i}`.
 
 See [docs/syntax.md](./docs/syntax.md) for the full DSL reference.
 

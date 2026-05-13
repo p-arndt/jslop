@@ -3,7 +3,7 @@
     "prefix": "component",
     "body": [
       "component ${1:Name} {",
-      "  let ${2:count} = 0",
+      "  state ${2:count} = 0",
       "",
       "  function ${3:handler}() {",
       "    $0",
@@ -61,10 +61,15 @@
     "body": ["server function ${1:name}(${2:params}) {", "  $0", "}"],
     "description": "Server function declaration"
   },
+  "state": {
+    "prefix": "state",
+    "body": ["state ${1:name} = ${2:value}"],
+    "description": "Reactive local binding (cell)"
+  },
   "let": {
     "prefix": "let",
     "body": ["let ${1:name} = ${2:value}"],
-    "description": "Reactive local binding"
+    "description": "Non-reactive mutable local binding (plain JS)"
   },
   "prop": {
     "prefix": "prop",
