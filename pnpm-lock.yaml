@@ -128,6 +128,19 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
 
+  packages/prettier-plugin:
+    dependencies:
+      '@rift/compiler':
+        specifier: workspace:*
+        version: link:../compiler
+    devDependencies:
+      prettier:
+        specifier: ^3.3.3
+        version: 3.8.3
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   packages/router:
     devDependencies:
       '@types/node':
@@ -933,6 +946,11 @@ packages:
     resolution: {integrity: sha512-SoSL4+OSEtR99LHFZQiJLkT59C5B1amGO1NzTwj7TT1qCUgUO6hxOvzkOYxD+vMrXBM3XJIKzokoERdqQq/Zmg==}
     engines: {node: ^10 || ^12 || >=14}
 
+  prettier@3.8.3:
+    resolution: {integrity: sha512-7igPTM53cGHMW8xWuVTydi2KO233VFiTNyF5hLJqpilHfmn8C8gPf+PS7dUT64YcXFbiMGZxS9pCSxL/Dxm/Jw==}
+    engines: {node: '>=14'}
+    hasBin: true
+
   rollup@4.60.3:
     resolution: {integrity: sha512-pAQK9HalE84QSm4Po3EmWIZPd3FnjkShVkiMlz1iligWYkWQ7wHYd1PF/T7QZ5TVSD6uSTon5gBVMSM4JfBV+A==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
@@ -1504,6 +1522,8 @@ snapshots:
       nanoid: 3.3.12
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  prettier@3.8.3: {}
 
   rollup@4.60.3:
     dependencies:
