@@ -3,21 +3,27 @@
 Rift is a pnpm workspace of small, single-purpose packages. Each one does one job and depends only on the runtime and (sometimes) the compiler.
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         @rift/vite (plugin)                          │
-│                                                                      │
-│   .rift file  ──►  @rift/compiler  ──►  JS module                    │
-│                                                                      │
-│   virtual:rift-routes  ◄──  @rift/router  (scan src/routes)          │
-│                                                                      │
-│   request /url  ──►  @rift/router.match  ──►  @rift/server.render    │
-│                                                                      │
-│   virtual:rift-client  ──►  @rift/client.boot()  in browser          │
-└─────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
-                          @rift/runtime
-                  (cell / derived / effect / batch)
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          @rift/vite (plugin)                              │
+│                                                                           │
+│   .rift file  ──►  @rift/compiler  ──►  JS module                         │
+│                                                                           │
+│   @rift/router  (scan src/routes)  ──►  routes manifest                   │
+│                                                                           │
+│   dev:    request /url  ──►  match  ──►  @rift/server.render → response   │
+│                                                                           │
+│   build:  vite build         → dist/client/  (hashed JS + CSS + manifest) │
+│           vite build --ssr   → dist/server/entry-server.js  exports       │
+│                                  render(url) using @rift/server, /router  │
+│                                                                           │
+│   prod:   @rift/node-adapter  ──►  static dist/client/  +  render(url)    │
+│                                                                           │
+│   virtual:rift-client  ──►  @rift/client.boot()  in browser               │
+└──────────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+                           @rift/runtime
+                   (cell / derived / effect / batch)
 ```
 
 ## Packages
@@ -76,11 +82,25 @@ The view tree it walks is the **same shape** the server walked, so DOM and view 
 The bundler integration that ties everything together.
 
 - **Transform plugin** — every `.rift` file goes through `@rift/compiler.compile()`.
-- **Virtual modules** — `virtual:rift-routes` (server-side import of every route component) and `virtual:rift-client` (client entry that calls `boot()` with a registry of components).
-- **SSR middleware** — registered ahead of Vite's HTML fallback. On each request: load routes manifest, match URL, `ssrLoadModule` the matched `.rift`, call `renderPage`, run `transformIndexHtml`, send.
+- **Virtual modules**:
+  - `virtual:rift-client` — browser entry. Imports `boot` plus every route/layout component, calls `boot({ name: Component, ... })`.
+  - `virtual:rift-entry-server` — production SSR entry. Statically imports every route/layout, exports `render(url, opts?) → { status, html, headers }`.
+  - `virtual:rift-routes` — server-side routes manifest (currently unused by the runtime; kept as a stable surface for adapters).
+- **Build config** — a `config()` hook detects `env.command === "build"` and flips Rollup input/output between two modes:
+  - Default (`vite build`): client entry → `dist/client/` with `manifest: true` (hashed JS + CSS in `assets/`, `.vite/manifest.json` index).
+  - `vite build --ssr`: SSR entry → `dist/server/entry-server.js`, with `ssr.noExternal: [/^@rift\//]` so workspace packages bundle into a self-contained server entry.
+- **Dev SSR middleware** — registered ahead of Vite's HTML fallback. On each request: load routes manifest, match URL, `ssrLoadModule` the matched `.rift`, call `renderPage`, run `transformIndexHtml`, send.
 - **Optional Tailwind v4** — `tailwind: true` auto-loads `@tailwindcss/vite`.
 
-## A request, end-to-end
+### `@rift/node-adapter`
+
+A Node HTTP wrapper around a built SSR `render(url)`.
+
+- `createHandler({ render, clientDir })` — returns a `(req, res) → void` handler. Paths with a file extension are served as static assets from `clientDir`; everything else goes through `render(url)`. Assets under `/assets/` get `cache-control: public, max-age=31536000, immutable` (safe because Vite hashes their filenames).
+- `createServer(opts)` — same plus `http.createServer(handler)`.
+- The `RenderFn` signature is request-agnostic, so Bun / Workers adapters can drop in with the same `render(url, opts) → { status, html, headers }` contract.
+
+## A request, end-to-end (dev)
 
 For `GET /posts/hello-world`:
 
@@ -103,6 +123,18 @@ In the browser:
 2. `boot` reads `<script id="__rift_state">`, finds the right component in the registry, calls `create(props)` and `restoreState(capsule)`.
 3. `boot` walks `instance.buildView()` and the existing DOM in lockstep, attaching event handlers and wrapping each `bind` node in an `effect()`.
 4. From this point on, user interactions trigger `cell.set` → subscribers re-run → DOM nodes update fine-grained.
+
+## A request, end-to-end (production)
+
+After `vite build && vite build --ssr`:
+
+1. `@rift/node-adapter`'s handler receives the request.
+2. If the URL has a file extension and resolves under `dist/client/`, the file is served directly (long-cache for `/assets/*`).
+3. Otherwise: `render(url)` from `dist/server/entry-server.js` runs.
+4. On first call, `render` reads `dist/client/.vite/manifest.json` once and caches it. It finds the entry chunk (`assets/client-<hash>.js`) plus any CSS Vite emitted for that entry.
+5. `matchRoute(url, routes)` against the statically-imported route table; on miss, the bundled `_404.rift` (if any) renders with the layout chain.
+6. `renderPage({ component, layouts, props, appScriptUrl, stylesheets })` produces HTML + capsule, exactly the same shape as dev.
+7. Response goes out. No `transformIndexHtml` pass — the HTML is final.
 
 ## What's intentionally not here
 

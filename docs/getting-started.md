@@ -126,6 +126,45 @@ Rule of thumb: if the view (or an `{expr}` inside it) reads the value, use `stat
 > [!NOTE]
 > Anything else from [`PLAN.md`](../PLAN.md) — `server`, `derived`, `when`, `mount`, `style`, `schema`, server functions, etc. — is **not yet implemented**. Track [TODO.md](../TODO.md) for progress.
 
+## Build for production
+
+Rift apps build in two passes. The first emits the hashed client bundle (and CSS, if you import any) plus a Vite manifest. The second emits a self-contained Node SSR entry that reads that manifest to know which asset URLs to inject.
+
+```bash
+pnpm --filter @rift/example-counter run build
+# expands to: vite build && vite build --ssr
+#   dist/client/.vite/manifest.json
+#   dist/client/assets/client-<hash>.js
+#   dist/server/entry-server.js
+```
+
+To serve the build, use [`@rift/node-adapter`](../packages/node-adapter):
+
+```js
+// examples/counter/serve.mjs
+import { createServer } from "@rift/node-adapter";
+import { render } from "./dist/server/entry-server.js";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const server = createServer({
+  render,
+  clientDir: resolve(here, "dist/client"),
+});
+server.listen(Number(process.env.PORT ?? 3000));
+```
+
+```bash
+pnpm --filter @rift/example-counter run serve
+# → rift counter listening on http://localhost:3000
+```
+
+The adapter serves anything under `dist/client/` as a static asset (with long-cache headers for `/assets/*`, which Vite hashes) and routes everything else through `render(url)`. The render function auto-discovers the hashed client bundle and any CSS it emitted from `dist/client/.vite/manifest.json` — you don't have to wire URLs by hand.
+
+> [!NOTE]
+> Apps using `@rift/vite` need `@rift/server` and `@rift/router` declared as dependencies in `package.json` — they're bundled into the SSR entry, so pnpm's strict resolver requires them at the project level. See `examples/counter/package.json` for the full set.
+
 ## Next
 
 - [Syntax reference](./syntax.md)

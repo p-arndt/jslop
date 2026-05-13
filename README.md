@@ -9,7 +9,7 @@ Rift's pitch:
 No `useEffect`. No dependency arrays. No `use client`. No loader/action files. State is just variables; the compiler turns them into fine-grained reactive cells.
 
 > [!WARNING]
-> **Status: early.** Rift is pre-1.0. The compiler, runtime, SSR, client boot, router, and Vite plugin all work end-to-end for the example apps in `examples/`. Many features in [`PLAN.md`](./PLAN.md) (server functions, schema forms, layouts, local-first collections, devtools, production build) are **not yet implemented** — see [`TODO.md`](./TODO.md) for the honest status.
+> **Status: early.** Rift is pre-1.0. The compiler, runtime, SSR, client boot, router, Vite plugin, layouts, 404 pages, and the production build path all work end-to-end for the example apps in `examples/`. Many features in [`PLAN.md`](./PLAN.md) (server functions, schema forms, local-first collections, devtools) are **not yet implemented** — see [`TODO.md`](./TODO.md) for the honest status.
 
 ---
 
@@ -27,6 +27,13 @@ To run the marketing-site example with Tailwind:
 
 ```bash
 pnpm --filter @rift/example-site run dev
+```
+
+To build and serve a production bundle (SSR + hashed client + static assets via `@rift/node-adapter`):
+
+```bash
+pnpm --filter @rift/example-counter run build   # vite build && vite build --ssr
+pnpm --filter @rift/example-counter run serve   # node serve.mjs
 ```
 
 > [!IMPORTANT]
@@ -85,12 +92,13 @@ Start here:
 
 ```
 packages/
-  compiler/   — .rift → JS module (parser, AST rewriter, codegen)
-  runtime/    — cell / derived / effect / batch / untrack
-  server/     — SSR: render component tree + serialize state capsule
-  client/     — boot: restore state capsule + attach handlers + reactive DOM
-  router/     — file-system route scan + URL match
-  vite/       — Vite plugin: transform + virtual modules + SSR middleware
+  compiler/      — .rift → JS module (parser, AST rewriter, codegen)
+  runtime/       — cell / derived / effect / batch / untrack
+  server/        — SSR: render component tree + serialize state capsule
+  client/        — boot: restore state capsule + attach handlers + reactive DOM
+  router/        — file-system route scan + URL match
+  vite/          — Vite plugin: transform + virtual modules + dev SSR + prod build
+  node-adapter/  — Node HTTP wrapper around the built SSR render() + static assets
 
 examples/
   counter/    — minimal interactive demo

@@ -39,9 +39,18 @@ importers:
       '@rift/client':
         specifier: workspace:*
         version: link:../../packages/client
+      '@rift/node-adapter':
+        specifier: workspace:*
+        version: link:../../packages/node-adapter
+      '@rift/router':
+        specifier: workspace:*
+        version: link:../../packages/router
       '@rift/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
+      '@rift/server':
+        specifier: workspace:*
+        version: link:../../packages/server
     devDependencies:
       '@rift/vite':
         specifier: workspace:*
@@ -55,9 +64,18 @@ importers:
       '@rift/client':
         specifier: workspace:*
         version: link:../../packages/client
+      '@rift/node-adapter':
+        specifier: workspace:*
+        version: link:../../packages/node-adapter
+      '@rift/router':
+        specifier: workspace:*
+        version: link:../../packages/router
       '@rift/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
+      '@rift/server':
+        specifier: workspace:*
+        version: link:../../packages/server
     devDependencies:
       '@rift/vite':
         specifier: workspace:*
@@ -97,6 +115,15 @@ importers:
       '@types/estree':
         specifier: ^1.0.6
         version: 1.0.9
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  packages/node-adapter:
+    devDependencies:
+      '@types/node':
+        specifier: ^25.7.0
+        version: 25.7.0
       typescript:
         specifier: ^5.6.3
         version: 5.9.3

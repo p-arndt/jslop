@@ -55,9 +55,10 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 - ✅ SSR middleware (registered pre-Vite-internals so route matching beats the html-fallback)
 - ✅ `handleHotUpdate` invalidates routes manifest on `.rift` add/remove
 - ✅ Optional Tailwind v4 wiring (`tailwind: true`), CSS injection (`css: "/src/app.css"`)
-- ❌ Production build path. `vite build` will currently emit a client bundle but **there's no SSR build target** and no static-output mode. Need a build hook that emits a server bundle the Node adapter can run, plus a static-HTML pre-render mode for fully static routes.
-- ❌ Node / Bun / edge runtime adapters
+- ✅ Production build path. `vite build` emits `dist/client/` (hashed JS + CSS + `.vite/manifest.json`) and `vite build --ssr` emits `dist/server/entry-server.js` exporting `render(url, opts?) → { status, html, headers }`. The plugin's `config()` hook flips rollup input/output between the two via `env.isSsrBuild`; workspace `@rift/*` packages are bundled into the server entry (`ssr.noExternal`). The server entry auto-discovers the hashed client bundle and any emitted CSS by reading `dist/client/.vite/manifest.json` at runtime — opts.css source paths are not re-emitted in prod. Verified end-to-end on `examples/counter` and `examples/site` (routes, layouts, dynamic params, 404 page).
+- 🟡 Node / Bun / edge runtime adapters. `@rift/node-adapter` exports `createHandler` / `createServer` that wraps the SSR `render` plus static-asset serving from `dist/client/` (long-cache headers for hashed `assets/`). No Bun/edge adapters yet, but the `RenderFn` shape is request-agnostic so they'd be drop-ins.
 - ❌ `transformIndexHtml` integration is a single static call; for streaming responses we'd need to re-architect
+- ❌ Static-HTML pre-render mode for fully static routes (today every request goes through `render(url)`).
 - 🐛 HMR for `.rift` changes triggers a **full page reload**, not partial component reload. Vite's defaults do the right thing for module changes, but the visible behavior is "reload". Could be improved with explicit `import.meta.hot.accept` codegen.
 
 ## Router (`@rift/router`)
@@ -128,8 +129,8 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 
 ## Repo hygiene
 
-- ❌ Root README explaining what Rift is and how to try the examples
-- ❌ Per-package READMEs
+- ✅ Root README explaining what Rift is, how to try the examples, and how to build for production
+- ✅ Per-package READMEs (compiler, runtime, server, client, router, vite, node-adapter)
 - ❌ CHANGELOG
 - ❌ License file
 - ❌ CI (lint, typecheck, test, build the examples)
@@ -146,6 +147,6 @@ If I had to pick a north star, in order:
 2. ~~**Per-item child component instances inside `{#each}`**~~ — done at runtime. Lazy instantiation inside the build callback; keyed reorder reuses instances. State serialization for nested-in-each instances is the remaining gap, deferred until a real consumer needs it.
 3. ~~**Two-way binding sugar** (`bind:value={cell}` / `bind:checked={cell}`)~~ — done. Counter example migrated.
 4. ~~**Layouts + 404 routes**~~ — done. `_layout.rift` chains compose outermost-first via `<children/>`; `_404.rift` at routes root serves with status 404 and wears the same layout chrome. `examples/site` demonstrates both.
-5. **Production build path** (`vite build` → SSR bundle + Node adapter) — without this, Rift is dev-mode only.
+5. ~~**Production build path** (`vite build` → SSR bundle + Node adapter)~~ — done. Two-pass build (client + ssr), `@rift/node-adapter` for serving, manifest-driven asset URL discovery. Static prerender and Bun/edge adapters still TODO.
 6. **Server functions** — the PLAN.md "killer protocol." Big scope but the most distinctive feature. Needs split bundling, RPC transport, security defaults.
 7. **Schema-native forms** — second killer feature from PLAN.md. Depends on server functions being landed first.

@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "vite build && vite build --ssr",
+    "preview": "vite preview",
+    "serve": "node serve.mjs"
   },
   "dependencies": {
     "@rift/client": "workspace:*",
-    "@rift/runtime": "workspace:*"
+    "@rift/node-adapter": "workspace:*",
+    "@rift/router": "workspace:*",
+    "@rift/runtime": "workspace:*",
+    "@rift/server": "workspace:*"
   },
   "devDependencies": {
     "@rift/vite": "workspace:*",
