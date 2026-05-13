@@ -3,11 +3,12 @@ import { effect, createScope, runInScope, disposeScope, type Scope } from "@rift
 type Actions = Record<string, (...args: unknown[]) => unknown>;
 
 type BindNode = { kind: "bind"; get: () => string };
+type PropNode = { kind: "prop"; get: () => unknown };
 type TextNode = { kind: "text"; value: string };
 type ElNode = {
   kind: "element";
   tag: string;
-  attrs: Record<string, string | BindNode>;
+  attrs: Record<string, string | BindNode | PropNode>;
   events: Record<string, (e: Event) => unknown>;
   children: ViewNode[];
 };
@@ -88,14 +89,34 @@ function attachElement(el: Element, node: ElNode, actions: Actions): void {
     el.addEventListener(evt, handler as EventListener);
   }
   for (const [k, v] of Object.entries(node.attrs)) {
-    if (typeof v === "object" && v && (v as BindNode).kind === "bind") {
-      const bind = v as BindNode;
-      effect(() => {
-        el.setAttribute(k, bind.get());
-      });
+    if (typeof v === "object" && v) {
+      bindAttr(el, k, v as BindNode | PropNode);
     }
   }
   attachChildList(el, node.children, actions);
+}
+
+function bindAttr(el: Element, k: string, v: BindNode | PropNode): void {
+  if (v.kind === "bind") {
+    effect(() => {
+      el.setAttribute(k, v.get());
+    });
+  } else {
+    // Property bind: drive the IDL property directly so user-edited inputs
+    // reflect programmatic cell changes (setAttribute('value') doesn't, after
+    // the user has typed).
+    effect(() => {
+      const next = v.get();
+      // Avoid a self-write loop when the user is typing: the input event
+      // updates the cell, the cell triggers this effect, which would write
+      // back the (now identical) value but in some browsers reset the caret
+      // position. Skip when nothing would change.
+      const cur = (el as unknown as Record<string, unknown>)[k];
+      if (cur !== next) {
+        (el as unknown as Record<string, unknown>)[k] = next as unknown;
+      }
+    });
+  }
 }
 
 function attach(el: Element, node: ElNode, actions: Actions): void {
@@ -368,10 +389,7 @@ function buildElementInto(el: Element, node: ElNode, actions: Actions): void {
     if (typeof v === "string") {
       el.setAttribute(k, v);
     } else {
-      const bind = v as BindNode;
-      effect(() => {
-        el.setAttribute(k, bind.get());
-      });
+      bindAttr(el, k, v as BindNode | PropNode);
     }
   }
   for (const [evt, handler] of Object.entries(node.events)) {

@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r --filter \"./packages/*\" run build",
-    "dev:counter": "pnpm --filter @rift/example-counter run dev"
+    "dev:counter": "pnpm --filter @rift/example-counter run dev",
+    "bench": "pnpm --filter @rift/benchmarks run bench"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

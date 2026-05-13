@@ -45,7 +45,7 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 - ✅ Keyed `{#each}` reconciliation: `{#each list as item, i (item.id)}` preserves DOM identity across reorder, dispose-on-remove, and insert-in-middle without rebuilding neighbors. Per-item effect scopes are disposed when an item is removed, so binds inside list items no longer leak. Unkeyed lists fall back to dispose-then-rebuild but now correctly tear down the previous items' effect scopes. Covered by 5 client integration tests.
 - 🟡 Components nested inside `{#each}` now get a fresh instance per item (codegen emits `const __c_N = X.create(...)` inside the build callback instead of hoisting). For keyed lists, instances are reused across reorders since `build()` only runs for new keys. **Open gap:** child component state inside an each is *not* serialized into the parent's `__children`, so SSR-restored state for those instances doesn't round-trip — they re-create from scratch on hydration. Acceptable for stateless presentational components; problematic for stateful ones.
 - ❌ Client-side navigation (SPA mode). Today every `<a>` is a full page load. Needs `<a>` interception + `history.pushState` + fetch new HTML + swap root.
-- ❌ Bind for `<input value={cell}>` is one-way (cell → DOM only). No `value` ↔ cell two-way binding sugar. Users have to wire `oninput` manually like the counter example does.
+- ✅ Two-way binding sugar: `<input bind:value={cell}>`, `<input type="checkbox" bind:checked={cell}>`, `<select bind:value={cell}>`. Compiler synthesizes both the property bind (driving the IDL property, not the attribute, so programmatic updates overwrite user-typed values correctly) and the matching event handler. Counter example migrated. Conflicts with explicit `value=`/`oninput=` on the same element are rejected at parse time. Covered by 7 compiler + 3 SSR + 2 client tests.
 
 ## Vite plugin (`@rift/vite`)
 
@@ -111,16 +111,16 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 
 - 🟡 Tests:
   - ✅ Compiler rewriter unit tests (19)
-  - 🟡 Parser unit tests (5 — `{#each}` key-syntax variants only; rest of grammar still uncovered)
-  - 🟡 Codegen tests (4 — lazy component instantiation inside `{#each}`, hoisted-vs-inline parity)
-  - 🟡 SSR snapshot tests (4 — keyed/unkeyed `<rift-each>` rendering, child component inside each)
-  - 🟡 Client tests (6 keyed/unkeyed reconciliation, leak prevention, child-instance reuse across reorders, against a hand-rolled stub DOM — replace with happy-dom)
+  - 🟡 Parser unit tests (10 — `{#each}` key-syntax variants + `bind:` sugar; rest of grammar still uncovered)
+  - 🟡 Codegen tests (6 — lazy component instantiation inside `{#each}`, hoisted-vs-inline parity, `bind:` rewrites)
+  - 🟡 SSR snapshot tests (7 — keyed/unkeyed `<rift-each>` rendering, child component inside each, prop-bind boolean+escape)
+  - 🟡 Client tests (8 keyed/unkeyed reconciliation, leak prevention, child-instance reuse across reorders, two-way property bind, against a hand-rolled stub DOM — replace with happy-dom)
   - ✅ Runtime scope tests (5)
   - ❌ Router unit tests
   - ❌ E2E via Playwright against `pnpm dev`
 - ❌ Error boundaries
-- ❌ Bundle size budget / measurement
-- ❌ Performance benchmarks vs Solid / Svelte
+- 🟡 Bundle size budget / measurement — `benchmarks/bundle-size/` builds the counter fixture in both Rift and Svelte 5 via the same esbuild config and reports raw/gzip/brotli. No budget enforced in CI yet.
+- 🟡 Performance benchmarks vs Solid / Svelte — `benchmarks/reactivity/` covers four reactivity-throughput scenarios vs Svelte 5 runes (set, fanout, wide reader, create+dispose). Solid not yet added; no large-list / DOM benchmark yet.
 - ❌ Accessibility audit on emitted DOM
 - ❌ CSP-friendly output (no inline scripts beyond the capsule)
 
@@ -142,7 +142,7 @@ If I had to pick a north star, in order:
 
 1. ~~**Effect disposers + keyed list reconciliation**~~ — done. Scopes + keyed `{#each}` landed; per-item effect leak fixed.
 2. ~~**Per-item child component instances inside `{#each}`**~~ — done at runtime. Lazy instantiation inside the build callback; keyed reorder reuses instances. State serialization for nested-in-each instances is the remaining gap, deferred until a real consumer needs it.
-3. **Two-way binding sugar** (`bind:value={cell}` or similar) — removes the `oninput` boilerplate visible in the counter todos. Small but high-DX-impact.
+3. ~~**Two-way binding sugar** (`bind:value={cell}` / `bind:checked={cell}`)~~ — done. Counter example migrated.
 4. **Layouts + 404 routes** — turns routing from "matches URLs" into something you'd actually ship.
 5. **Production build path** (`vite build` → SSR bundle + Node adapter) — without this, Rift is dev-mode only.
 6. **Server functions** — the PLAN.md "killer protocol." Big scope but the most distinctive feature. Needs split bundling, RPC transport, security defaults.

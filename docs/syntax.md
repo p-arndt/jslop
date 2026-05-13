@@ -83,11 +83,9 @@ function addTodo() {
     draft = ""
   }
 }
-
-function onInput(e) {
-  draft = e.target.value
-}
 ```
+
+For the common case of "wire a text input back into a cell", you don't need a function at all — see [`bind:value` below](#bindvalue--bindchecked).
 
 > [!IMPORTANT]
 > Use `function`, not `fn`. `fn` appears in `PLAN.md` but the implemented keyword is `function`.
@@ -139,13 +137,35 @@ DOM attributes are emitted as-is on lowercase elements. Values can be:
 <a href="/about" class="text-blue-500">About</a>
 ```
 
+### `bind:value` / `bind:checked`
+
+Two-way sugar that combines a property bind (cell → DOM property) with the appropriate event handler (DOM input → `cell.set(...)`):
+
+```tsx
+<input bind:value={draft} placeholder="add a todo..." />
+<input type="checkbox" bind:checked={agreed} />
+<select bind:value={pick}>
+  <option value="a">A</option>
+  <option value="b">B</option>
+</select>
+```
+
+Resolution rules:
+
+- The expression must be a writable lvalue (typically a `let` identifier). The compiler rewrites the synthesized assignment so `bind:value={draft}` becomes `draft.set(e.target.value)` under the hood.
+- `bind:value` listens to `input` on `<input>` / `<textarea>` and `change` on `<select>`.
+- `bind:checked` listens to `change` and reads `e.target.checked` (booleans, no string coercion).
+- Combining `bind:value` with an explicit `value=` or `oninput=` on the same element is a parse error.
+
+Internally, `bind:` emits a property bind (`{ kind: "prop", get }`) rather than an attribute bind, so the runtime sets `el.value` / `el.checked` directly. This is what lets a programmatic cell update overwrite the visible value of an `<input>` the user has already typed into — `setAttribute('value', …)` only updates the *initial* value, not the live one.
+
 ### Event handlers
 
 Any attribute starting with `on` followed by a lowercase letter (`onclick`, `oninput`, `onkeydown`, …) on a lowercase element is treated as a DOM event handler:
 
 ```tsx
 <button onclick={increment}>+</button>
-<input oninput={onDraftInput} />
+<input oninput={(e) => draft = e.target.value} />
 ```
 
 The handler expression is rewritten just like a function body, so inline mutations to `let`/`prop` identifiers work:
@@ -184,10 +204,7 @@ The expression is `String(...)`-coerced and updates fine-grained when its depend
 {/if}
 ```
 
-`{:else}` is optional. On test changes, the inactive branch is torn down and the active branch is rebuilt.
-
-> [!CAUTION]
-> Effects inside the torn-down branch don't currently have a disposer scope, so subscriptions can leak. Tracked in [TODO.md](../TODO.md).
+`{:else}` is optional. On test changes, the active branch is mounted in its own [scope](./architecture.md); switching branches disposes the previous scope, so all effects inside the discarded subtree are torn down.
 
 ### `{#each ... as ...}` / `{/each}`
 
@@ -199,12 +216,23 @@ The expression is `String(...)`-coerced and updates fine-grained when its depend
 {#each todos as item, i}
   <li>{i}: {item}</li>
 {/each}
+
+{#each todos as item, i (item.id)}
+  <li>{i}: {item.label}</li>
+{/each}
 ```
 
 The item binding (and optional index binding) is scoped to the block body — references inside aren't treated as reactive cells.
 
-> [!CAUTION]
-> List reconciliation is **full rebuild** today. Any change to the list re-creates all child nodes, losing focus/scroll/animation state. Keyed reconciliation is on the roadmap.
+The optional `(key)` clause enables **keyed reconciliation**:
+
+- For matched keys, the existing DOM (and any per-item effect scope or nested component instance) is reused; the reconciler only moves the node into its new position.
+- New keys get a fresh build with their own scope.
+- Removed keys have their scope disposed and DOM removed.
+
+Without a key, the each falls back to dispose-then-rebuild on every list change — correct, but loses focus/scroll/animation state inside list items. Recommend a key whenever the list is mutated by anything other than append-only.
+
+Components nested inside `{#each}` are instantiated lazily inside the per-item build callback, so each iteration owns its own instance. With a key, that instance survives reorders. **Open gap:** SSR-restored state for nested-in-each components doesn't currently round-trip — they re-create from scratch on hydration.
 
 ## What the compiler does (at a glance)
 

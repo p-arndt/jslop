@@ -278,6 +278,115 @@ test("unkeyed each: rebuild disposes prior item bind effects (no leak)", () => {
   assert.equal(mounts.length, 3);
 });
 
+test("bind: cell → DOM property and DOM input → cell", () => {
+  const draft = cell("hello");
+  let capturedInputHandler = null;
+
+  const Form = {
+    name: "Form",
+    create() {
+      return {
+        actions: {},
+        buildView() {
+          return {
+            kind: "element",
+            tag: "input",
+            attrs: { value: { kind: "prop", get: () => draft.get() } },
+            events: {
+              input: (e) => {
+                capturedInputHandler = e;
+                draft.set(e.target.value);
+              },
+            },
+            children: [],
+          };
+        },
+        serializeState: () => ({}),
+        restoreState: () => {},
+      };
+    },
+  };
+
+  // Set up a fresh root with a single bare <input> to attach to.
+  const root = new StubElement("input");
+  root.attrs["data-rift-cid"] = "r";
+  document.querySelector = (sel) => (sel === '[data-rift-cid="r"]' ? root : null);
+  document.getElementById = (id) =>
+    id === "__rift_capsule"
+      ? {
+          textContent: JSON.stringify({
+            components: [{ cid: "r", name: "Form", props: {}, state: {} }],
+          }),
+        }
+      : null;
+
+  boot({ Form });
+
+  // Initial cell value should have been pushed to the DOM property, not via setAttribute.
+  assert.equal(root.value, "hello");
+  assert.equal(root.attrs.value, undefined);
+
+  // Cell change → DOM property update.
+  draft.set("world");
+  assert.equal(root.value, "world");
+
+  // Simulate user typing: the runtime registered the input handler on the input element.
+  const handler = root.listeners["input"][0];
+  handler({ target: { value: "typed" } });
+  assert.equal(draft.peek(), "typed");
+  // The effect re-runs but skips the self-write (cur === next).
+  assert.equal(root.value, "typed");
+});
+
+test("bind:checked carries booleans without String() coercion", () => {
+  const agreed = cell(false);
+  const Form = {
+    name: "Form",
+    create() {
+      return {
+        actions: {},
+        buildView() {
+          return {
+            kind: "element",
+            tag: "input",
+            attrs: {
+              type: "checkbox",
+              checked: { kind: "prop", get: () => agreed.get() },
+            },
+            events: {
+              change: (e) => agreed.set(e.target.checked),
+            },
+            children: [],
+          };
+        },
+        serializeState: () => ({}),
+        restoreState: () => {},
+      };
+    },
+  };
+
+  const root = new StubElement("input");
+  root.attrs["data-rift-cid"] = "r";
+  document.querySelector = (sel) => (sel === '[data-rift-cid="r"]' ? root : null);
+  document.getElementById = (id) =>
+    id === "__rift_capsule"
+      ? {
+          textContent: JSON.stringify({
+            components: [{ cid: "r", name: "Form", props: {}, state: {} }],
+          }),
+        }
+      : null;
+  boot({ Form });
+
+  assert.equal(root.checked, false);
+  agreed.set(true);
+  assert.equal(root.checked, true);
+  // User unchecks the box.
+  root.listeners["change"][0]({ target: { checked: false } });
+  assert.equal(agreed.peek(), false);
+  assert.equal(root.checked, false);
+});
+
 test("keyed each: nested component instances persist across reorders", () => {
   // Simulate what the compiler emits for a keyed each containing a child
   // component: the build callback creates a fresh Child instance per item,

@@ -8,7 +8,9 @@ Working today (in `vite dev`):
 
 - `.rift` parsing + AST-aware identifier rewriting
 - `cell` / `derived` / `effect` / `batch` / `untrack`
-- View constructs: elements, components, `{expr}`, `on<event>` handlers, `{#if}`/`{:else}`/`{/if}`, `{#each list as item, i}`
+- Reactive scopes: `createScope` / `runInScope` / `disposeScope` / `onCleanup`. `{#if}` swaps and `{#each}` removals dispose the prior subtree's effects, no leaks.
+- View constructs: elements, components, `{expr}`, `on<event>` handlers, `bind:value` / `bind:checked`, `{#if}`/`{:else}`/`{/if}`, `{#each list as item, i (key)}`
+- Keyed `{#each}` reconciliation: DOM identity preserved per key across reorders / inserts / removes; per-item child component instances reused for matching keys.
 - SSR with serialized state capsule
 - Client boot that **resumes** rather than hydrates
 - File-system routing with dynamic `[param]` segments
@@ -19,8 +21,8 @@ Working today (in `vite dev`):
 
 In order, from [`TODO.md`](../TODO.md):
 
-1. **Effect disposers + keyed `<For>` reconciliation.** Foundational correctness/memory fixes.
-2. **Two-way binding sugar** (`bind:value={cell}`).
+1. ~~**Effect disposers + keyed `<For>` reconciliation.**~~ ✅ Done.
+2. ~~**Two-way binding sugar** (`bind:value={cell}`).~~ ✅ Done.
 3. **Layouts + 404 routes.** Make routing shippable.
 4. **Production build path.** `vite build` → SSR bundle + Node adapter. Without this, Rift is dev-mode only.
 5. **Server functions.** The killer protocol from PLAN.md. Split bundling + JSON-only RPC + security defaults.

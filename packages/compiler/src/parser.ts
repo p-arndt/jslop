@@ -215,25 +215,39 @@ function parseTag(c: Cursor): ViewNode {
   const attrs: Record<string, string> = {};
   const events: Record<string, string> = {};
   const props: Record<string, string> = {};
+  const bindSpecs: Array<{ kind: string; expr: string }> = [];
+
+  const finish = (children: ViewNode[]): ViewNode => {
+    if (isComp) return { kind: "component", name: tag, props, children };
+    for (const b of bindSpecs) synthesizeBind(tag, b.kind, b.expr, attrs, events, c);
+    return { kind: "element", tag, attrs, events, children };
+  };
 
   while (true) {
     c.skipWs();
     if (c.peek() === "/" && c.peek(1) === ">") {
       c.i += 2;
-      if (isComp) return { kind: "component", name: tag, props, children: [] };
-      return { kind: "element", tag, attrs, events, children: [] };
+      return finish([]);
     }
     if (c.peek() === ">") {
       c.i++;
       const children = parseChildren(c, tag);
-      if (isComp) return { kind: "component", name: tag, props, children };
-      return { kind: "element", tag, attrs, events, children };
+      return finish(children);
     }
-    const attrName = /^[A-Za-z_][A-Za-z0-9_-]*/.exec(c.rest());
+    const attrName = /^(?:bind:)?[A-Za-z_][A-Za-z0-9_-]*/.exec(c.rest());
     if (!attrName) throw c.err("expected attribute or '>'");
     c.i += attrName[0].length;
-    const isDomEventAttr = !isComp && /^on[a-z]/.test(attrName[0]);
+    const isBindAttr = !isComp && attrName[0].startsWith("bind:");
+    const isDomEventAttr = !isComp && !isBindAttr && /^on[a-z]/.test(attrName[0]);
     const eventType = isDomEventAttr ? attrName[0].slice(2) : null;
+    if (isBindAttr) {
+      const bindKind = attrName[0].slice("bind:".length);
+      if (!c.consume("=")) throw c.err(`bind:${bindKind} requires a value`);
+      if (c.peek() !== "{") throw c.err(`bind:${bindKind} value must be an expression {…}`);
+      const expr = readJsExpr(c).trim();
+      bindSpecs.push({ kind: bindKind, expr });
+      continue;
+    }
     if (c.peek() === "=") {
       c.i++;
       if (c.peek() === '"' || c.peek() === "'") {
@@ -257,6 +271,45 @@ function parseTag(c: Cursor): ViewNode {
       else attrs[attrName[0]] = JSON.stringify("");
     }
   }
+}
+
+function synthesizeBind(
+  tag: string,
+  bindKind: string,
+  expr: string,
+  attrs: Record<string, string>,
+  events: Record<string, string>,
+  c: Cursor
+): void {
+  // Map bind: kind → (DOM attribute, event name, reader expression).
+  let prop: string;
+  let event: string;
+  let reader: string;
+  if (bindKind === "value") {
+    prop = "value";
+    event = tag === "select" ? "change" : "input";
+    reader = "e.target.value";
+  } else if (bindKind === "checked") {
+    prop = "checked";
+    event = "change";
+    reader = "e.target.checked";
+  } else {
+    throw c.err(`unsupported bind:${bindKind} (only value and checked are supported)`);
+  }
+  if (attrs[prop] !== undefined) {
+    throw c.err(`bind:${bindKind} conflicts with explicit ${prop} attribute on the same element`);
+  }
+  if (events[event] !== undefined) {
+    throw c.err(`bind:${bindKind} conflicts with explicit on${event} handler on the same element`);
+  }
+  // Use the property bind form so the runtime sets the IDL property (e.g.
+  // el.value, el.checked) rather than the HTML attribute. Setting setAttribute
+  // for an <input> 'value' only updates the *initial* value; the property is
+  // what actually controls the visible state once the user has typed.
+  attrs[prop] = `__prop:${expr}`;
+  // The handler is plain JS; the codegen rewriter will turn an Identifier
+  // assignment into the matching cell.set() call.
+  events[event] = `(e) => { ${expr} = ${reader}; }`;
 }
 
 function parseChildren(c: Cursor, parentTag: string): ViewNode[] {

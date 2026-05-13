@@ -35,12 +35,23 @@ After boot, user events trigger `cell.set` → subscribers re-run → DOM nodes 
 
 `@rift/vite` generates a `virtual:rift-client` module that imports `boot` plus every route component and calls `boot()` with the right registry. Your `vite.config.mjs` only needs the Rift plugin.
 
+## Reactive scopes
+
+`boot` creates a top-level `Scope` (from `@rift/runtime`) per mounted root, and `mountIf` / `mountEach` open child scopes for each branch / list item. When a scope is disposed, every effect created inside it is torn down — so `{#if}` swaps and `{#each}` removals don't leak subscriptions.
+
+## Lists
+
+- `{#each list as item, i (item.id)}` — keyed. The reconciler reuses DOM nodes (and the per-item scope) across reorders, only inserting / moving / removing as needed.
+- `{#each list as item}` — unkeyed, dispose-then-rebuild on every change. The previous items' scopes are still cleaned up; correct, but loses focus / scroll / animation state.
+
+## Two-way binding
+
+`<input bind:value={cell}>`, `<input type="checkbox" bind:checked={cell}>`, and `<select bind:value={cell}>` desugar to a property bind plus the appropriate event handler. The runtime sets the IDL property (`el.value` / `el.checked`) directly — `setAttribute('value', …)` doesn't update an input the user has already typed into.
+
 ## Known limitations
 
 > [!CAUTION]
-> - **Full-rebuild lists.** Any change to a `{#each}` source list re-creates all child DOM nodes, losing focus / scroll / animation state. Keyed reconciliation is on the roadmap.
-> - **No per-item state.** Components nested inside `{#each}` don't currently get a stable instance per item; their state isn't preserved across rebuilds.
-> - **One-way `value` binding.** `<input value={cell}>` writes cell→DOM only. Wire `oninput` manually until `bind:value=` lands.
+> - **Per-item child component state isn't serialized.** A component nested inside `{#each}` gets a fresh instance per key (and survives reorders for keyed lists), but its state isn't part of the parent's `__children`, so SSR-restored state doesn't round-trip on hydration.
 > - **No SPA navigation.** Every `<a>` is a full page load.
 
 See [`TODO.md`](../../TODO.md).

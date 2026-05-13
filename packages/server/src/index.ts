@@ -1,4 +1,7 @@
-export type RenderAttr = string | { kind: "bind"; get: () => string };
+export type RenderAttr =
+  | string
+  | { kind: "bind"; get: () => string }
+  | { kind: "prop"; get: () => unknown };
 
 export type RenderNode =
   | { kind: "text"; value: string }
@@ -47,6 +50,13 @@ export interface RenderResult {
 const VOID_ELEMENTS = new Set([
   "area", "base", "br", "col", "embed", "hr", "img", "input",
   "link", "meta", "param", "source", "track", "wbr",
+]);
+
+// HTML boolean attributes: presence implies true, absence implies false.
+const BOOLEAN_ATTRS = new Set([
+  "checked", "disabled", "readonly", "required", "selected", "multiple",
+  "hidden", "autofocus", "autoplay", "controls", "loop", "muted",
+  "open", "reversed", "default",
 ]);
 
 export function renderComponent(
@@ -119,9 +129,18 @@ function renderElement(
   for (const [k, v] of Object.entries(node.attrs)) {
     if (typeof v === "string") {
       attrParts.push(`${k}="${escapeAttr(v)}"`);
-    } else {
+    } else if (v.kind === "bind") {
       const val = v.get();
       attrParts.push(`${k}="${escapeAttr(val)}" data-rift-attr-${k}=""`);
+    } else {
+      // kind: "prop" — boolean attributes render presence-based, others
+      // stringify their value into the attribute.
+      const val = v.get();
+      if (BOOLEAN_ATTRS.has(k)) {
+        if (val) attrParts.push(`${k}="" data-rift-prop-${k}=""`);
+      } else {
+        attrParts.push(`${k}="${escapeAttr(String(val ?? ""))}" data-rift-prop-${k}=""`);
+      }
     }
   }
   for (const evt of Object.keys(node.events)) {

@@ -192,6 +192,12 @@ function emitNode(
       const e = rewriteExpr(v.slice("__expr:".length), reactiveNames);
       return `${JSON.stringify(k)}: { kind: "bind", get: () => String(${e}) }`;
     }
+    if (v.startsWith("__prop:")) {
+      // Property bind: forward the value directly to the IDL property; no
+      // String() coercion (so booleans stay booleans for `checked`).
+      const e = rewriteExpr(v.slice("__prop:".length), reactiveNames);
+      return `${JSON.stringify(k)}: { kind: "prop", get: () => (${e}) }`;
+    }
     return `${JSON.stringify(k)}: ${v}`;
   });
   const eventEntries = Object.entries(node.events).map(

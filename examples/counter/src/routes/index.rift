@@ -34,10 +34,6 @@ component Index {
     todos = []
   }
 
-  function onDraftInput(e) {
-    draft = e.target.value
-  }
-
   view {
     <div>
       <h1>Rift Counter</h1>
@@ -57,7 +53,7 @@ component Index {
       {/if}
 
       <h2>Todos</h2>
-      <input value={draft} oninput={onDraftInput} placeholder="add a todo..." />
+      <input bind:value={draft} placeholder="add a todo..." />
       <button onclick={addTodo}>add</button>
       <button onclick={clearTodos}>clear</button>
 

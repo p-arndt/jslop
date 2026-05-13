@@ -65,6 +65,9 @@ The state capsule lives in `<script id="__rift_state" type="application/json">`.
 Browser boot.
 
 - `boot(registry)` — reads the state capsule from the DOM, instantiates the root component from `registry`, calls `restoreState`, then walks the view tree and attaches event handlers + sets up `effect()`s for every reactive binding.
+- Every mounted root opens a top-level `Scope`. `mountIf` opens a fresh scope per branch swap, `mountEach` opens one scope per list item. Disposing a scope tears down every effect created inside it, so `{#if}` swaps and `{#each}` removes don't leak.
+- Keyed `{#each list as item, i (key)}` is reconciled by key: matching items keep their DOM and per-item scope across reorders / inserts; removed keys have their scope disposed and DOM removed. Unkeyed lists fall back to dispose-then-rebuild (still scoped, just less efficient).
+- `bind:value` / `bind:checked` desugar to a property bind (`{ kind: "prop", get }`) that the runtime writes directly to the DOM IDL property — necessary because `setAttribute('value', …)` doesn't update an `<input>` the user has already typed into.
 
 The view tree it walks is the **same shape** the server walked, so DOM and view nodes line up by traversal order — there's no separate "hydration matching" step.
 

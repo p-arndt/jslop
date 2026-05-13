@@ -61,8 +61,30 @@ dispose();        // unsubscribes
 
 `fn` may return a cleanup function. It runs before the next re-execution and on disposal.
 
-> [!CAUTION]
-> Effects created inside `{#if}` or `{#each}` branches are not currently torn down when the branch goes away. This is a known leak — see [TODO.md](../TODO.md). If you create long-lived effects manually, hold the returned `dispose` and call it yourself.
+## Scopes
+
+Effects can be grouped into **scopes** so a chunk of work — typically one `{#if}` branch or one `{#each}` item — can be torn down as a unit.
+
+```ts
+import { createScope, runInScope, disposeScope, onCleanup, effect } from "@rift/runtime";
+
+const scope = createScope();
+runInScope(scope, () => {
+  effect(() => { /* ... */ });
+  onCleanup(() => clearInterval(handle));
+});
+
+disposeScope(scope);  // cleans up the effect AND runs the onCleanup
+```
+
+- `createScope(parent?)` — returns a new scope. Defaults to the current scope as parent so disposing the parent cascades to children.
+- `runInScope(scope, fn)` — runs `fn` with `scope` as the current scope; `effect()` calls inside register their disposer with it.
+- `disposeScope(scope)` — disposes child scopes recursively, then runs cleanups in LIFO order. Idempotent.
+- `onCleanup(fn)` — registers a non-effect cleanup with the current scope (timers, abort controllers, third-party subscriptions).
+
+`effect()` snapshots the current scope at creation and restores it on every re-run, so a `cell.set` triggered from a foreign scope still parents new child scopes correctly under the effect's owner.
+
+`@rift/client` uses this internally: `boot` opens a root scope per mounted component, `mountIf` opens a fresh scope per branch swap, and `mountEach` opens one scope per list item (disposed on remove for keyed lists, on rebuild for unkeyed). Most app code doesn't need to call this API directly, but it's available for ad-hoc subtrees (e.g. a future `<Await>` or imperative DOM mounts).
 
 ## `batch(fn): void`
 
