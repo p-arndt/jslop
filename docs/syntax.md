@@ -20,6 +20,17 @@ component Name {
 
 The component name is the JS identifier the file exports as `default`.
 
+## Declarations at a glance
+
+| Keyword     | Reactive | Serialized in SSR capsule | When to use                                                              |
+|-------------|----------|---------------------------|--------------------------------------------------------------------------|
+| `prop x`    | yes      | parent decides            | input from a parent component                                            |
+| `state x`   | yes      | yes                       | anything the view reads — counters, drafts, lists, toggles               |
+| `let x`     | no       | no                        | per-instance bookkeeping the view never reads (caches, IDs, timers)      |
+| `function`  | —        | —                         | actions / event handlers, with reactive-aware identifier rewriting       |
+
+`state` and `prop` are cells: reads inside functions and view expressions become `.get()`, writes become `.set(...)`. `let` is a plain JS `let` binding and the compiler doesn't touch identifier references to it.
+
 ## Imports
 
 ```tsx
@@ -79,10 +90,13 @@ let abortCtrl = null
 
 Compiles to a plain JS `let lastId = 0;`. Reads and writes are not rewritten, no cell is allocated, and the value is **not** part of `serializeState`. Use this for per-instance bookkeeping that doesn't drive the view: caches, ID counters, debounce handles, abort controllers, anything the view never reads.
 
-If a `let` identifier appears inside a `{expr}` interpolation in the view, it'll read its current value once but won't update when mutated — by design. Anything that should refresh the DOM goes in `state`.
+> [!WARNING]
+> A `let` referenced from a view `{expr}` will be read **once at mount** and never again — there's no cell, so no subscription, so the view never knows it changed. If you find yourself reaching for `let` in the markup, you wanted `state`.
+
+You can also use a `let` you never reassign as a per-instance constant (e.g. `let id = crypto.randomUUID()`). There's no separate `const` keyword at component scope today.
 
 > [!NOTE]
-> There's no `const` keyword at component scope yet (use plain JS inside a `function`, or `import` from a sibling `.ts`), no `derived` keyword in the DSL (use `@rift/runtime`'s `derived` if you need it), and no async `server` keyword.
+> No `derived` keyword in the DSL yet (use `@rift/runtime`'s `derived` if you need it), and no async `server` keyword. Both are tracked in [`PLAN.md`](../PLAN.md) / [`TODO.md`](../TODO.md).
 
 ## `function`
 
@@ -106,7 +120,7 @@ For the common case of "wire a text input back into a cell", you don't need a fu
 > [!IMPORTANT]
 > Use `function`, not `fn`. `fn` appears in `PLAN.md` but the implemented keyword is `function`.
 
-The function body is rewritten so reads/writes of `state` and `prop` identifiers go through their cells, while everything else (including `let` declarations) stays as regular JavaScript.
+The function body is rewritten so reads/writes of `state` and `prop` identifiers go through their cells, while everything else (component-scope `let`, function-local `const`/`let`, parameters, `each` bindings) stays as regular JavaScript.
 
 ## `view`
 

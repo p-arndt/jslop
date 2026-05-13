@@ -99,6 +99,30 @@ The DSL gives you:
 
 That's the whole authoring surface today.
 
+### Quick comparison: `state` vs `let`
+
+```tsx
+component Search {
+  prop query = ""
+
+  state results = []     // view renders this → reactive, serialized
+  let cache = new Map()  // bookkeeping the view never reads → plain JS
+  let lastQueryId = 0
+
+  function run() {
+    lastQueryId++
+    if (cache.has(query)) { results = cache.get(query); return }
+    // ...fetch and update results...
+  }
+
+  view {
+    <ul>{#each results as r (r.id)}<li>{r.label}</li>{/each}</ul>
+  }
+}
+```
+
+Rule of thumb: if the view (or an `{expr}` inside it) reads the value, use `state`. Otherwise, use `let` — it's cheaper, doesn't bloat the SSR capsule, and behaves like normal JavaScript.
+
 > [!NOTE]
 > Anything else from [`PLAN.md`](../PLAN.md) — `server`, `derived`, `when`, `mount`, `style`, `schema`, server functions, etc. — is **not yet implemented**. Track [TODO.md](../TODO.md) for progress.
 
