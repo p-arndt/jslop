@@ -6,8 +6,10 @@ used by the Rift framework.
 ## Features
 
 - Highlighting for Rift declarations: `component`, `route`, `schema`, `style`,
-  `prop`, `state`, `let`, `const`, `derived`, `local`, `fn`, `view`, `meta`,
-  `mount`, `cleanup`, `when ... changes`, `sync ... with`.
+  `prop`, `state`, `let`, `const`, `derived`, `local`, `function`, `view`,
+  `meta`, `mount`, `cleanup`, `when ... changes`, `sync ... with`.
+- The reactive `state` keyword gets its own scope (`storage.type.reactive.rift`)
+  so themes can color it distinctly from plain `let`/`const`.
 - Modifier keywords `server`, `client`, `browser` before bindings and
   functions.
 - Embedded markup inside `view { ... }` blocks: HTML elements, capitalized

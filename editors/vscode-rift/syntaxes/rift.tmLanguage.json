@@ -200,11 +200,22 @@
     },
 
     "binding-decl": {
-      "match": "\\b(state|let|const|derived|local)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
-      "captures": {
-        "1": { "name": "storage.type.var.rift" },
-        "2": { "name": "variable.other.readwrite.rift" }
-      }
+      "patterns": [
+        {
+          "match": "\\b(state)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
+          "captures": {
+            "1": { "name": "storage.type.reactive.rift" },
+            "2": { "name": "variable.other.reactive.rift" }
+          }
+        },
+        {
+          "match": "\\b(let|const|derived|local)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
+          "captures": {
+            "1": { "name": "storage.type.var.rift" },
+            "2": { "name": "variable.other.readwrite.rift" }
+          }
+        }
+      ]
     },
 
     "fn-decl": {
@@ -501,8 +512,16 @@
     },
 
     "keywords-storage": {
-      "match": "\\b(state|let|const|var|function|prop|derived|local|component|schema|style|route|import|from|export)\\b",
-      "name": "storage.type.rift"
+      "patterns": [
+        {
+          "match": "\\b(state)\\b",
+          "name": "storage.type.reactive.rift"
+        },
+        {
+          "match": "\\b(let|const|var|function|prop|derived|local|component|schema|style|route|import|from|export)\\b",
+          "name": "storage.type.rift"
+        }
+      ]
     },
 
     "keywords-modifier": {

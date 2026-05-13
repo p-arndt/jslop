@@ -2,7 +2,7 @@
   "name": "vscode-rift",
   "displayName": "Rift",
   "description": "Syntax highlighting for the Rift framework (.rift files)",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "rift",
   "private": true,
   "license": "MIT",
