@@ -1,20 +1,28 @@
 # Reactivity
 
-The runtime lives in `@rift/runtime` and gives you five primitives:
+When you write `state count = 0` in a `.rift` file, the compiler turns it into a **cell** — a reactive value provided by `@rift/runtime`. Most of the time you don't need to think about this: assign, read, done.
 
-- `cell(initial)` — a writable reactive value.
-- `derived(fn)` — a read-only value computed from cells.
-- `effect(fn)` — runs `fn` immediately, then again whenever any cell it read changes.
-- `batch(fn)` — defer notifications until `fn` returns; each subscriber runs at most once.
-- `untrack(fn)` — read cells without subscribing to them.
+This page is for when you do. It documents the primitives `@rift/runtime` exposes — useful for custom helpers, JS files you import into your components, or when you want a derived value or an ad-hoc effect.
 
-You rarely call these directly — the compiler emits `cell(...)` for every `state`/`prop` and `effect(...)` for every `{expr}` and event attachment. Plain `let` declarations are *not* cells and don't participate in the reactive graph. The primitives are there when you need them (e.g. computed values in a `function`, or a custom JS helper imported into a `.rift` file).
+## The primitives
+
+```ts
+import { cell, derived, effect, batch, untrack } from "@rift/runtime";
+```
+
+| Primitive       | What it is                                                            |
+|-----------------|-----------------------------------------------------------------------|
+| `cell(initial)` | A writable reactive value.                                            |
+| `derived(fn)`   | A read-only value computed from cells, cached, auto-updated.          |
+| `effect(fn)`    | A subscription that re-runs whenever any cell it read changes.        |
+| `batch(fn)`     | Defers notifications until `fn` returns; each subscriber runs once.   |
+| `untrack(fn)`   | Reads cells without subscribing to them.                              |
+
+You rarely need to call these directly inside a component. The compiler emits `cell(...)` for every `state`/`prop` and `effect(...)` for every reactive `{expr}` in the view. Plain `let` declarations are *not* cells.
 
 ## `cell<T>(initial: T): Cell<T>`
 
 ```ts
-import { cell } from "@rift/runtime";
-
 const count = cell(0);
 
 count.get();     // 0     — tracks if called inside an effect/derived
@@ -31,8 +39,6 @@ count.update(n => n + 1);
 ## `derived<T>(fn: () => T): Derived<T>`
 
 ```ts
-import { cell, derived } from "@rift/runtime";
-
 const count = cell(0);
 const doubled = derived(() => count.get() * 2);
 
@@ -41,13 +47,14 @@ count.set(5);
 doubled.get();   // 10
 ```
 
-`derived` is just `cell` + `effect` under the hood — the inner function re-runs whenever its dependencies change, and the result is cached in a cell.
+`derived` is just `cell` + `effect` under the hood — the inner function re-runs whenever its dependencies change, and the result is cached.
+
+> [!NOTE]
+> There's no `derived x = ...` keyword in the `.rift` DSL yet. Use `derived(() => ...)` from `@rift/runtime` directly inside a component body or in a JS helper. A DSL form is on the [roadmap](./roadmap.md).
 
 ## `effect(fn): () => void`
 
 ```ts
-import { cell, effect } from "@rift/runtime";
-
 const q = cell("");
 
 const dispose = effect(() => {
@@ -60,6 +67,46 @@ dispose();        // unsubscribes
 ```
 
 `fn` may return a cleanup function. It runs before the next re-execution and on disposal.
+
+## `batch(fn): void`
+
+```ts
+const a = cell(0);
+const b = cell(0);
+
+effect(() => console.log(a.get() + b.get()));
+
+batch(() => {
+  a.set(1);
+  b.set(2);
+});
+// effect runs once with 3, not twice with 1 then 3
+```
+
+Use this when one user action mutates several cells and you want exactly one render.
+
+## `untrack(fn): T`
+
+```ts
+const a = cell(1);
+const b = cell(10);
+
+const onlyTracksA = derived(() => a.get() + untrack(() => b.get()));
+```
+
+`onlyTracksA` updates when `a` changes but **not** when `b` changes.
+
+## `isReactive(v)`
+
+Type guard the compiler uses for prop forwarding:
+
+```ts
+const c = cell(0);
+isReactive(c);       // true
+isReactive(42);      // false
+```
+
+If a parent passes a cell into `<Child x={someCell} />`, the child sees the same cell and writes flow back. If it passes a plain value, the child wraps it locally.
 
 ## Scopes
 
@@ -84,53 +131,7 @@ disposeScope(scope);  // cleans up the effect AND runs the onCleanup
 
 `effect()` snapshots the current scope at creation and restores it on every re-run, so a `cell.set` triggered from a foreign scope still parents new child scopes correctly under the effect's owner.
 
-`@rift/client` uses this internally: `boot` opens a root scope per mounted component, `mountIf` opens a fresh scope per branch swap, and `mountEach` opens one scope per list item (disposed on remove for keyed lists, on rebuild for unkeyed). Most app code doesn't need to call this API directly, but it's available for ad-hoc subtrees (e.g. a future `<Await>` or imperative DOM mounts).
-
-## `batch(fn): void`
-
-```ts
-import { cell, batch, effect } from "@rift/runtime";
-
-const a = cell(0);
-const b = cell(0);
-
-effect(() => console.log(a.get() + b.get()));
-
-batch(() => {
-  a.set(1);
-  b.set(2);
-});
-// effect runs once with 3, not twice with 1 then 3
-```
-
-Use this when a single user action mutates several cells and you want exactly one render.
-
-## `untrack(fn): T`
-
-```ts
-import { cell, derived, untrack } from "@rift/runtime";
-
-const a = cell(1);
-const b = cell(10);
-
-const onlyTracksA = derived(() => a.get() + untrack(() => b.get()));
-```
-
-`onlyTracksA` updates when `a` changes but **not** when `b` changes.
-
-## `isReactive(v)`
-
-Type guard the compiler uses for prop forwarding:
-
-```ts
-import { cell, isReactive } from "@rift/runtime";
-
-const c = cell(0);
-isReactive(c);       // true
-isReactive(42);      // false
-```
-
-If a parent passes a cell into `<Child x={someCell} />`, the child sees the same cell and writes flow back. If it passes a plain value, the child wraps it locally.
+`@rift/client` uses this internally: `boot` opens a root scope per mounted component, `{#if}` opens a fresh scope per branch swap, `{#each}` opens one scope per list item. Most app code doesn't need to call this API directly, but it's available for ad-hoc subtrees (e.g. an imperative DOM mount).
 
 ## How the compiler uses these
 
@@ -180,4 +181,4 @@ export const __rift_component = {
 
 The client walks `buildView()` once to materialize DOM, wrapping each `kind: "bind"` in an `effect` so it updates fine-grained when its source cells change.
 
-See [architecture.md](./architecture.md) for the full pipeline.
+See [Internals: architecture](./internals/architecture.md) for the full pipeline.

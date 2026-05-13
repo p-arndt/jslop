@@ -75,15 +75,16 @@ See [docs/syntax.md](./docs/syntax.md) for the full DSL reference.
 
 ## Docs
 
-Start here:
+The full guide lives in [`docs/`](./docs/README.md). The quickest path through it:
 
-- **[Getting started](./docs/getting-started.md)** — install, project layout, dev loop.
-- **[Syntax reference](./docs/syntax.md)** — every construct in a `.rift` file.
-- **[Reactivity](./docs/reactivity.md)** — `cell`, `derived`, `effect`, `batch`, `untrack`.
-- **[Routing](./docs/routing.md)** — file-based routes, dynamic params, matching.
-- **[SSR & resumability](./docs/ssr-and-resumability.md)** — how state capsules survive the network.
-- **[Architecture](./docs/architecture.md)** — what each package does and how they fit.
-- **[Roadmap](./docs/roadmap.md)** — what's done, what's next.
+- **[Introduction](./docs/introduction.md)** — what Rift is, the mental model.
+- **[Getting started](./docs/getting-started.md)** — install, run the examples, write your first component.
+- **[Components](./docs/components.md)** — `prop`, `state`, `let`, `function`, `view`.
+- **[Template syntax](./docs/template-syntax.md)** · **[Logic blocks](./docs/logic-blocks.md)** · **[Events](./docs/events.md)** · **[Bindings](./docs/bindings.md)**
+- **[Routing](./docs/routing.md)** · **[SSR & resumability](./docs/ssr-and-resumability.md)** · **[Building & deploying](./docs/building.md)** · **[Styling](./docs/styling.md)**
+- **[Reactivity](./docs/reactivity.md)** · **[Cheatsheet](./docs/syntax.md)** · **[FAQ](./docs/faq.md)** · **[Roadmap](./docs/roadmap.md)**
+
+For contributors / curious readers: [`docs/internals/`](./docs/internals/) covers the architecture and how each `@rift/*` package fits together.
 
 ---
 

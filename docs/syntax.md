@@ -1,299 +1,148 @@
-# `.rift` syntax reference
+# `.rift` cheatsheet
 
-This is the **currently implemented** DSL. For aspirational syntax (server blocks, `derived`, `mount`, `style`, `schema`) see [`PLAN.md`](../PLAN.md) and [`TODO.md`](../TODO.md).
+One-page reference for every construct currently implemented. Each section links to a focused page with details and gotchas.
 
 ## File shape
 
-A `.rift` file has, in order:
-
-1. Zero or more `import` declarations.
-2. One or more `component` blocks.
-
 ```tsx
-import Other from "./Other.rift"
+import Default from "./Other.rift"
+import { Helper, OtherHelper as Renamed } from "./widgets.rift"
 
 component Name {
-  // declarations
+  // declarations (any order)
   view { <root /> }
 }
 
-component Helper {
+component Sibling {
   view { <span/> }
 }
 ```
 
-Every component becomes a named ES module export. The **first** declared component is also the `default` export, so `import Foo from "./File.rift"` resolves to the file's first block. Sibling components in the same file can reference each other directly (`<Helper/>` inside `Name`'s view) — they're real module-scope bindings.
+- Many components per file. First is the default export, all are named exports. → [Components](./components.md)
+- `.rift` import paths are rewritten to the compiled module by the bundler.
 
-## Declarations at a glance
+## Declarations
 
-| Keyword     | Reactive | Serialized in SSR capsule | When to use                                                              |
-|-------------|----------|---------------------------|--------------------------------------------------------------------------|
-| `prop x`    | yes      | parent decides            | input from a parent component                                            |
-| `state x`   | yes      | yes                       | anything the view reads — counters, drafts, lists, toggles               |
-| `let x`     | no       | no                        | per-instance bookkeeping the view never reads (caches, IDs, timers)      |
-| `function`  | —        | —                         | actions / event handlers, with reactive-aware identifier rewriting       |
+| Keyword           | Reactive | Serialized | Use for                                                |
+|-------------------|----------|------------|--------------------------------------------------------|
+| `prop x = d`      | yes      | parent     | input from a parent                                    |
+| `state x = d`     | yes      | yes        | anything the view reads                                |
+| `let x = d`       | no       | no         | per-instance bookkeeping the view never reads          |
+| `function f() {}` | —        | —          | actions / event handlers                               |
 
-`state` and `prop` are cells: reads inside functions and view expressions become `.get()`, writes become `.set(...)`. `let` is a plain JS `let` binding and the compiler doesn't touch identifier references to it.
+→ [Components](./components.md)
 
-## Imports
-
-```tsx
-import Default from "./path.rift"
-import { A, B as Renamed } from "./widgets.rift"
-import Default, { Extra } from "./mixed.rift"
-import Helper from "../lib/helpers.ts"
-```
-
-Default and named import forms are both supported (and can be combined, ES-style). The default specifier picks up the first `component` block in the target file; named specifiers pick the components by their declared names. `.rift` paths are automatically rewritten to the compiled extension (`.rift` → `.compiled.mjs` by default, or whatever the bundler passes — `@rift/vite` keeps `.rift` so it can re-run the transform).
-
-## `prop`
-
-Declares an input parameter. Optional default expression after `=`.
-
-```tsx
-prop label = "?"
-prop onclick = () => {}
-prop count          // no default → undefined
-```
-
-Props arrive from the parent's view (e.g. `<Counter count={5} />`). Internally they're wrapped:
-
-- If the parent passes a reactive cell or `derived`, it's used as-is.
-- Otherwise the value is wrapped in a fresh `cell()` so reads inside the component are reactive.
-
-So inside the component body, `label` always reads like a reactive variable — no `.value`, no `.get()`.
-
-## `state`
-
-Declares a reactive variable — a cell that participates in the view.
-
-```tsx
-state count = 0
-state items = ["a", "b"]
-state user = { name: "Ada" }
-```
-
-Compiles to `const count = cell(0)`. The rewriter then turns:
-
-- `count` (read) → `count.get()`
-- `count = x` → `count.set(x)`
-- `count++` → `count.set(count.peek() + 1)`
-- `count += 1` → `count.set(count.peek() + 1)`
-
-Inside a `function`, all of the above Just Work. Outside (i.e. inside event handlers in the view), the same rewrite applies.
-
-`state` values are serialized into the SSR capsule and restored on the client — that's how component state survives the network boundary.
-
-## `let`
-
-Declares a **non-reactive** mutable variable, scoped to the component instance.
-
-```tsx
-let lastId = 0
-let cache = new Map()
-let abortCtrl = null
-```
-
-Compiles to a plain JS `let lastId = 0;`. Reads and writes are not rewritten, no cell is allocated, and the value is **not** part of `serializeState`. Use this for per-instance bookkeeping that doesn't drive the view: caches, ID counters, debounce handles, abort controllers, anything the view never reads.
-
-> [!WARNING]
-> A `let` referenced from a view `{expr}` will be read **once at mount** and never again — there's no cell, so no subscription, so the view never knows it changed. If you find yourself reaching for `let` in the markup, you wanted `state`.
-
-You can also use a `let` you never reassign as a per-instance constant (e.g. `let id = crypto.randomUUID()`). There's no separate `const` keyword at component scope today.
-
-> [!NOTE]
-> No `derived` keyword in the DSL yet (use `@rift/runtime`'s `derived` if you need it), and no async `server` keyword. Both are tracked in [`PLAN.md`](../PLAN.md) / [`TODO.md`](../TODO.md).
-
-## `function`
-
-A plain function declaration with reactive-aware identifiers.
-
-```tsx
-function increment() {
-  count++
-}
-
-function addTodo() {
-  if (draft.trim().length > 0) {
-    todos = [...todos, draft.trim()]
-    draft = ""
-  }
-}
-```
-
-For the common case of "wire a text input back into a cell", you don't need a function at all — see [`bind:value` below](#bindvalue--bindchecked).
-
-> [!IMPORTANT]
-> Use `function`, not `fn`. `fn` appears in `PLAN.md` but the implemented keyword is `function`.
-
-The function body is rewritten so reads/writes of `state` and `prop` identifiers go through their cells, while everything else (component-scope `let`, function-local `const`/`let`, parameters, `each` bindings) stays as regular JavaScript.
-
-## `view`
-
-The markup. Exactly one block per component, must contain exactly one root element.
+## View — elements & attributes
 
 ```tsx
 view {
-  <div>
-    <h1>Hello</h1>
+  <div class="card">
+    <h1>{title}</h1>
+    <p>{count} item{count === 1 ? "" : "s"}</p>
+    <a href="/x" class={active ? "on" : ""}>x</a>
+    <img src={url} alt="" />
+    <input disabled />              {/* boolean shorthand */}
   </div>
 }
 ```
 
-### Elements
+- Exactly one root element per view.
+- Lowercase tag → DOM element. PascalCase → component.
+- String literals or `{expr}` for attribute values. `{expr}` is reactive.
 
-Lowercase tag → real DOM element. Self-closing is supported (`<br />`). Children can be any mix of text, `{expr}`, and nested tags.
+→ [Template syntax](./template-syntax.md)
 
-### Components
-
-A tag whose name starts with an uppercase letter is treated as a component reference. It must resolve to either an imported component or a sibling component declared in the same file:
-
-```tsx
-import { Stepper } from "../components/widgets.rift"
-// ...
-<Stepper label="+" onstep={increment} />
-```
-
-Component props can be string literals or `{expressions}`:
+## Components
 
 ```tsx
+<Stepper label="+" onstep={inc} />
 <Display value={count} label="Count" />
-<Toggle checked />          // boolean shorthand: checked = true
 ```
 
-### Attributes
+- `on*` on a component tag is a **regular prop** (not auto-bound to DOM events).
 
-DOM attributes are emitted as-is on lowercase elements. Values can be:
-
-- `"string"` — written verbatim into HTML.
-- `{expression}` — reactive bind: re-evaluated whenever its dependencies change.
+## Events
 
 ```tsx
-<input value={draft} placeholder="add a todo..." />
-<a href="/about" class="text-blue-500">About</a>
+<button onclick={inc}>+</button>
+<button onclick={() => count++}>+</button>
+<input oninput={e => draft = e.target.value} />
+<form onsubmit={e => { e.preventDefault(); save() }}>...</form>
 ```
 
-### `bind:value` / `bind:checked`
+→ [Events](./events.md)
 
-Two-way sugar that combines a property bind (cell → DOM property) with the appropriate event handler (DOM input → `cell.set(...)`):
+## Bindings
 
 ```tsx
-<input bind:value={draft} placeholder="add a todo..." />
+<input bind:value={draft} />
 <input type="checkbox" bind:checked={agreed} />
 <select bind:value={pick}>
   <option value="a">A</option>
-  <option value="b">B</option>
 </select>
 ```
 
-Resolution rules:
+- Bound expression must be a writable reactive lvalue (`state` or reactive `prop`).
+- Can't combine `bind:value` with `value=` or `oninput=` on the same element.
 
-- The expression must be a writable reactive lvalue (typically a `state` identifier, or a reactive `prop`). The compiler rewrites the synthesized assignment so `bind:value={draft}` becomes `draft.set(e.target.value)` under the hood.
-- `bind:value` listens to `input` on `<input>` / `<textarea>` and `change` on `<select>`.
-- `bind:checked` listens to `change` and reads `e.target.checked` (booleans, no string coercion).
-- Combining `bind:value` with an explicit `value=` or `oninput=` on the same element is a parse error.
+→ [Bindings](./bindings.md)
 
-Internally, `bind:` emits a property bind (`{ kind: "prop", get }`) rather than an attribute bind, so the runtime sets `el.value` / `el.checked` directly. This is what lets a programmatic cell update overwrite the visible value of an `<input>` the user has already typed into — `setAttribute('value', …)` only updates the *initial* value, not the live one.
-
-### Event handlers
-
-Any attribute starting with `on` followed by a lowercase letter (`onclick`, `oninput`, `onkeydown`, …) on a lowercase element is treated as a DOM event handler:
+## Logic blocks
 
 ```tsx
-<button onclick={increment}>+</button>
-<input oninput={(e) => draft = e.target.value} />
-```
-
-The handler expression is rewritten just like a function body, so inline mutations to `state`/`prop` identifiers work:
-
-```tsx
-<button onclick={() => count++}>+</button>
-```
-
-For component tags, `on*` props are **not** auto-bound — they're just regular props (the component decides what to do):
-
-```tsx
-<Stepper label="+" onstep={increment} />
-// inside Stepper:
-//   prop onstep = () => {}
-//   <button onclick={onstep}>{label}</button>
-```
-
-### Text and interpolation
-
-Text between tags is HTML-escaped on output. `{expr}` interpolates a reactive expression:
-
-```tsx
-<h1>Hello, {user.name}!</h1>
-<p>{count} item{count === 1 ? "" : "s"}</p>
-```
-
-The expression is `String(...)`-coerced and updates fine-grained when its dependencies change.
-
-### `{#if}` / `{:else}` / `{/if}`
-
-```tsx
-{#if count > 0}
-  <p>positive</p>
+{#if cond}
+  <p>yes</p>
 {:else}
-  <p>zero or negative</p>
+  <p>no</p>
 {/if}
-```
 
-`{:else}` is optional. On test changes, the active branch is mounted in its own [scope](./architecture.md); switching branches disposes the previous scope, so all effects inside the discarded subtree are torn down.
-
-### `{#each ... as ...}` / `{/each}`
-
-```tsx
-{#each todos as item}
-  <li>{item}</li>
-{/each}
-
-{#each todos as item, i}
-  <li>{i}: {item}</li>
-{/each}
-
-{#each todos as item, i (item.id)}
+{#each list as item, i (item.id)}
   <li>{i}: {item.label}</li>
 {/each}
 ```
 
-The item binding (and optional index binding) is scoped to the block body — references inside aren't treated as reactive cells.
+- Always key any `{#each}` that mutates by anything other than append-only.
+- `{:else if}` is not supported yet; nest a fresh `{#if}` inside `{:else}`.
 
-The optional `(key)` clause enables **keyed reconciliation**:
+→ [Logic blocks](./logic-blocks.md)
 
-- For matched keys, the existing DOM (and any per-item effect scope or nested component instance) is reused; the reconciler only moves the node into its new position.
-- New keys get a fresh build with their own scope.
-- Removed keys have their scope disposed and DOM removed.
-
-Without a key, the each falls back to dispose-then-rebuild on every list change — correct, but loses focus/scroll/animation state inside list items. Recommend a key whenever the list is mutated by anything other than append-only.
-
-Components nested inside `{#each}` are instantiated lazily inside the per-item build callback, so each iteration owns its own instance. With a key, that instance survives reorders. **Open gap:** SSR-restored state for nested-in-each components doesn't currently round-trip — they re-create from scratch on hydration.
-
-## What the compiler does (at a glance)
-
-For each `state` and `prop`:
+## `<children/>`
 
 ```tsx
-state count = 0
-// becomes:
-const count = cell(0);
+component Layout {
+  view {
+    <div><children/></div>
+  }
+}
 ```
 
-For each `let`:
+Marks where wrapped content renders. Used by layouts (and, in the future, by any wrapper component receiving children).
 
-```tsx
-let lastId = 0
-// becomes:
-let lastId = 0;          // plain JS, untouched by the rewriter
+## Reactivity runtime
+
+When you need to drop down a level (custom helpers, derived values, ad-hoc effects):
+
+```ts
+import { cell, derived, effect, batch, untrack } from "@rift/runtime";
+
+const x = cell(0);
+const y = derived(() => x.get() * 2);
+effect(() => console.log(y.get()));
+batch(() => { x.set(1); x.set(2); });   // y/effect run once
 ```
 
-For each function body and each `{expr}` in the view:
+→ [Reactivity](./reactivity.md)
 
-- Identifiers shadowed by parameters, locals, `each` bindings, or component-scope `let` declarations are left alone.
-- Identifiers that match a `state`/`prop` name become `name.get()` on read and `name.set(...)` on write.
-- Compound assignments (`++`, `--`, `+=`, etc.) on reactive names are expanded against `.peek()`.
+## What the compiler does (in one breath)
 
-The view is emitted as a tree of node descriptors (`{ kind: "element" | "text" | "bind" | "if" | "each" | "component", ... }`). `@rift/server` walks it to produce HTML; `@rift/client` walks the same tree (with `cell.set` calls re-running effects) to drive DOM updates.
+For each `state` / `prop`: declare a `cell`. For each `let`: declare a plain JS variable. Inside functions and view `{expr}`s: identifiers that match a `state`/`prop` name become `.get()` on read and `.set(...)` on write; `++`/`--`/`+=` etc. expand via `.peek()`. Everything else (parameters, locals, `let`, `each` bindings) is left alone.
 
-See [architecture.md](./architecture.md) for the bigger picture.
+The view is emitted as a tree of node descriptors (`element`, `text`, `bind`, `if`, `each`, `component`). The server walks it to produce HTML; the client walks the same tree and wraps each `bind` in an `effect` for fine-grained updates.
+
+→ [Internals: architecture](./internals/architecture.md)
+
+## Not in the DSL yet
+
+`derived` keyword · `server function` · `mount`/`cleanup` blocks · `{#await}` · `{#snippet}` · `{:else if}` · catch-all routes · fragments · spread props (parsed, partial impl) · component-scoped styles · client-side `<a>` navigation.
+
+→ [Roadmap](./roadmap.md)

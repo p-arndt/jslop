@@ -58,6 +58,6 @@ In order, from [`TODO.md`](../TODO.md):
 
 There's no CI, contribution guide, or license yet — those are also on the todo list. If you want to poke at the codebase:
 
-- Read [`docs/architecture.md`](./architecture.md) to learn what each package does.
+- Read [`docs/internals/architecture.md`](./internals/architecture.md) to learn what each package does.
 - Pick something from [`TODO.md`](../TODO.md) — the early items are scoped to be tractable.
 - Run `pnpm install && pnpm build && pnpm dev:counter` to confirm your environment works.
