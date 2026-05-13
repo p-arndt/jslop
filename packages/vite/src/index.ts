@@ -1,7 +1,7 @@
 import type { Plugin, PluginOption } from "vite";
 import { compile } from "@rift/compiler";
-import { scanRoutes, matchRoute, type RouteDef } from "@rift/router";
-import { renderPage } from "@rift/server";
+import { scanRoutes, matchRoute, type RouteManifest } from "@rift/router";
+import { renderPage, type RiftComponent } from "@rift/server";
 import { resolve, posix, isAbsolute } from "node:path";
 
 export interface RiftPluginOptions {
@@ -42,16 +42,16 @@ export default function rift(opts: RiftPluginOptions = {}): PluginOption[] {
       : [opts.css];
   let projectRoot = process.cwd();
   let routesDir = resolve(projectRoot, routesDirRel);
-  let cachedRoutes: RouteDef[] | null = null;
+  let cachedManifest: RouteManifest | null = null;
 
   const invalidateRoutes = () => {
-    cachedRoutes = null;
+    cachedManifest = null;
   };
 
-  const loadRoutes = async (): Promise<RouteDef[]> => {
-    if (cachedRoutes) return cachedRoutes;
-    cachedRoutes = await scanRoutes(routesDir);
-    return cachedRoutes;
+  const loadManifest = async (): Promise<RouteManifest> => {
+    if (cachedManifest) return cachedManifest;
+    cachedManifest = await scanRoutes(routesDir);
+    return cachedManifest;
   };
 
   const titleFor = (url: string, params: Record<string, string>): string =>
@@ -82,34 +82,32 @@ export default function rift(opts: RiftPluginOptions = {}): PluginOption[] {
     },
     async load(id) {
       if (id === RESOLVED_ROUTES) {
-        const routes = await loadRoutes();
-        const imports = routes
-          .map(
-            (r, i) =>
-              `import C${i} from ${JSON.stringify(toImportPath(routesDir, r.relPath))};`
-          )
+        const m = await loadManifest();
+        const allFiles = collectAllRiftFiles(m);
+        const imports = allFiles
+          .map((f, i) => `import C${i} from ${JSON.stringify(toImportPath(routesDir, f))};`)
           .join("\n");
-        const entries = routes
-          .map(
-            (r, i) =>
-              `  { pattern: ${JSON.stringify(r.pattern)}, paramNames: ${JSON.stringify(
-                r.paramNames
-              )}, component: C${i} }`
-          )
+        const indexOf = (rel: string): number => allFiles.indexOf(rel);
+        const entries = m.routes
+          .map((r) => {
+            const layoutVars = r.layouts.map((l) => `C${indexOf(l)}`).join(", ");
+            return `  { pattern: ${JSON.stringify(r.pattern)}, paramNames: ${JSON.stringify(
+              r.paramNames
+            )}, component: C${indexOf(r.relPath)}, layouts: [${layoutVars}] }`;
+          })
           .join(",\n");
-        return `${imports}\n\nexport const routes = [\n${entries}\n];\n`;
+        const notFound = m.notFound
+          ? `C${indexOf(m.notFound.relPath)}`
+          : "null";
+        return `${imports}\n\nexport const routes = [\n${entries}\n];\nexport const notFound = ${notFound};\n`;
       }
       if (id === RESOLVED_CLIENT) {
-        const routes = await loadRoutes();
-        const imports = routes
-          .map(
-            (r, i) =>
-              `import C${i} from ${JSON.stringify(toImportPath(routesDir, r.relPath))};`
-          )
+        const m = await loadManifest();
+        const allFiles = collectAllRiftFiles(m);
+        const imports = allFiles
+          .map((f, i) => `import C${i} from ${JSON.stringify(toImportPath(routesDir, f))};`)
           .join("\n");
-        const registry = routes
-          .map((_, i) => `  [C${i}.name]: C${i}`)
-          .join(",\n");
+        const registry = allFiles.map((_, i) => `  [C${i}.name]: C${i}`).join(",\n");
         return `import { boot } from "@rift/client";\n${imports}\n\nboot({\n${registry}\n});\n`;
       }
       return null;
@@ -152,27 +150,53 @@ export default function rift(opts: RiftPluginOptions = {}): PluginOption[] {
             }
             if (url === "") url = "/";
 
-            const routes = await loadRoutes();
-            const match = matchRoute(url, routes);
+            const manifest = await loadManifest();
+            const match = matchRoute(url, manifest.routes);
+
+            const loadComponent = async (rel: string): Promise<RiftComponent> => {
+              const mod = await server.ssrLoadModule(resolve(routesDir, rel));
+              const c =
+                (mod as { default?: unknown }).default ??
+                (mod as { __rift_component?: unknown }).__rift_component;
+              if (!c) throw new Error(`${rel} has no default export`);
+              return c as RiftComponent;
+            };
+
             if (!match) {
+              if (manifest.notFound) {
+                const nfComp = await loadComponent(manifest.notFound.relPath);
+                const nfLayouts = await Promise.all(
+                  manifest.notFound.layouts.map((rel) => loadComponent(rel))
+                );
+                let html = renderPage({
+                  title: titleFor(url, {}),
+                  component: nfComp,
+                  layouts: nfLayouts,
+                  appScriptUrl: "/@id/" + VIRTUAL_CLIENT,
+                  props: {},
+                  stylesheets,
+                });
+                html = await server.transformIndexHtml(url, html);
+                res.statusCode = 404;
+                res.setHeader("content-type", "text/html; charset=utf-8");
+                res.end(html);
+                return;
+              }
               res.statusCode = 404;
               res.setHeader("content-type", "text/plain");
               res.end("not found");
               return;
             }
 
-            const modPath = resolve(routesDir, match.route.relPath);
-            const mod = await server.ssrLoadModule(modPath);
-            const component =
-              (mod as { default?: unknown }).default ??
-              (mod as { __rift_component?: unknown }).__rift_component;
-            if (!component) {
-              throw new Error(`route ${match.route.relPath} has no default export`);
-            }
+            const routeComp = await loadComponent(match.route.relPath);
+            const layoutComps = await Promise.all(
+              match.route.layouts.map((rel) => loadComponent(rel))
+            );
 
             let html = renderPage({
               title: titleFor(url, match.params),
-              component: component as Parameters<typeof renderPage>[0]["component"],
+              component: routeComp,
+              layouts: layoutComps,
               appScriptUrl: "/@id/" + VIRTUAL_CLIENT,
               props: match.params,
               stylesheets,
@@ -215,4 +239,23 @@ async function loadTailwindPlugin(): Promise<PluginOption> {
 
 function toImportPath(routesDir: string, relPath: string): string {
   return posix.join(routesDir.split(/[\\/]/).join("/"), relPath.split(/[\\/]/).join("/"));
+}
+
+/**
+ * Deduplicated list of every .rift file in the manifest (routes + layouts +
+ * 404). Order is stable so the same file always gets the same Cn identifier.
+ */
+function collectAllRiftFiles(m: RouteManifest): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (rel: string) => {
+    if (!seen.has(rel)) {
+      seen.add(rel);
+      out.push(rel);
+    }
+  };
+  for (const r of m.routes) push(r.relPath);
+  for (const l of m.layouts) push(l.relPath);
+  if (m.notFound) push(m.notFound.relPath);
+  return out;
 }

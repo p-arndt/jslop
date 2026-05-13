@@ -30,7 +30,8 @@ type ComponentNode = {
   instance: RiftInstance;
   view: ElNode;
 };
-type ViewNode = ElNode | TextNode | BindNode | ComponentNode | IfNode | EachNode;
+type ChildrenNode = { kind: "children" };
+type ViewNode = ElNode | TextNode | BindNode | ComponentNode | IfNode | EachNode | ChildrenNode;
 
 interface RiftInstance {
   actions: Actions;
@@ -161,6 +162,11 @@ function attachChildList(parent: Element, viewChildren: ViewNode[], actions: Act
       const target = elEls[eI++];
       if (!target) continue;
       attach(target, child.view, child.instance.actions);
+    } else if (child.kind === "children") {
+      // The <children/> placeholder was replaced at SSR with the routed child's
+      // root element. Skip past it without recursing: the child component owns
+      // its own attach via its data-rift-cid in the capsule.
+      eI++;
     } else {
       const target = elEls[eI++];
       if (!target) continue;
@@ -344,6 +350,13 @@ function rebuildIf(wrapper: Element, node: IfNode, active: boolean, actions: Act
 
 function buildNode(node: ViewNode, actions: Actions): Node | null {
   if (node.kind === "text") return document.createTextNode(node.value);
+  if (node.kind === "children") {
+    // A <children/> placeholder rebuilt at runtime (e.g. inside an {#if} that
+    // flipped after hydration) can't synthesize the routed page out of nothing.
+    // For now this is unsupported — layouts should keep <children/> in a static
+    // position. Emit a marker so it's visible in DOM and skipped on next attach.
+    return document.createElement("rift-children");
+  }
   if (node.kind === "bind") {
     const w = document.createElement("rift-b");
     const b = node;

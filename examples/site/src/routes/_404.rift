@@ -1,0 +1,11 @@
+component NotFound {
+  view {
+    <main class="px-6 py-16">
+      <div class="mx-auto max-w-2xl space-y-4">
+        <p class="text-sm uppercase tracking-widest text-slate-500">404</p>
+        <h1 class="text-4xl font-semibold tracking-tight">Page not found</h1>
+        <p class="text-slate-400">No route matches this URL. Try the nav above.</p>
+      </div>
+    </main>
+  }
+}

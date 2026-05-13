@@ -1,13 +1,8 @@
 component About {
   view {
-    <main class="min-h-screen bg-slate-950 text-slate-100 px-6 py-16">
+    <main class="px-6 py-16">
       <div class="mx-auto max-w-2xl space-y-6">
         <h1 class="text-4xl font-semibold tracking-tight">About Rift</h1>
-        <nav class="flex gap-3 text-sm text-slate-400">
-          <a href="/" class="hover:text-slate-100">home</a>
-          <span class="text-slate-700">/</span>
-          <a href="/about" class="hover:text-slate-100">about</a>
-        </nav>
         <p class="text-slate-300 leading-relaxed">
           Rift is an experimental framework. Resumable, fine-grained, no hook soup.
         </p>

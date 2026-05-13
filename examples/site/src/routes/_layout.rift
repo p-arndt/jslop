@@ -1,0 +1,15 @@
+component Layout {
+  view {
+    <div class="min-h-screen bg-slate-950 text-slate-100">
+      <header class="border-b border-slate-800 px-6 py-4">
+        <nav class="mx-auto max-w-2xl flex gap-4 text-sm text-slate-400">
+          <a href="/" class="hover:text-slate-100">home</a>
+          <a href="/about" class="hover:text-slate-100">about</a>
+          <a href="/posts/hello-world" class="hover:text-slate-100">hello post</a>
+          <a href="/posts/rift" class="hover:text-slate-100">rift post</a>
+        </nav>
+      </header>
+      <children/>
+    </div>
+  }
+}

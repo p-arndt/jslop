@@ -129,6 +129,9 @@ function emitNode(
   if (node.kind === "text") {
     return `{ kind: "text", value: ${JSON.stringify(node.value)} }`;
   }
+  if (node.kind === "children") {
+    return `{ kind: "children" }`;
+  }
   if (node.kind === "expr") {
     const e = rewriteExpr(node.expr, reactiveNames);
     return `{ kind: "bind", get: () => String(${e}) }`;

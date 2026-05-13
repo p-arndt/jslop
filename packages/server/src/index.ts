@@ -14,6 +14,7 @@ export type RenderNode =
       build: (item: unknown, index: number) => RenderNode[];
       key?: (item: unknown, index: number) => unknown;
     }
+  | { kind: "children" }
   | {
       kind: "element";
       tag: string;
@@ -52,6 +53,8 @@ const VOID_ELEMENTS = new Set([
   "link", "meta", "param", "source", "track", "wbr",
 ]);
 
+const CHILDREN_PLACEHOLDER = "<rift-children></rift-children>";
+
 // HTML boolean attributes: presence implies true, absence implies false.
 const BOOLEAN_ATTRS = new Set([
   "checked", "disabled", "readonly", "required", "selected", "multiple",
@@ -78,6 +81,48 @@ export function renderComponent(
   };
 }
 
+/**
+ * Render a route nested inside zero or more layouts. Each layout must contain
+ * exactly one `<children/>` placeholder; the inner HTML is substituted in.
+ * Capsule entries are merged with unique cids so the client can boot each
+ * island independently.
+ */
+export function renderRouteChain(opts: {
+  route: RiftComponent;
+  routeProps?: Record<string, unknown>;
+  /** Outermost layout first. Each layout must have a `<children/>`. */
+  layouts?: RiftComponent[];
+}): RenderResult {
+  const layouts = opts.layouts ?? [];
+  let cidCounter = 0;
+  const nextCid = (): string => `c${cidCounter++}`;
+
+  const routeResult = renderComponent(opts.route, opts.routeProps ?? {}, nextCid());
+  let html = routeResult.html;
+  const components = [...routeResult.capsule.components];
+
+  // Wrap innermost-first so each replacement targets the *current* outermost
+  // placeholder. The CHILDREN_PLACEHOLDER constant is unique enough that a
+  // literal string replace is safe here (we never emit it for user content).
+  for (let i = layouts.length - 1; i >= 0; i--) {
+    const layout = layouts[i]!;
+    const layoutResult = renderComponent(layout, {}, nextCid());
+    const idx = layoutResult.html.indexOf(CHILDREN_PLACEHOLDER);
+    if (idx === -1) {
+      throw new Error(
+        `layout ${layout.name} has no <children/> element — required for routed content`
+      );
+    }
+    html =
+      layoutResult.html.slice(0, idx) +
+      html +
+      layoutResult.html.slice(idx + CHILDREN_PLACEHOLDER.length);
+    components.push(...layoutResult.capsule.components);
+  }
+
+  return { html, capsule: { components } };
+}
+
 interface ElMarker {
   cid?: string;
   componentName?: string;
@@ -85,6 +130,7 @@ interface ElMarker {
 
 function renderNode(node: RenderNode): string {
   if (node.kind === "text") return escapeHtml(node.value);
+  if (node.kind === "children") return CHILDREN_PLACEHOLDER;
   if (node.kind === "bind") {
     return `<rift-b>${escapeHtml(node.get())}</rift-b>`;
   }
@@ -161,12 +207,21 @@ function renderElement(
 export function renderPage(opts: {
   title: string;
   component: RiftComponent;
+  /** Layouts wrapping the route, outermost first. Each must have `<children/>`. */
+  layouts?: RiftComponent[];
   appScriptUrl: string;
   props?: Record<string, unknown>;
   stylesheets?: string[];
   head?: string;
 }): string {
-  const { html, capsule } = renderComponent(opts.component, opts.props ?? {});
+  const { html, capsule } =
+    opts.layouts && opts.layouts.length > 0
+      ? renderRouteChain({
+          route: opts.component,
+          routeProps: opts.props ?? {},
+          layouts: opts.layouts,
+        })
+      : renderComponent(opts.component, opts.props ?? {});
   const capsuleJson = JSON.stringify(capsule).replace(/</g, "\\u003c");
   const linkTags = (opts.stylesheets ?? [])
     .map((href) => `<link rel="stylesheet" href="${escapeAttr(href)}">`)

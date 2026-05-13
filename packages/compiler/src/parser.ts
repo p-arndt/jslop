@@ -3,6 +3,7 @@ export type ViewNode =
   | { kind: "component"; name: string; props: Record<string, string>; children: ViewNode[] }
   | { kind: "if"; test: string; consequent: ViewNode[]; alternate: ViewNode[] }
   | { kind: "each"; each: string; as: string; index: string | null; key: string | null; children: ViewNode[] }
+  | { kind: "children" }
   | { kind: "text"; value: string }
   | { kind: "expr"; expr: string };
 
@@ -226,6 +227,7 @@ function parseTag(c: Cursor): ViewNode {
   c.i += tagMatch[0].length;
   const tag = tagMatch[0];
   const isComp = isComponentTag(tag);
+  const isChildren = tag === "children";
 
   const attrs: Record<string, string> = {};
   const events: Record<string, string> = {};
@@ -233,6 +235,12 @@ function parseTag(c: Cursor): ViewNode {
   const bindSpecs: Array<{ kind: string; expr: string }> = [];
 
   const finish = (children: ViewNode[]): ViewNode => {
+    if (isChildren) {
+      if (children.length > 0) {
+        throw c.err("<children> must be self-closing (fallback content not yet supported)");
+      }
+      return { kind: "children" };
+    }
     if (isComp) return { kind: "component", name: tag, props, children };
     for (const b of bindSpecs) synthesizeBind(tag, b.kind, b.expr, attrs, events, c);
     return { kind: "element", tag, attrs, events, children };

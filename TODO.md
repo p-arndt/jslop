@@ -46,6 +46,7 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 - 🟡 Components nested inside `{#each}` now get a fresh instance per item (codegen emits `const __c_N = X.create(...)` inside the build callback instead of hoisting). For keyed lists, instances are reused across reorders since `build()` only runs for new keys. **Open gap:** child component state inside an each is *not* serialized into the parent's `__children`, so SSR-restored state for those instances doesn't round-trip — they re-create from scratch on hydration. Acceptable for stateless presentational components; problematic for stateful ones.
 - ❌ Client-side navigation (SPA mode). Today every `<a>` is a full page load. Needs `<a>` interception + `history.pushState` + fetch new HTML + swap root.
 - ✅ Two-way binding sugar: `<input bind:value={cell}>`, `<input type="checkbox" bind:checked={cell}>`, `<select bind:value={cell}>`. Compiler synthesizes both the property bind (driving the IDL property, not the attribute, so programmatic updates overwrite user-typed values correctly) and the matching event handler. Counter example migrated. Conflicts with explicit `value=`/`oninput=` on the same element are rejected at parse time. Covered by 7 compiler + 3 SSR + 2 client tests.
+- ✅ `<children/>` placeholder + `renderRouteChain` for nesting layouts around routes. Each layout is a normal Rift component (own state, own cid, own capsule entry); the placeholder is replaced with the inner HTML at SSR, and the client skips over the placeholder position when attaching the layout (the inner component owns its own attach via its cid). Covered by compiler + server tests.
 
 ## Vite plugin (`@rift/vite`)
 
@@ -64,11 +65,12 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 - ✅ Recursive scan of routes dir
 - ✅ Pattern → regex matching with `[param]` placeholders
 - ✅ Static segments rank higher than dynamic (specificity sort)
+- ✅ Layouts via `_layout.rift` convention. A `_layout.rift` in any directory wraps every route at or below that directory; chains compose outermost-first. Layouts use `<children/>` as the placeholder (chosen over Svelte-style `<slot/>` so the same primitive can later cover generic component children — one mental model, not two). Per-route effect serialization for layout state is the same as any other component (each gets its own cid + capsule entry, boots independently).
+- ✅ 404 pages via `_404.rift` at the routes root. Served with status 404; goes through the layout chain so the not-found page wears the same chrome as the rest of the site.
 - ❌ Catch-all routes (`[...slug]`)
 - ❌ Optional segments
-- ❌ Route groups / layouts. PLAN.md's example structure has `dashboard/` with `index.rift` and `settings.rift` and an implied layout — no layout primitive exists yet (`<Outlet />` or similar).
 - ❌ Per-route `meta {}` block (title, description) from PLAN.md
-- ❌ 404 / error pages by convention (`routes/_404.rift`, `routes/_error.rift`)
+- ❌ Per-route error pages (`routes/_error.rift`)
 
 ## Forms (PLAN.md killer feature, mostly missing)
 
@@ -143,7 +145,7 @@ If I had to pick a north star, in order:
 1. ~~**Effect disposers + keyed list reconciliation**~~ — done. Scopes + keyed `{#each}` landed; per-item effect leak fixed.
 2. ~~**Per-item child component instances inside `{#each}`**~~ — done at runtime. Lazy instantiation inside the build callback; keyed reorder reuses instances. State serialization for nested-in-each instances is the remaining gap, deferred until a real consumer needs it.
 3. ~~**Two-way binding sugar** (`bind:value={cell}` / `bind:checked={cell}`)~~ — done. Counter example migrated.
-4. **Layouts + 404 routes** — turns routing from "matches URLs" into something you'd actually ship.
+4. ~~**Layouts + 404 routes**~~ — done. `_layout.rift` chains compose outermost-first via `<children/>`; `_404.rift` at routes root serves with status 404 and wears the same layout chrome. `examples/site` demonstrates both.
 5. **Production build path** (`vite build` → SSR bundle + Node adapter) — without this, Rift is dev-mode only.
 6. **Server functions** — the PLAN.md "killer protocol." Big scope but the most distinctive feature. Needs split bundling, RPC transport, security defaults.
 7. **Schema-native forms** — second killer feature from PLAN.md. Depends on server functions being landed first.
