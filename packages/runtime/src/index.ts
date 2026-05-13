@@ -51,7 +51,7 @@ export function disposeScope(scope: Scope): void {
     try {
       cleanups[i]!();
     } catch (e) {
-      console.error("[rift] scope cleanup threw:", e);
+      console.error("[jslop] scope cleanup threw:", e);
     }
   }
   if (scope.parent) {

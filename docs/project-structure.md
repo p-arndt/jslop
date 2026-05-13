@@ -1,6 +1,6 @@
 # Project structure
 
-A Rift app is a normal Vite project with a `@rift/vite` plugin. Here's what a minimal app looks like.
+A JSlop app is a normal Vite project with a `@jslop/vite` plugin. Here's what a minimal app looks like.
 
 ## File layout
 
@@ -10,24 +10,24 @@ my-app/
 ├── vite.config.mjs
 ├── src/
 │   ├── routes/
-│   │   ├── index.rift           → /
-│   │   ├── about.rift           → /about
-│   │   ├── _layout.rift         (optional)
-│   │   ├── _404.rift            (optional)
+│   │   ├── index.jslop           → /
+│   │   ├── about.jslop           → /about
+│   │   ├── _layout.jslop         (optional)
+│   │   ├── _404.jslop            (optional)
 │   │   └── posts/
-│   │       └── [slug].rift      → /posts/:slug
+│   │       └── [slug].jslop      → /posts/:slug
 │   ├── components/              (convention, not required)
-│   │   └── Button.rift
+│   │   └── Button.jslop
 │   └── app.css                  (optional, for Tailwind / global CSS)
 └── serve.mjs                    (production only)
 ```
 
 What each piece is for:
 
-- `src/routes/` — the route tree. Every `.rift` file here becomes a route. See [Routing](./routing.md).
-- `src/components/` — a convention for shared `.rift` components. Rift doesn't enforce a location; import them from anywhere.
+- `src/routes/` — the route tree. Every `.jslop` file here becomes a route. See [Routing](./routing.md).
+- `src/components/` — a convention for shared `.jslop` components. JSlop doesn't enforce a location; import them from anywhere.
 - `src/app.css` — your global stylesheet, if you have one. Tell the Vite plugin about it via `css: "/src/app.css"`.
-- `serve.mjs` — a small Node entrypoint that serves the production build with `@rift/node-adapter`. See [Building & deploying](./building.md).
+- `serve.mjs` — a small Node entrypoint that serves the production build with `@jslop/node-adapter`. See [Building & deploying](./building.md).
 
 ## `package.json`
 
@@ -44,24 +44,24 @@ The minimum set of dependencies:
     "serve": "node serve.mjs"
   },
   "dependencies": {
-    "@rift/client": "workspace:*",
-    "@rift/node-adapter": "workspace:*",
-    "@rift/router": "workspace:*",
-    "@rift/runtime": "workspace:*",
-    "@rift/server": "workspace:*"
+    "@jslop/client": "workspace:*",
+    "@jslop/node-adapter": "workspace:*",
+    "@jslop/router": "workspace:*",
+    "@jslop/runtime": "workspace:*",
+    "@jslop/server": "workspace:*"
   },
   "devDependencies": {
-    "@rift/vite": "workspace:*",
+    "@jslop/vite": "workspace:*",
     "vite": "^7.0.0"
   }
 }
 ```
 
 > [!IMPORTANT]
-> Use **pnpm**, not npm or yarn. The Rift workspace is pnpm-only.
+> Use **pnpm**, not npm or yarn. The JSlop workspace is pnpm-only.
 
 > [!NOTE]
-> `@rift/server` and `@rift/router` are listed as **runtime** dependencies, not dev dependencies. That's deliberate — the production SSR entry bundles them, and pnpm's strict resolver refuses to find them if they're not declared at the project level.
+> `@jslop/server` and `@jslop/router` are listed as **runtime** dependencies, not dev dependencies. That's deliberate — the production SSR entry bundles them, and pnpm's strict resolver refuses to find them if they're not declared at the project level.
 
 ## `vite.config.mjs`
 
@@ -69,17 +69,17 @@ The smallest possible config:
 
 ```js
 import { defineConfig } from "vite";
-import rift from "@rift/vite";
+import jslop from "@jslop/vite";
 
 export default defineConfig({
-  plugins: [rift()],
+  plugins: [jslop()],
 });
 ```
 
 Common options:
 
 ```js
-rift({
+jslop({
   routesDir: "src/routes",         // default: "src/routes"
   tailwind: true,                  // auto-load @tailwindcss/vite
   css: "/src/app.css",             // global CSS to inject
@@ -92,7 +92,7 @@ See [Routing](./routing.md) for `routesDir`, [Styling](./styling.md) for `tailwi
 ## A route file
 
 ```tsx
-// src/routes/index.rift
+// src/routes/index.jslop
 component Home {
   state n = 0
   function inc() { n++ }
@@ -106,15 +106,15 @@ component Home {
 }
 ```
 
-A route file is just a `.rift` file that exports a component. The first component declared is the route's page. You can declare helpers in the same file:
+A route file is just a `.jslop` file that exports a component. The first component declared is the route's page. You can declare helpers in the same file:
 
 ```tsx
-// src/routes/index.rift
+// src/routes/index.jslop
 component Home {
   view {
     <main>
       <Greeting name="world" />
-      <Greeting name="rift" />
+      <Greeting name="jslop" />
     </main>
   }
 }
@@ -129,10 +129,10 @@ The router only routes to the **first** component in a route file; the rest are 
 
 ## A layout file
 
-A `_layout.rift` wraps every route in the same folder (and below). Use `<children/>` to mark where the page should render:
+A `_layout.jslop` wraps every route in the same folder (and below). Use `<children/>` to mark where the page should render:
 
 ```tsx
-// src/routes/_layout.rift
+// src/routes/_layout.jslop
 component Layout {
   view {
     <div class="app">
@@ -146,10 +146,10 @@ component Layout {
 
 ## A 404 file
 
-`_404.rift` is the page that renders when no route matches:
+`_404.jslop` is the page that renders when no route matches:
 
 ```tsx
-// src/routes/_404.rift
+// src/routes/_404.jslop
 component NotFound {
   view {
     <main>
@@ -167,11 +167,11 @@ It runs through the layout chain like any other page.
 Anywhere. The convention used in `examples/counter` is `src/components/`, but you're free to organize however you like. Import them from routes:
 
 ```tsx
-import { Button, Card } from "../components/widgets.rift"
-import Header from "../components/Header.rift"
+import { Button, Card } from "../components/widgets.jslop"
+import Header from "../components/Header.jslop"
 ```
 
-A `.rift` file may declare any number of components. The first is the default export; the rest are named exports. See [Components](./components.md).
+A `.jslop` file may declare any number of components. The first is the default export; the rest are named exports. See [Components](./components.md).
 
 ## See also
 

@@ -1,13 +1,13 @@
 # Reactivity
 
-When you write `state count = 0` in a `.rift` file, the compiler turns it into a **cell** — a reactive value provided by `@rift/runtime`. Most of the time you don't need to think about this: assign, read, done.
+When you write `state count = 0` in a `.jslop` file, the compiler turns it into a **cell** — a reactive value provided by `@jslop/runtime`. Most of the time you don't need to think about this: assign, read, done.
 
-This page is for when you do. It documents the primitives `@rift/runtime` exposes — useful for custom helpers, JS files you import into your components, or when you want a derived value or an ad-hoc effect.
+This page is for when you do. It documents the primitives `@jslop/runtime` exposes — useful for custom helpers, JS files you import into your components, or when you want a derived value or an ad-hoc effect.
 
 ## The primitives
 
 ```ts
-import { cell, derived, effect, batch, untrack } from "@rift/runtime";
+import { cell, derived, effect, batch, untrack } from "@jslop/runtime";
 ```
 
 | Primitive       | What it is                                                            |
@@ -50,7 +50,7 @@ doubled.get();   // 10
 `derived` is just `cell` + `effect` under the hood — the inner function re-runs whenever its dependencies change, and the result is cached.
 
 > [!NOTE]
-> There's no `derived x = ...` keyword in the `.rift` DSL yet. Use `derived(() => ...)` from `@rift/runtime` directly inside a component body or in a JS helper. A DSL form is on the [roadmap](./roadmap.md).
+> There's no `derived x = ...` keyword in the `.jslop` DSL yet. Use `derived(() => ...)` from `@jslop/runtime` directly inside a component body or in a JS helper. A DSL form is on the [roadmap](./roadmap.md).
 
 ## `effect(fn): () => void`
 
@@ -113,7 +113,7 @@ If a parent passes a cell into `<Child x={someCell} />`, the child sees the same
 Effects can be grouped into **scopes** so a chunk of work — typically one `{#if}` branch or one `{#each}` item — can be torn down as a unit.
 
 ```ts
-import { createScope, runInScope, disposeScope, onCleanup, effect } from "@rift/runtime";
+import { createScope, runInScope, disposeScope, onCleanup, effect } from "@jslop/runtime";
 
 const scope = createScope();
 runInScope(scope, () => {
@@ -131,7 +131,7 @@ disposeScope(scope);  // cleans up the effect AND runs the onCleanup
 
 `effect()` snapshots the current scope at creation and restores it on every re-run, so a `cell.set` triggered from a foreign scope still parents new child scopes correctly under the effect's owner.
 
-`@rift/client` uses this internally: `boot` opens a root scope per mounted component, `{#if}` opens a fresh scope per branch swap, `{#each}` opens one scope per list item. Most app code doesn't need to call this API directly, but it's available for ad-hoc subtrees (e.g. an imperative DOM mount).
+`@jslop/client` uses this internally: `boot` opens a root scope per mounted component, `{#if}` opens a fresh scope per branch swap, `{#each}` opens one scope per list item. Most app code doesn't need to call this API directly, but it's available for ad-hoc subtrees (e.g. an imperative DOM mount).
 
 ## How the compiler uses these
 
@@ -154,9 +154,9 @@ component Counter {
 The compiler emits (simplified):
 
 ```js
-import { cell, isReactive } from "@rift/runtime";
+import { cell, isReactive } from "@jslop/runtime";
 
-export const __rift_component = {
+export const __jslop_component = {
   name: "Counter",
   create(props = {}) {
     const count = cell(0);

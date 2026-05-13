@@ -1,19 +1,19 @@
-# @rift/server
+# @jslop/server
 
-SSR for Rift components. Walks a compiled component's `buildView()` tree, emits HTML, and inlines the state capsule that `@rift/client` resumes from.
+SSR for JSlop components. Walks a compiled component's `buildView()` tree, emits HTML, and inlines the state capsule that `@jslop/client` resumes from.
 
 ```bash
-pnpm add @rift/server
+pnpm add @jslop/server
 ```
 
 ## API
 
 ```ts
-import { renderPage, renderView } from "@rift/server";
+import { renderPage, renderView } from "@jslop/server";
 
 const html = renderPage({
   title: "My page",
-  component,                            // a __rift_component (default export of a compiled .rift)
+  component,                            // a __jslop_component (default export of a compiled .jslop)
   props: { slug: "hello-world" },
   appScriptUrl: "/client.js",           // <script type="module" src="...">
   stylesheets: ["/src/app.css"],        // optional <link rel="stylesheet">
@@ -33,10 +33,10 @@ const html = renderPage({
     <link rel="stylesheet" href="/src/app.css">
   </head>
   <body>
-    <div id="__rift_root">
+    <div id="__jslop_root">
       <!-- rendered component HTML -->
     </div>
-    <script id="__rift_state" type="application/json">
+    <script id="__jslop_state" type="application/json">
       { "count": 0, "children": [ ... ] }
     </script>
     <script type="module" src="/client.js"></script>
@@ -44,7 +44,7 @@ const html = renderPage({
 </html>
 ```
 
-The state capsule is plain JSON — `@rift/client` reads it via `JSON.parse`. There is no class revival or function deserialization.
+The state capsule is plain JSON — `@jslop/client` reads it via `JSON.parse`. There is no class revival or function deserialization.
 
 ## Known limitations
 

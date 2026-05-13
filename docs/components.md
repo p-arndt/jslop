@@ -1,6 +1,6 @@
 # Components
 
-Every `.rift` file declares one or more **components**. A component bundles state, behavior, and markup into a unit you can render and reuse.
+Every `.jslop` file declares one or more **components**. A component bundles state, behavior, and markup into a unit you can render and reuse.
 
 ## Declaring a component
 
@@ -21,7 +21,7 @@ A component block has:
 You can declare **as many components as you like in a single file**. The first one is the default export, and every component becomes a named export.
 
 ```tsx
-// widgets.rift
+// widgets.jslop
 component Button {
   prop label = "?"
   prop onclick = () => {}
@@ -37,9 +37,9 @@ component Card {
 Consumers can pick either form:
 
 ```tsx
-import Button from "./widgets.rift"                // default = first block
-import { Button, Card } from "./widgets.rift"      // named
-import Default, { Card } from "./widgets.rift"     // both
+import Button from "./widgets.jslop"                // default = first block
+import { Button, Card } from "./widgets.jslop"      // named
+import Default, { Card } from "./widgets.jslop"     // both
 ```
 
 Sibling components in the same file can reference each other directly — `<Card/>` inside `Button`'s view just works.
@@ -167,7 +167,7 @@ function addTodo() {
 
 Inside a function body, identifiers that match a `state` or `prop` name are rewritten to read and write through their reactive cell. Local variables, parameters, and `let` references are left alone.
 
-You don't have to wrap functions in `useCallback` — they're plain functions and Rift doesn't re-run the component body. The function reference is stable for the lifetime of the component instance.
+You don't have to wrap functions in `useCallback` — they're plain functions and JSlop doesn't re-run the component body. The function reference is stable for the lifetime of the component instance.
 
 > [!IMPORTANT]
 > Use `function`, not `fn`. `fn` appears in design notes but the implemented keyword is `function`.
@@ -190,7 +190,7 @@ What goes inside is covered in detail in [Template syntax](./template-syntax.md)
 ## Putting it together
 
 ```tsx
-import { Stepper } from "../components/widgets.rift"
+import { Stepper } from "../components/widgets.jslop"
 
 component TodoList {
   prop initial = []

@@ -1,6 +1,6 @@
 # Getting started
 
-This page walks you through installing Rift, running the example apps, and writing your first component.
+This page walks you through installing JSlop, running the example apps, and writing your first component.
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ pnpm install
 pnpm build
 ```
 
-`pnpm build` runs the TypeScript build in every workspace package (`packages/*`). You need this once before the examples can resolve `@rift/client`, `@rift/runtime`, etc. from each package's `dist/`.
+`pnpm build` runs the TypeScript build in every workspace package (`packages/*`). You need this once before the examples can resolve `@jslop/client`, `@jslop/runtime`, etc. from each package's `dist/`.
 
 ## Run the counter example
 
@@ -27,40 +27,40 @@ pnpm build
 pnpm dev:counter
 ```
 
-Vite boots with the `@rift/vite` plugin against `examples/counter`. Open the URL Vite prints (usually `http://localhost:5173`) and you'll see:
+Vite boots with the `@jslop/vite` plugin against `examples/counter`. Open the URL Vite prints (usually `http://localhost:5173`) and you'll see:
 
 1. A server-rendered HTML page with the initial state baked in.
 2. A small client bundle that reads the state capsule and attaches event handlers.
 3. Fine-grained DOM updates on click — no hydration of the entire tree.
 
-Edit `examples/counter/src/routes/index.rift` and the page reloads. (HMR currently triggers a full page reload, not partial component reload.)
+Edit `examples/counter/src/routes/index.jslop` and the page reloads. (HMR currently triggers a full page reload, not partial component reload.)
 
 ## Run the site example
 
 ```bash
-pnpm --filter @rift/example-site run dev
+pnpm --filter @jslop/example-site run dev
 ```
 
 This one uses Tailwind v4 via `@tailwindcss/vite`, layouts, dynamic routes, and a 404 page. It's a small but complete demo.
 
 ## Build for production
 
-Rift apps build in two passes. The first emits the hashed client bundle (and CSS, if any) plus a Vite manifest. The second emits a self-contained Node SSR entry that reads that manifest to know which asset URLs to inject.
+JSlop apps build in two passes. The first emits the hashed client bundle (and CSS, if any) plus a Vite manifest. The second emits a self-contained Node SSR entry that reads that manifest to know which asset URLs to inject.
 
 ```bash
-pnpm --filter @rift/example-counter run build
+pnpm --filter @jslop/example-counter run build
 # vite build        → dist/client/  (hashed JS + CSS + manifest)
 # vite build --ssr  → dist/server/entry-server.js
 
-pnpm --filter @rift/example-counter run serve
-# → rift counter listening on http://localhost:3000
+pnpm --filter @jslop/example-counter run serve
+# → jslop counter listening on http://localhost:3000
 ```
 
 See [Building & deploying](./building.md) for the details.
 
 ## Writing your first component
 
-Create `src/routes/index.rift`:
+Create `src/routes/index.jslop`:
 
 ```tsx
 component Home {
@@ -114,7 +114,7 @@ Rule of thumb: **if the view reads it, use `state`. Otherwise, use `let`** — i
 
 ## Bootstrapping a fresh app
 
-There's no `create-rift-app` yet. The fastest path: copy `examples/counter/` somewhere, rename, and start editing. The full file inventory is in [Project structure](./project-structure.md).
+There's no `create-jslop-app` yet. The fastest path: copy `examples/counter/` somewhere, rename, and start editing. The full file inventory is in [Project structure](./project-structure.md).
 
 ## Next steps
 

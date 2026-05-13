@@ -3,7 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { resolve, join, extname, normalize, sep } from "node:path";
 
 /**
- * Shape of `render` exported by `virtual:rift-entry-server`.
+ * Shape of `render` exported by `virtual:jslop-entry-server`.
  */
 export type RenderFn = (
   url: string,
@@ -56,7 +56,7 @@ const MIME: Record<string, string> = {
 };
 
 /**
- * Build a Node HTTP request handler from a Rift SSR build.
+ * Build a Node HTTP request handler from a JSlop SSR build.
  *
  * Static assets under `clientDir` are served with long cache headers when they
  * include a hash in the filename (Vite default for `assets/`); other paths
@@ -93,7 +93,7 @@ export function createHandler(
       res.end(result.html);
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.error("[@rift/node-adapter] render error:", err);
+      console.error("[@jslop/node-adapter] render error:", err);
       res.statusCode = 500;
       res.setHeader("content-type", "text/plain; charset=utf-8");
       res.end("internal server error");

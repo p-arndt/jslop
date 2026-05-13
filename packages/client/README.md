@@ -1,17 +1,17 @@
-# @rift/client
+# @jslop/client
 
-Browser-side boot for Rift apps. Resumes the page from the server's state capsule — there is no hydration in the React sense.
+Browser-side boot for JSlop apps. Resumes the page from the server's state capsule — there is no hydration in the React sense.
 
 ```bash
-pnpm add @rift/client
+pnpm add @jslop/client
 ```
 
 ## API
 
 ```ts
-import { boot } from "@rift/client";
-import Home from "./routes/index.rift";
-import Post from "./routes/posts/[slug].rift";
+import { boot } from "@jslop/client";
+import Home from "./routes/index.jslop";
+import Post from "./routes/posts/[slug].jslop";
 
 boot({
   Home,
@@ -21,7 +21,7 @@ boot({
 
 `boot(registry)` does:
 
-1. Reads `<script id="__rift_state" type="application/json">` from the document.
+1. Reads `<script id="__jslop_state" type="application/json">` from the document.
 2. Looks up the root component by name in `registry`.
 3. Calls `component.create(props)` and then `instance.restoreState(capsule)` — `cell.set` for every serialized value.
 4. Walks `instance.buildView()` and the existing DOM tree in lockstep:
@@ -33,11 +33,11 @@ After boot, user events trigger `cell.set` → subscribers re-run → DOM nodes 
 
 ## Usually you don't call `boot` directly
 
-`@rift/vite` generates a `virtual:rift-client` module that imports `boot` plus every route component and calls `boot()` with the right registry. Your `vite.config.mjs` only needs the Rift plugin.
+`@jslop/vite` generates a `virtual:jslop-client` module that imports `boot` plus every route component and calls `boot()` with the right registry. Your `vite.config.mjs` only needs the JSlop plugin.
 
 ## Reactive scopes
 
-`boot` creates a top-level `Scope` (from `@rift/runtime`) per mounted root, and `mountIf` / `mountEach` open child scopes for each branch / list item. When a scope is disposed, every effect created inside it is torn down — so `{#if}` swaps and `{#each}` removals don't leak subscriptions.
+`boot` creates a top-level `Scope` (from `@jslop/runtime`) per mounted root, and `mountIf` / `mountEach` open child scopes for each branch / list item. When a scope is disposed, every effect created inside it is torn down — so `{#if}` swaps and `{#each}` removals don't leak subscriptions.
 
 ## Lists
 

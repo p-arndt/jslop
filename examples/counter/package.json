@@ -1,5 +1,5 @@
 {
-  "name": "@rift/example-counter",
+  "name": "@jslop/example-counter",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,14 +10,14 @@
     "serve": "node serve.mjs"
   },
   "dependencies": {
-    "@rift/client": "workspace:*",
-    "@rift/node-adapter": "workspace:*",
-    "@rift/router": "workspace:*",
-    "@rift/runtime": "workspace:*",
-    "@rift/server": "workspace:*"
+    "@jslop/client": "workspace:*",
+    "@jslop/node-adapter": "workspace:*",
+    "@jslop/router": "workspace:*",
+    "@jslop/runtime": "workspace:*",
+    "@jslop/server": "workspace:*"
   },
   "devDependencies": {
-    "@rift/vite": "workspace:*",
+    "@jslop/vite": "workspace:*",
     "vite": "^7.0.0"
   }
 }

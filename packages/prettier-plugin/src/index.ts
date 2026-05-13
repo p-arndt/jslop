@@ -12,28 +12,28 @@ import {
   type ParsedFile,
   type ParsedImport,
   type ViewNode,
-} from "@rift/compiler";
+} from "@jslop/compiler";
 
-const LANGUAGE = "rift";
-const AST_FORMAT = "rift-ast";
+const LANGUAGE = "jslop";
+const AST_FORMAT = "jslop-ast";
 
 const languages: SupportLanguage[] = [
   {
-    name: "Rift",
+    name: "JSlop",
     parsers: [LANGUAGE],
-    extensions: [".rift"],
-    vscodeLanguageIds: ["rift"],
+    extensions: [".jslop"],
+    vscodeLanguageIds: ["jslop"],
   },
 ];
 
-const riftParser: Parser<ParsedFile> = {
+const jslopParser: Parser<ParsedFile> = {
   astFormat: AST_FORMAT,
   parse: (text) => parseFile(text),
   locStart: () => -1,
   locEnd: () => -1,
 };
 
-const parsers: Record<string, Parser> = { [LANGUAGE]: riftParser };
+const parsers: Record<string, Parser> = { [LANGUAGE]: jslopParser };
 
 interface Ctx {
   indent: string;
@@ -49,13 +49,13 @@ function makeCtx(options: ParserOptions): Ctx {
   };
 }
 
-const riftPrinter: Printer<ParsedFile> = {
+const jslopPrinter: Printer<ParsedFile> = {
   print(path: AstPath<ParsedFile>, options) {
     return printFile(path.getValue(), makeCtx(options as ParserOptions));
   },
 };
 
-const printers: Record<string, Printer> = { [AST_FORMAT]: riftPrinter };
+const printers: Record<string, Printer> = { [AST_FORMAT]: jslopPrinter };
 
 const plugin: Plugin = { languages, parsers, printers };
 export default plugin;

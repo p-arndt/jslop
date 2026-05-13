@@ -3,12 +3,12 @@ import { rewriteFnBody, rewriteExpr } from "./rewrite.js";
 
 export interface CodegenOptions {
   runtimeImport?: string;
-  /** Rewrite imports of `./Foo.rift` into the compiled file extension. Defaults to `.compiled.mjs`. */
+  /** Rewrite imports of `./Foo.jslop` into the compiled file extension. Defaults to `.compiled.mjs`. */
   compiledExtension?: string;
 }
 
 export function generate(input: ParsedFile | ParsedComponent, opts: CodegenOptions = {}): string {
-  const runtimeImport = opts.runtimeImport ?? "@rift/runtime";
+  const runtimeImport = opts.runtimeImport ?? "@jslop/runtime";
   const compiledExt = opts.compiledExtension ?? ".compiled.mjs";
   // Accept a bare ParsedComponent as shorthand for "single-component file with
   // no imports" — keeps small-test ergonomics working without forcing every
@@ -21,7 +21,7 @@ export function generate(input: ParsedFile | ParsedComponent, opts: CodegenOptio
   const blocks = file.components.map((c) => generateComponent(c)).join("\n\n");
   // The first declared component is the file's default — keeps single-component
   // files (the existing convention, including all routes/layouts) working
-  // unchanged when a consumer does `import Comp from "./File.rift"`.
+  // unchanged when a consumer does `import Comp from "./File.jslop"`.
   const first = file.components[0]!;
   const defaultLine = `export default ${first.name};`;
 
@@ -35,8 +35,8 @@ ${defaultLine}
 }
 
 function emitImport(imp: ParsedImport, compiledExt: string): string {
-  const path = imp.path.endsWith(".rift")
-    ? imp.path.slice(0, -".rift".length) + compiledExt
+  const path = imp.path.endsWith(".jslop")
+    ? imp.path.slice(0, -".jslop".length) + compiledExt
     : imp.path;
   const clause: string[] = [];
   if (imp.defaultName) clause.push(imp.defaultName);

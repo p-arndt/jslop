@@ -1,0 +1,56 @@
+{
+  "name": "vscode-jslop",
+  "displayName": "JSlop",
+  "description": "Syntax highlighting for the JSlop framework (.jslop files)",
+  "version": "0.1.9",
+  "publisher": "jslop",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "jslop",
+    "syntax",
+    "highlighting"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "jslop",
+        "aliases": [
+          "JSlop",
+          "jslop"
+        ],
+        "extensions": [
+          ".jslop"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/jslop-file.svg",
+          "dark": "./icons/jslop-file.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "jslop",
+        "scopeName": "source.jslop",
+        "path": "./syntaxes/jslop.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.css.jslop": "css"
+        }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "jslop",
+        "path": "./snippets/jslop.code-snippets"
+      }
+    ]
+  }
+}

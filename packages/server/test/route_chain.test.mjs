@@ -39,7 +39,7 @@ const layoutStub = (name, label) =>
 
 test("renderRouteChain with no layouts behaves like renderComponent", () => {
   const { html, capsule } = renderRouteChain({ route: routeStub });
-  assert.match(html, /<section[^>]*data-rift-cid="c0"/);
+  assert.match(html, /<section[^>]*data-jslop-cid="c0"/);
   assert.equal(capsule.components.length, 1);
   assert.equal(capsule.components[0].cid, "c0");
 });
@@ -50,7 +50,7 @@ test("renderRouteChain nests route inside one layout via <children/>", () => {
     layouts: [layoutStub("Layout", "L")],
   });
   // Layout wraps the route; placeholder is replaced.
-  assert.ok(!html.includes("rift-children"));
+  assert.ok(!html.includes("jslop-children"));
   // Route HTML appears between layout's pre and post text.
   const preIdx = html.indexOf("L-pre");
   const routeIdx = html.indexOf("<section");

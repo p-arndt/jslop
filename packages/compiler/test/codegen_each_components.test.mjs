@@ -5,7 +5,7 @@ import { generate } from "../dist/codegen.js";
 
 test("component nested in each is emitted inline, not hoisted", () => {
   const src = `
-import Item from './Item.rift'
+import Item from './Item.jslop'
 component X {
   state items = []
   view {
@@ -22,7 +22,7 @@ component X {
 
 test("hoisted components outside each are unchanged", () => {
   const src = `
-import Header from './Header.rift'
+import Header from './Header.jslop'
 component X {
   state count = 0
   view {
@@ -39,8 +39,8 @@ component X {
 
 test("hoisted and inline can coexist with independent counters", () => {
   const src = `
-import Header from './Header.rift'
-import Item from './Item.rift'
+import Header from './Header.jslop'
+import Item from './Item.jslop'
 component X {
   state items = []
   view {
@@ -61,7 +61,7 @@ component X {
 
 test("nested each: each inner each gets its own inline scope", () => {
   const src = `
-import Cell from './Cell.rift'
+import Cell from './Cell.jslop'
 component X {
   state rows = []
   view {

@@ -17,13 +17,13 @@ importers:
 
   benchmarks:
     dependencies:
-      '@rift/client':
+      '@jslop/client':
         specifier: workspace:*
         version: link:../packages/client
-      '@rift/compiler':
+      '@jslop/compiler':
         specifier: workspace:*
         version: link:../packages/compiler
-      '@rift/runtime':
+      '@jslop/runtime':
         specifier: workspace:*
         version: link:../packages/runtime
     devDependencies:
@@ -36,23 +36,23 @@ importers:
 
   examples/counter:
     dependencies:
-      '@rift/client':
+      '@jslop/client':
         specifier: workspace:*
         version: link:../../packages/client
-      '@rift/node-adapter':
+      '@jslop/node-adapter':
         specifier: workspace:*
         version: link:../../packages/node-adapter
-      '@rift/router':
+      '@jslop/router':
         specifier: workspace:*
         version: link:../../packages/router
-      '@rift/runtime':
+      '@jslop/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
-      '@rift/server':
+      '@jslop/server':
         specifier: workspace:*
         version: link:../../packages/server
     devDependencies:
-      '@rift/vite':
+      '@jslop/vite':
         specifier: workspace:*
         version: link:../../packages/vite
       vite:
@@ -61,23 +61,23 @@ importers:
 
   examples/site:
     dependencies:
-      '@rift/client':
+      '@jslop/client':
         specifier: workspace:*
         version: link:../../packages/client
-      '@rift/node-adapter':
+      '@jslop/node-adapter':
         specifier: workspace:*
         version: link:../../packages/node-adapter
-      '@rift/router':
+      '@jslop/router':
         specifier: workspace:*
         version: link:../../packages/router
-      '@rift/runtime':
+      '@jslop/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
-      '@rift/server':
+      '@jslop/server':
         specifier: workspace:*
         version: link:../../packages/server
     devDependencies:
-      '@rift/vite':
+      '@jslop/vite':
         specifier: workspace:*
         version: link:../../packages/vite
       '@tailwindcss/vite':
@@ -92,7 +92,7 @@ importers:
 
   packages/client:
     dependencies:
-      '@rift/runtime':
+      '@jslop/runtime':
         specifier: workspace:*
         version: link:../runtime
     devDependencies:
@@ -130,7 +130,7 @@ importers:
 
   packages/prettier-plugin:
     dependencies:
-      '@rift/compiler':
+      '@jslop/compiler':
         specifier: workspace:*
         version: link:../compiler
     devDependencies:
@@ -158,7 +158,7 @@ importers:
 
   packages/server:
     dependencies:
-      '@rift/runtime':
+      '@jslop/runtime':
         specifier: workspace:*
         version: link:../runtime
     devDependencies:
@@ -168,19 +168,19 @@ importers:
 
   packages/vite:
     dependencies:
-      '@rift/client':
+      '@jslop/client':
         specifier: workspace:*
         version: link:../client
-      '@rift/compiler':
+      '@jslop/compiler':
         specifier: workspace:*
         version: link:../compiler
-      '@rift/router':
+      '@jslop/router':
         specifier: workspace:*
         version: link:../router
-      '@rift/runtime':
+      '@jslop/runtime':
         specifier: workspace:*
         version: link:../runtime
-      '@rift/server':
+      '@jslop/server':
         specifier: workspace:*
         version: link:../server
       '@tailwindcss/vite':

@@ -1,9 +1,9 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
-import { renderPage } from "@rift/server";
+import { renderPage } from "@jslop/server";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const { __rift_component: App } = await import(
+const { __jslop_component: App } = await import(
   pathToFileURL(resolve(__dirname, "dist/App.compiled.mjs")).href
 );
 
@@ -52,8 +52,8 @@ class Node {
     for (const fn of this.listeners[evt] ?? []) fn(payload ?? {});
   }
   querySelector(sel) {
-    const m = /^\[data-rift-cid="([^"]+)"\]$/.exec(sel);
-    if (m) return findFirst(this, (n) => n.attrs["data-rift-cid"] === m[1]);
+    const m = /^\[data-jslop-cid="([^"]+)"\]$/.exec(sel);
+    if (m) return findFirst(this, (n) => n.attrs["data-jslop-cid"] === m[1]);
     throw new Error(`unsupported selector ${sel}`);
   }
 }
@@ -129,7 +129,7 @@ function parseHtml(src) {
         if (k === "id") document._ids.set(v, el);
       }
       stack[stack.length - 1].appendChild(el);
-      if (tag === "script" && el.attrs.id === "__rift_capsule") {
+      if (tag === "script" && el.attrs.id === "__jslop_capsule") {
         const close = src.indexOf("</script>", i);
         el._text = src.slice(i, close);
         i = close + "</script>".length;
@@ -164,7 +164,7 @@ const html = renderPage({
 const root = parseHtml(html);
 globalThis.document = document;
 
-const { boot } = await import("@rift/client");
+const { boot } = await import("@jslop/client");
 boot({ [App.name]: App });
 
 function collectButtons(n, out = []) {

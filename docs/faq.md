@@ -1,38 +1,38 @@
 # FAQ
 
-## Is Rift production-ready?
+## Is JSlop production-ready?
 
-No. Rift is pre-1.0. The compiler, runtime, SSR, client resume, router, layouts, 404 pages, Vite plugin, and production build path all work end-to-end for the example apps, but the surface is small and there is no semver guarantee yet. Track [`TODO.md`](../TODO.md) for the honest status.
+No. JSlop is pre-1.0. The compiler, runtime, SSR, client resume, router, layouts, 404 pages, Vite plugin, and production build path all work end-to-end for the example apps, but the surface is small and there is no semver guarantee yet. Track [`TODO.md`](../TODO.md) for the honest status.
 
-## How does Rift compare to Svelte?
+## How does JSlop compare to Svelte?
 
 Closest sibling. If you know Svelte you'll feel at home — same kind of component file, similar `{#if}`/`{#each}` blocks, `bind:value` form sugar, file-system routing in SvelteKit-style. Differences:
 
-- Rift compiles to **resumable** SSR (Qwik-style) rather than hydration. There's no second pass to re-run components in the browser.
+- JSlop compiles to **resumable** SSR (Qwik-style) rather than hydration. There's no second pass to re-run components in the browser.
 - Reactive declarations are `state` / `let` / `prop`, not runes (`$state`, `$derived`).
 - No `<script>`/`<style>`/`<template>` sections — declarations sit directly inside the `component { }` body.
 - Multiple components per file by default. The first is the default export; the rest are named.
 
-## How does Rift compare to React?
+## How does JSlop compare to React?
 
-Bigger leap. Rift gives you:
+Bigger leap. JSlop gives you:
 
 - No `useState` / `useEffect` / dependency arrays — `state x = 0` is the whole API.
 - No virtual DOM. Updates write to DOM nodes directly via the reactive graph.
 - No `use client` / `use server` boundaries. There aren't any yet (server functions are on the roadmap, and they won't require special file markers).
 - No re-running component functions to compute updates. The component body runs once per instance.
 
-The tradeoff: Rift uses a **compiler-driven DSL**, not "just JavaScript." You write `.rift` files, not `.tsx`.
+The tradeoff: JSlop uses a **compiler-driven DSL**, not "just JavaScript." You write `.jslop` files, not `.tsx`.
 
-## How does Rift compare to Solid?
+## How does JSlop compare to Solid?
 
-Same reactive primitives under the hood (`cell` ≈ `createSignal`, `derived` ≈ `createMemo`, `effect` ≈ `createEffect`), but Rift is a compiled DSL rather than a JS library. You write `count++`, not `setCount(c => c + 1)`.
+Same reactive primitives under the hood (`cell` ≈ `createSignal`, `derived` ≈ `createMemo`, `effect` ≈ `createEffect`), but JSlop is a compiled DSL rather than a JS library. You write `count++`, not `setCount(c => c + 1)`.
 
-Resumability is the other axis where Rift diverges from Solid — Solid uses SSR + hydration, Rift uses SSR + resume.
+Resumability is the other axis where JSlop diverges from Solid — Solid uses SSR + hydration, JSlop uses SSR + resume.
 
-## How does Rift compare to Qwik?
+## How does JSlop compare to Qwik?
 
-Closest fit on the resumability axis. Rift adopts the same "no re-execution on the client" principle. Where it diverges:
+Closest fit on the resumability axis. JSlop adopts the same "no re-execution on the client" principle. Where it diverges:
 
 - Component authoring is closer to Svelte than to React (Qwik's surface).
 - No `useTask$` / `$` boundaries to think about. The compiler decides what's reactive based on whether you declared the variable with `state`.
@@ -40,7 +40,7 @@ Closest fit on the resumability axis. Rift adopts the same "no re-execution on t
 
 ## Do I need to use TypeScript?
 
-The compiler doesn't care. `.rift` files are parsed for the DSL keywords (`component`, `prop`, `state`, `view`, …) and everything else is raw JavaScript. TypeScript types inside function bodies and expressions work because the rewriter is type-aware (via `acorn`'s parser), but there's no `.d.ts` generation yet.
+The compiler doesn't care. `.jslop` files are parsed for the DSL keywords (`component`, `prop`, `state`, `view`, …) and everything else is raw JavaScript. TypeScript types inside function bodies and expressions work because the rewriter is type-aware (via `acorn`'s parser), but there's no `.d.ts` generation yet.
 
 ## Why does the view need exactly one root element?
 
@@ -57,11 +57,11 @@ Rule of thumb: **if the view reads it, use `state`. Otherwise, use `let`.** See 
 Two options:
 
 1. **Lift it and pass it down as a `prop`.** The cell flows from parent to child; writes from the child propagate back to the parent automatically.
-2. **Use a plain module-scoped cell** from `@rift/runtime`:
+2. **Use a plain module-scoped cell** from `@jslop/runtime`:
 
    ```ts
    // src/lib/auth.js
-   import { cell } from "@rift/runtime";
+   import { cell } from "@jslop/runtime";
    export const user = cell(null);
    ```
 
@@ -83,7 +83,7 @@ A real "context" API is on the [roadmap](./roadmap.md).
 Today: roll it yourself with `state` + a `function` + an `effect`:
 
 ```tsx
-import { effect } from "@rift/runtime"
+import { effect } from "@jslop/runtime"
 
 component PostList {
   state posts = []
@@ -105,7 +105,7 @@ A clean `server data = await ...` block with auto-wired `loading` / `error` / `r
 
 ## How do I navigate client-side?
 
-You don't, yet. Every `<a href="...">` does a full page load. Because Rift resumes rather than hydrates, full loads are cheaper than in a hydration-heavy framework — but a real SPA-mode `<a>` interceptor is on the [roadmap](./roadmap.md).
+You don't, yet. Every `<a href="...">` does a full page load. Because JSlop resumes rather than hydrates, full loads are cheaper than in a hydration-heavy framework — but a real SPA-mode `<a>` interceptor is on the [roadmap](./roadmap.md).
 
 ## Why does `user.name = "x"` not update the view?
 
@@ -126,7 +126,7 @@ Two common causes:
 
 ## Can I use it with Bun / Deno / Cloudflare Workers?
 
-The build produces a host-agnostic `render(url) → { status, html, headers }`. Wrapping it for any host is a small task — see [Building & deploying](./building.md#custom-adapters). Only `@rift/node-adapter` is shipped today.
+The build produces a host-agnostic `render(url) → { status, html, headers }`. Wrapping it for any host is a small task — see [Building & deploying](./building.md#custom-adapters). Only `@jslop/node-adapter` is shipped today.
 
 ## How do I contribute?
 

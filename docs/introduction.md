@@ -1,17 +1,17 @@
 # Introduction
 
-Rift is a fullstack TypeScript framework. You write components in `.rift` files that look like ordinary code, and the compiler turns them into resumable, fine-grained, server-rendered web apps.
+JSlop is a fullstack TypeScript framework. You write components in `.jslop` files that look like ordinary code, and the compiler turns them into resumable, fine-grained, server-rendered web apps.
 
 > **Svelte-like authoring, Solid-like reactivity, Qwik-like resumability, Next-like fullstack — without the mental tax.**
 
 No `useEffect`. No dependency arrays. No `use client` / `use server` boundaries to keep in your head. No loader/action files. State is just variables; the compiler turns them into reactive cells.
 
 > [!WARNING]
-> **Status: early.** Rift is pre-1.0. Everything documented here works end-to-end for the [example apps](https://github.com/p-arndt/rift/tree/main/examples). Aspirational features (server functions, schema forms, local-first collections) are tracked in [`PLAN.md`](../PLAN.md) / [`TODO.md`](../TODO.md) — they are **not** documented here yet because they don't exist yet.
+> **Status: early.** JSlop is pre-1.0. Everything documented here works end-to-end for the [example apps](https://github.com/p-arndt/jslop/tree/main/examples). Aspirational features (server functions, schema forms, local-first collections) are tracked in [`PLAN.md`](../PLAN.md) / [`TODO.md`](../TODO.md) — they are **not** documented here yet because they don't exist yet.
 
 ## A 60-second tour
 
-Here is a complete Rift component:
+Here is a complete JSlop component:
 
 ```tsx
 component Counter {
@@ -44,7 +44,7 @@ Five things to notice:
 | `bind:value` / `bind:checked`                 | done   |
 | Multiple components per file                  | done   |
 | File-system routing with `[param]` segments   | done   |
-| Layouts (`_layout.rift`) and `_404.rift`      | done   |
+| Layouts (`_layout.jslop`) and `_404.jslop`      | done   |
 | SSR with state capsule + client resume        | done   |
 | Production build + Node adapter               | done   |
 | Tailwind v4 out of the box                    | done   |
@@ -79,7 +79,7 @@ That's the whole model. The rest of the docs are details.
 
 ## How to read the docs
 
-If you've never used Rift:
+If you've never used JSlop:
 
 1. **[Getting started](./getting-started.md)** — install, run the example apps, see code change live.
 2. **[Components](./components.md)** — the four declaration keywords (`prop`, `state`, `let`, `function`).
@@ -93,7 +93,7 @@ Then dip into the reference pages as you need them:
 - **[Reactivity](./reactivity.md)** — the `cell` / `derived` / `effect` primitives the compiler uses.
 - **[SSR & resumability](./ssr-and-resumability.md)** — how state survives the network.
 - **[Styling](./styling.md)** — Tailwind, plain CSS, `class={...}`.
-- **[Building & deploying](./building.md)** — production build, `@rift/node-adapter`.
+- **[Building & deploying](./building.md)** — production build, `@jslop/node-adapter`.
 - **[Architecture](./internals/architecture.md)** — what each package does, end-to-end request flow. *(For contributors / curious readers — not required to ship apps.)*
 
-If you're comparing Rift against the framework you already use, jump to the **[FAQ](./faq.md)**.
+If you're comparing JSlop against the framework you already use, jump to the **[FAQ](./faq.md)**.

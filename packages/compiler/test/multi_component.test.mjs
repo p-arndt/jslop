@@ -31,7 +31,7 @@ test("codegen emits one named export per component and a default for the first",
 
 test("named import syntax is parsed and re-emitted", () => {
   const file = parseFile(`
-    import { Display, Stepper as S } from './widgets.rift'
+    import { Display, Stepper as S } from './widgets.jslop'
     component Page {
       view { <div><Display value={1}/><S/></div> }
     }
@@ -43,13 +43,13 @@ test("named import syntax is parsed and re-emitted", () => {
     { imported: "Stepper", local: "S" },
   ]);
   const out = generate(file);
-  // .rift extension rewritten + both specifiers preserved + alias preserved.
+  // .jslop extension rewritten + both specifiers preserved + alias preserved.
   assert.match(out, /import \{ Display, Stepper as S \} from "\.\/widgets\.compiled\.mjs";/);
 });
 
 test("default + named combined import is supported", () => {
   const file = parseFile(`
-    import Page, { Display } from './widgets.rift'
+    import Page, { Display } from './widgets.jslop'
     component X { view { <p/> } }
   `);
   assert.equal(file.imports[0].defaultName, "Page");
@@ -74,5 +74,5 @@ test("same-file component reference resolves to the sibling export", () => {
 });
 
 test("empty file (no components) is rejected", () => {
-  assert.throws(() => parseFile(`import X from './x.rift'`), /at least one component/);
+  assert.throws(() => parseFile(`import X from './x.jslop'`), /at least one component/);
 });

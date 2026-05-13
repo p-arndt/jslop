@@ -7,7 +7,7 @@ export interface RouteDef {
   pattern: string;
   /** Names of bracketed params in pattern order */
   paramNames: string[];
-  /** Path to the source .rift file relative to the routes dir */
+  /** Path to the source .jslop file relative to the routes dir */
   relPath: string;
   /** Compiled JS path expected (e.g. routes/posts/[slug].compiled.mjs) */
   compiledRelPath: string;
@@ -15,13 +15,13 @@ export interface RouteDef {
   identifier: string;
   /**
    * Layout files wrapping this route, outermost first. Each entry is a rel
-   * path to a `_layout.rift` file in this route's directory chain.
+   * path to a `_layout.jslop` file in this route's directory chain.
    */
   layouts: string[];
 }
 
 export interface LayoutDef {
-  /** Path relative to routes dir, e.g. "dashboard/_layout.rift" */
+  /** Path relative to routes dir, e.g. "dashboard/_layout.jslop" */
   relPath: string;
   /**
    * Directory this layout owns (forward-slash, "" for routes root). Applies
@@ -32,7 +32,7 @@ export interface LayoutDef {
 }
 
 export interface NotFoundDef {
-  /** Path relative to routes dir, e.g. "_404.rift" */
+  /** Path relative to routes dir, e.g. "_404.jslop" */
   relPath: string;
   identifier: string;
   /** Layout chain (outermost first) applying to the 404 page. */
@@ -50,9 +50,9 @@ export interface RouteManifest {
  * list of routes plus the layout chain that wraps each one.
  *
  * Conventions:
- * - Files named `_layout.rift` are layouts; they apply to every route under
+ * - Files named `_layout.jslop` are layouts; they apply to every route under
  *   the directory they live in.
- * - A file named `_404.rift` at the routes root is the catch-all page rendered
+ * - A file named `_404.jslop` at the routes root is the catch-all page rendered
  *   when no route matches.
  * - Any other file starting with `_` is reserved and ignored.
  */
@@ -107,10 +107,10 @@ async function walk(
       await walk(rootDir, full, routes, layouts, setNotFound);
       continue;
     }
-    if (extname(entry) !== ".rift") continue;
+    if (extname(entry) !== ".jslop") continue;
 
     const rel = relative(rootDir, full).split(sep).join(posix.sep);
-    const noExt = rel.slice(0, -".rift".length);
+    const noExt = rel.slice(0, -".jslop".length);
     const base = basenameOf(rel);
 
     if (base === "_layout") {
@@ -122,7 +122,7 @@ async function walk(
       continue;
     }
     if (base === "_404") {
-      // Only honor `_404.rift` at the routes root.
+      // Only honor `_404.jslop` at the routes root.
       if (parentDir(rel) === "") {
         setNotFound({ relPath: rel, identifier: identifierOf(noExt), layouts: [] });
       }
@@ -158,7 +158,7 @@ function toUrlSegment(seg: string): string {
 function basenameOf(rel: string): string {
   const slash = rel.lastIndexOf("/");
   const file = slash === -1 ? rel : rel.slice(slash + 1);
-  return file.slice(0, -".rift".length);
+  return file.slice(0, -".jslop".length);
 }
 
 function parentDir(rel: string): string {

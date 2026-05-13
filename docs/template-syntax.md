@@ -27,7 +27,7 @@ Rules:
 A tag whose name starts with an **uppercase** letter is a component reference. It must resolve to either an imported component or a sibling component declared in the same file:
 
 ```tsx
-import { Stepper } from "../components/widgets.rift"
+import { Stepper } from "../components/widgets.jslop"
 
 component Counter {
   state n = 0
@@ -86,7 +86,7 @@ Text between tags is HTML-escaped on output. Wrap any expression in `{ }` to int
 The expression is `String(...)`-coerced. It updates fine-grained — only that single text node changes when its dependencies do.
 
 > [!TIP]
-> No special syntax for HTML — interpolated values are always escaped. If you genuinely need raw HTML, render it into a real DOM element from a `function` and reach for `state` to swap nodes. There's no `{@html}` equivalent today; this is intentional given Rift's security stance.
+> No special syntax for HTML — interpolated values are always escaped. If you genuinely need raw HTML, render it into a real DOM element from a `function` and reach for `state` to swap nodes. There's no `{@html}` equivalent today; this is intentional given JSlop's security stance.
 
 ## Events
 
@@ -157,12 +157,12 @@ component Layout {
 }
 ```
 
-In file-system routing, `<children/>` in a `_layout.rift` is where the matched page component renders. Other frameworks call this `<slot/>` or `<Outlet/>`; Rift uses the same primitive for layouts now and will use it for generic component children later.
+In file-system routing, `<children/>` in a `_layout.jslop` is where the matched page component renders. Other frameworks call this `<slot/>` or `<Outlet/>`; JSlop uses the same primitive for layouts now and will use it for generic component children later.
 
 ## A complete view
 
 ```tsx
-import { Card } from "./Card.rift"
+import { Card } from "./Card.jslop"
 
 component Inbox {
   prop unreadOnly = false

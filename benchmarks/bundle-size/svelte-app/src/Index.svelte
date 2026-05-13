@@ -4,7 +4,7 @@
 
   let count = $state(0);
   let showHelp = $state(false);
-  let todos = $state(["learn rift", "build something"]);
+  let todos = $state(["learn jslop", "build something"]);
   let draft = $state("");
 
   function increment() {
@@ -36,7 +36,7 @@
 </script>
 
 <div>
-  <h1>Rift Counter</h1>
+  <h1>JSlop Counter</h1>
   <Display value={count} label="Count" />
   <Stepper label="+" onstep={increment} />
   <Stepper label="-" onstep={decrement} />

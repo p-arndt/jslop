@@ -1,14 +1,14 @@
-# @rift/node-adapter
+# @jslop/node-adapter
 
-A Node HTTP wrapper around a built Rift SSR `render(url)`. Serves static assets from `dist/client/` and falls through to the SSR entry for everything else.
+A Node HTTP wrapper around a built JSlop SSR `render(url)`. Serves static assets from `dist/client/` and falls through to the SSR entry for everything else.
 
 ```bash
-pnpm add @rift/node-adapter
+pnpm add @jslop/node-adapter
 ```
 
 ## Usage
 
-Build your app first (see [`@rift/vite`](../vite) docs):
+Build your app first (see [`@jslop/vite`](../vite) docs):
 
 ```bash
 vite build              # → dist/client/
@@ -19,7 +19,7 @@ Then drop in a serve script:
 
 ```js
 // serve.mjs
-import { createServer } from "@rift/node-adapter";
+import { createServer } from "@jslop/node-adapter";
 import { render } from "./dist/server/entry-server.js";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

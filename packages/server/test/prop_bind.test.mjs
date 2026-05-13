@@ -27,7 +27,7 @@ test("prop bind on input value renders value attribute + marker", () => {
     }))
   );
   assert.ok(html.includes('value="hello"'));
-  assert.ok(html.includes("data-rift-prop-value"));
+  assert.ok(html.includes("data-jslop-prop-value"));
 });
 
 test("prop bind on checked: true renders the boolean attribute, omits when false", () => {
@@ -44,7 +44,7 @@ test("prop bind on checked: true renders the boolean attribute, omits when false
     }))
   );
   assert.ok(htmlOn.includes('checked=""'));
-  assert.ok(htmlOn.includes("data-rift-prop-checked"));
+  assert.ok(htmlOn.includes("data-jslop-prop-checked"));
 
   const { html: htmlOff } = renderComponent(
     makeProbe(() => ({
@@ -59,7 +59,7 @@ test("prop bind on checked: true renders the boolean attribute, omits when false
     }))
   );
   assert.ok(!htmlOff.includes("checked"));
-  assert.ok(!htmlOff.includes("data-rift-prop-checked"));
+  assert.ok(!htmlOff.includes("data-jslop-prop-checked"));
 });
 
 test("prop bind escapes string values for the HTML attribute", () => {

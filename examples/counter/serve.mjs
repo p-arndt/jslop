@@ -1,4 +1,4 @@
-import { createServer } from "@rift/node-adapter";
+import { createServer } from "@jslop/node-adapter";
 import { render } from "./dist/server/entry-server.js";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,5 +12,5 @@ const server = createServer({
 });
 
 server.listen(port, () => {
-  console.log(`rift counter listening on http://localhost:${port}`);
+  console.log(`jslop counter listening on http://localhost:${port}`);
 });

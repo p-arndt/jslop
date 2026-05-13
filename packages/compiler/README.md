@@ -1,19 +1,19 @@
-# @rift/compiler
+# @jslop/compiler
 
-Parses `.rift` files and emits ES modules ready for `@rift/server` (SSR) and `@rift/client` (boot).
+Parses `.jslop` files and emits ES modules ready for `@jslop/server` (SSR) and `@jslop/client` (boot).
 
 ```bash
-pnpm add @rift/compiler
+pnpm add @jslop/compiler
 ```
 
 ## API
 
 ```ts
-import { compile, parseFile, parseComponent, generate } from "@rift/compiler";
+import { compile, parseFile, parseComponent, generate } from "@jslop/compiler";
 
 const js = compile(source, {
-  runtimeImport: "@rift/runtime",   // default
-  compiledExtension: ".compiled.mjs", // default (use ".rift" if your bundler re-transforms)
+  runtimeImport: "@jslop/runtime",   // default
+  compiledExtension: ".compiled.mjs", // default (use ".jslop" if your bundler re-transforms)
 });
 ```
 
@@ -40,8 +40,8 @@ source ──► parser ──► ParsedComponent ──► codegen ──► JS
 
 Hand-rolled cursor parser. Recognizes:
 
-- `import Name from "./path.rift"` — default import
-- `import { A, B as Renamed } from "./path.rift"` — named imports (combinable with a default)
+- `import Name from "./path.jslop"` — default import
+- `import { A, B as Renamed } from "./path.jslop"` — named imports (combinable with a default)
 - One or more `component Name { ... }` blocks per file
 - `prop name = defaultExpr`
 - `state name = initExpr` — reactive cell (participates in the view)
@@ -72,7 +72,7 @@ Non-reactive `let` declarations at component scope are left as plain JS — they
 Walks the parsed file and emits one descriptor per declared component, with the first also re-exported as `default` so legacy default-import callers keep working:
 
 ```js
-import { cell, isReactive } from "@rift/runtime";
+import { cell, isReactive } from "@jslop/runtime";
 import { Display } from "./widgets.compiled.mjs";
 
 export const Counter = {
@@ -87,13 +87,13 @@ export const Counter = {
   }
 };
 
-// Additional `component` blocks in the same .rift file become further
+// Additional `component` blocks in the same .jslop file become further
 // `export const Helper = { ... }` statements, in declaration order.
 
 export default Counter;
 ```
 
-The view tree is a JSON-ish structure: `{ kind: "element" | "component" | "text" | "bind" | "if" | "each", ... }`. `@rift/server` and `@rift/client` both walk it.
+The view tree is a JSON-ish structure: `{ kind: "element" | "component" | "text" | "bind" | "if" | "each", ... }`. `@jslop/server` and `@jslop/client` both walk it.
 
 ## Not implemented
 

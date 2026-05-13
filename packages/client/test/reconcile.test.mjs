@@ -123,25 +123,25 @@ function makeKeyedListModule(items) {
 }
 
 function setupRoot() {
-  // Manually wire: create a capsule + a fresh root <ul data-rift-cid="r"> with
-  // an empty <rift-each data-rift-keyed="t" data-rift-count="0">. This mimics
+  // Manually wire: create a capsule + a fresh root <ul data-jslop-cid="r"> with
+  // an empty <jslop-each data-jslop-keyed="t" data-jslop-count="0">. This mimics
   // an SSR-rendered empty list.
   const root = new StubElement("ul");
-  root.attrs["data-rift-cid"] = "r";
-  const each = new StubElement("rift-each");
-  each.attrs["data-rift-count"] = "0";
-  each.attrs["data-rift-keyed"] = "t";
+  root.attrs["data-jslop-cid"] = "r";
+  const each = new StubElement("jslop-each");
+  each.attrs["data-jslop-count"] = "0";
+  each.attrs["data-jslop-keyed"] = "t";
   root.appendChild(each);
 
   document.querySelector = (sel) => {
-    if (sel === '[data-rift-cid="r"]') return root;
+    if (sel === '[data-jslop-cid="r"]') return root;
     return null;
   };
   const capsuleEl = new StubElement("script");
   capsuleEl._text = JSON.stringify({
     components: [{ cid: "r", name: "List", props: {}, state: {} }],
   });
-  document.getElementById = (id) => (id === "__rift_capsule" ? capsuleEl : null);
+  document.getElementById = (id) => (id === "__jslop_capsule" ? capsuleEl : null);
   return { root, each };
 }
 
@@ -182,7 +182,7 @@ test("keyed each: reorder preserves DOM identity per key", () => {
   assert.deepEqual(after.map((c) => c.children[0].attrs["data-id"]), [
     "c", "b", "a",
   ]);
-  // DOM identity preserved: same rift-each-item nodes, just reordered.
+  // DOM identity preserved: same jslop-each-item nodes, just reordered.
   assert.equal(after[0].__id, before[2].__id);
   assert.equal(after[1].__id, before[1].__id);
   assert.equal(after[2].__id, before[0].__id);
@@ -260,7 +260,7 @@ test("unkeyed each: rebuild disposes prior item bind effects (no leak)", () => {
   const mounts = [];
   const { each } = setupRoot();
   // Strip the keyed marker so the list is treated as unkeyed.
-  delete each.attrs["data-rift-keyed"];
+  delete each.attrs["data-jslop-keyed"];
   boot({ List: makeUnkeyedListWithEffect(items, (id) => mounts.push(id)) });
   // Initial mount path renders nothing visible (SSR count was 0 / empty list
   // mismatch). After list flips it triggers a fresh build.
@@ -309,10 +309,10 @@ test("bind: cell → DOM property and DOM input → cell", () => {
 
   // Set up a fresh root with a single bare <input> to attach to.
   const root = new StubElement("input");
-  root.attrs["data-rift-cid"] = "r";
-  document.querySelector = (sel) => (sel === '[data-rift-cid="r"]' ? root : null);
+  root.attrs["data-jslop-cid"] = "r";
+  document.querySelector = (sel) => (sel === '[data-jslop-cid="r"]' ? root : null);
   document.getElementById = (id) =>
-    id === "__rift_capsule"
+    id === "__jslop_capsule"
       ? {
           textContent: JSON.stringify({
             components: [{ cid: "r", name: "Form", props: {}, state: {} }],
@@ -366,10 +366,10 @@ test("bind:checked carries booleans without String() coercion", () => {
   };
 
   const root = new StubElement("input");
-  root.attrs["data-rift-cid"] = "r";
-  document.querySelector = (sel) => (sel === '[data-rift-cid="r"]' ? root : null);
+  root.attrs["data-jslop-cid"] = "r";
+  document.querySelector = (sel) => (sel === '[data-jslop-cid="r"]' ? root : null);
   document.getElementById = (id) =>
-    id === "__rift_capsule"
+    id === "__jslop_capsule"
       ? {
           textContent: JSON.stringify({
             components: [{ cid: "r", name: "Form", props: {}, state: {} }],
@@ -463,7 +463,7 @@ test("keyed each: nested component instances persist across reorders", () => {
   const { each } = setupRoot();
   // Make root accept "Parent" not "List".
   document.getElementById = (id) =>
-    id === "__rift_capsule"
+    id === "__jslop_capsule"
       ? {
           textContent: JSON.stringify({
             components: [{ cid: "r", name: "Parent", props: {}, state: {} }],

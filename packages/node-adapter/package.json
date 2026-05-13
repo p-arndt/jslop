@@ -1,5 +1,5 @@
 {
-  "name": "@rift/node-adapter",
+  "name": "@jslop/node-adapter",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",

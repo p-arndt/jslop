@@ -1,6 +1,6 @@
 # SSR & resumability
 
-Rift renders pages on the server, then **resumes** on the client without re-running the whole component tree. There is no hydration in the React sense.
+JSlop renders pages on the server, then **resumes** on the client without re-running the whole component tree. There is no hydration in the React sense.
 
 This page explains what "resumability" actually means here and how a page makes it across the network.
 
@@ -8,7 +8,7 @@ This page explains what "resumability" actually means here and how a page makes 
 
 A classic hydration framework runs your component code **twice** — once on the server to produce HTML, once in the browser to "attach" event handlers and rebuild a virtual DOM. The browser pass scales with the size of your component tree.
 
-Rift runs your component code **once on the server**, serializes just the state, and the browser picks up where the server left off. The browser pass scales with the number of *interactive bindings*, not the size of the tree.
+JSlop runs your component code **once on the server**, serializes just the state, and the browser picks up where the server left off. The browser pass scales with the number of *interactive bindings*, not the size of the tree.
 
 ## The flow
 
@@ -43,8 +43,8 @@ Rift runs your component code **once on the server**, serializes just the state,
 When the server renders a component, it walks its `state` cells and writes their values into a JSON blob embedded in the HTML. Non-reactive `let` bindings are *not* serialized — they're recomputed on the client:
 
 ```html
-<script id="__rift_state" type="application/json">
-  { "count": 0, "draft": "", "todos": ["learn rift", "build something"],
+<script id="__jslop_state" type="application/json">
+  { "count": 0, "draft": "", "todos": ["learn jslop", "build something"],
     "children": [ ... ] }
 </script>
 ```
@@ -63,7 +63,7 @@ Classic React hydration:
 3. Client re-runs every component to build a virtual DOM.
 4. Client diffs the virtual DOM against the real DOM and "attaches."
 
-Rift:
+JSlop:
 
 1. Server renders HTML + serialized state.
 2. Client reads the state, restores cells, attaches handlers, sets up reactive bindings.
@@ -73,7 +73,7 @@ The result: the initial JS work scales with **the number of interactive bindings
 
 ## Security note (the boring wire protocol)
 
-[`PLAN.md`](../PLAN.md) explicitly calls out the RSC RCE disclosed in late 2025 and commits Rift to a **boring** wire protocol: JSON only, no executable payloads, no arbitrary object revival.
+[`PLAN.md`](../PLAN.md) explicitly calls out the RSC RCE disclosed in late 2025 and commits JSlop to a **boring** wire protocol: JSON only, no executable payloads, no arbitrary object revival.
 
 The state capsule today is plain JSON with `JSON.parse` — no class revival, no function deserialization, no `eval`. Server functions (when they land) will follow the same constraint.
 
@@ -82,7 +82,7 @@ The state capsule today is plain JSON with `JSON.parse` — no class revival, no
 > [!WARNING]
 > - **Buffered SSR.** The server renders the whole page to a string before responding. Streaming SSR isn't implemented.
 > - **No static prerender mode.** Static site generation (render every route at build time) is on the roadmap but not built. You can hack it with a script today.
-> - **HMR.** `.rift` edits trigger a full page reload, not partial component reload.
+> - **HMR.** `.jslop` edits trigger a full page reload, not partial component reload.
 > - **No client-side nav.** `<a>` links cause a full document load. SPA-mode navigation is on the roadmap.
 > - **Each-nested component state.** State for components nested inside `{#each}` does not currently round-trip through SSR — they re-create from scratch on hydration. Top-level component state and props do round-trip.
 

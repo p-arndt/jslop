@@ -1,9 +1,9 @@
-# @rift/runtime
+# @jslop/runtime
 
-The reactivity engine that the Rift compiler targets. Tiny — about 150 lines.
+The reactivity engine that the JSlop compiler targets. Tiny — about 150 lines.
 
 ```bash
-pnpm add @rift/runtime
+pnpm add @jslop/runtime
 ```
 
 ## API
@@ -12,7 +12,7 @@ pnpm add @rift/runtime
 import {
   cell, derived, effect, batch, untrack, isReactive,
   type Cell, type Derived, type Reactive,
-} from "@rift/runtime";
+} from "@jslop/runtime";
 ```
 
 ### `cell<T>(initial: T): Cell<T>`
@@ -84,4 +84,4 @@ Type guard used by compiled components for prop forwarding.
 
 ## How the compiler uses this
 
-For every `state` and `prop` in a `.rift` file, the compiler emits a `cell(...)`. Non-reactive `let` declarations are emitted as plain `let` bindings — they don't participate in the reactive graph. For every `{expr}` in the view and every event attachment, the runtime wraps it in an `effect(...)`. See [docs/reactivity.md](../../docs/reactivity.md).
+For every `state` and `prop` in a `.jslop` file, the compiler emits a `cell(...)`. Non-reactive `let` declarations are emitted as plain `let` bindings — they don't participate in the reactive graph. For every `{expr}` in the view and every event attachment, the runtime wraps it in an `effect(...)`. See [docs/reactivity.md](../../docs/reactivity.md).

@@ -1,4 +1,4 @@
-Let’s call it **Rift** for now.
+Let’s call it **JSlop** for now.
 
 Not “React but faster”. Not “Svelte but different syntax”. The core idea:
 
@@ -91,11 +91,11 @@ Great shell. Not always enough app model.
 
 ---
 
-# The new framework: Rift
+# The new framework: JSlop
 
 ## Core philosophy
 
-Rift should be built around five principles:
+JSlop should be built around five principles:
 
 ### 1. No hydration by default
 
@@ -155,7 +155,7 @@ Current frameworks make you think in files:
 
 or separate loaders/actions/routes.
 
-Rift should make boundaries explicit inside the component:
+JSlop should make boundaries explicit inside the component:
 
 ```tsx
 component ProductPage {
@@ -231,11 +231,11 @@ No magic route loaders. No nested routing insanity. No mental gymnastics.
 ```txt
 src/
   routes/
-    index.rift
-    blog/[slug].rift
+    index.jslop
+    blog/[slug].jslop
     dashboard/
-      index.rift
-      settings.rift
+      index.jslop
+      settings.jslop
 ```
 
 Inside a route:
@@ -263,7 +263,7 @@ Simple file routing, but the data is colocated with the route component.
 
 Most frameworks think in components.
 
-Rift thinks in **interaction cells**.
+JSlop thinks in **interaction cells**.
 
 Example:
 
@@ -305,7 +305,7 @@ It resumes the graph at the exact interactive nodes.
 
 # Syntax sketch
 
-Maybe `.rift` files:
+Maybe `.jslop` files:
 
 ```tsx
 component TodoApp {
@@ -355,7 +355,7 @@ No manually wiring fetch state.
 
 # Data model
 
-Rift needs built-in async state primitives.
+JSlop needs built-in async state primitives.
 
 ```tsx
 server user = await auth.user()
@@ -395,7 +395,7 @@ Manual control when needed:
 
 In React, effects are abused for everything.
 
-Rift should separate effects into clear categories:
+JSlop should separate effects into clear categories:
 
 ```tsx
 browser fn trackPageView() {
@@ -484,7 +484,7 @@ Basically built-in `class-variance-authority`, but first-class.
 
 Forms are still garbage in most frameworks.
 
-Rift should have schema-native forms:
+JSlop should have schema-native forms:
 
 ```tsx
 schema ProfileForm {
@@ -565,24 +565,24 @@ Given the RSC security mess, I would design this with an extremely boring protoc
 
 # The framework stack
 
-Rift should be split like this:
+JSlop should be split like this:
 
 ```txt
-@rift/compiler
-@rift/runtime
-@rift/server
-@rift/router
-@rift/forms
-@rift/auth
-@rift/db
-@rift/testing
-@rift/devtools
+@jslop/compiler
+@jslop/runtime
+@jslop/server
+@jslop/router
+@jslop/forms
+@jslop/auth
+@jslop/db
+@jslop/testing
+@jslop/devtools
 ```
 
 But users install:
 
 ```bash
-pnpm create rift-app
+pnpm create jslop-app
 ```
 
 And get:
@@ -603,15 +603,15 @@ but less conceptual bullshit
 ```txt
 src/
   routes/
-    index.rift
+    index.jslop
     dashboard/
-      index.rift
-      settings.rift
+      index.jslop
+      settings.jslop
 
   components/
-    Button.rift
-    Modal.rift
-    DataTable.rift
+    Button.jslop
+    Modal.jslop
+    DataTable.jslop
 
   server/
     db.ts
@@ -682,7 +682,7 @@ Readable. Local. Fullstack. Reactive. No hook soup.
 
 # Differentiator: local-first optional mode
 
-Rift could have first-class local state persistence:
+JSlop could have first-class local state persistence:
 
 ```tsx
 local todos = collection<Todo>("todos")
@@ -704,7 +704,7 @@ sync todos with server.todos {
 }
 ```
 
-This would make Rift especially good for:
+This would make JSlop especially good for:
 
 ```txt
 dashboards
@@ -722,7 +722,7 @@ Most frameworks still treat offline/local-first as an afterthought.
 
 # Devtools idea
 
-Rift Devtools should not just show components.
+JSlop Devtools should not just show components.
 
 It should show the **reactive graph**:
 
@@ -755,7 +755,7 @@ That would be insanely useful.
 
 ---
 
-# What Rift should avoid
+# What JSlop should avoid
 
 Very important: do **not** make another framework that becomes clever sludge.
 
@@ -782,7 +782,7 @@ The MVP should be brutally focused.
 Build only this first:
 
 ```txt
-.rift component compiler
+.jslop component compiler
 fine-grained reactive local state
 SSR
 resumable event handlers
@@ -810,7 +810,7 @@ CMS stuff
 
 # The actual pitch
 
-> **Rift is a fullstack TypeScript framework that compiles normal-looking component code into resumable, fine-grained, progressively enhanced web apps. It removes hydration, hooks, dependency arrays, client/server file splitting, and loader/action boilerplate.**
+> **JSlop is a fullstack TypeScript framework that compiles normal-looking component code into resumable, fine-grained, progressively enhanced web apps. It removes hydration, hooks, dependency arrays, client/server file splitting, and loader/action boilerplate.**
 
 Or shorter:
 

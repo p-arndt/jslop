@@ -1,6 +1,6 @@
 # Building & deploying
 
-A Rift app builds in **two passes** and serves with a small Node adapter. This page walks the full production flow.
+A JSlop app builds in **two passes** and serves with a small Node adapter. This page walks the full production flow.
 
 ## The build
 
@@ -11,7 +11,7 @@ pnpm build
 
 Pass 1 — `vite build`:
 
-- Compiles every `.rift` file via `@rift/compiler`.
+- Compiles every `.jslop` file via `@jslop/compiler`.
 - Emits the **client bundle** to `dist/client/` with hashed filenames in `assets/`.
 - Emits `dist/client/.vite/manifest.json` so the server entry can look up which asset URL corresponds to the client entry.
 - Bundles any CSS you imported (and Tailwind, if enabled) into hashed CSS files alongside.
@@ -19,7 +19,7 @@ Pass 1 — `vite build`:
 Pass 2 — `vite build --ssr`:
 
 - Bundles the **server entry** to `dist/server/entry-server.js`.
-- Inlines `@rift/server`, `@rift/router`, and your route components into a single self-contained module.
+- Inlines `@jslop/server`, `@jslop/router`, and your route components into a single self-contained module.
 - Exports a `render(url, opts?) → { status, html, headers }` function.
 
 After both passes, your `dist/` looks like:
@@ -37,11 +37,11 @@ dist/
 
 ## Serving the build
 
-Use `@rift/node-adapter` for a tiny Node HTTP server:
+Use `@jslop/node-adapter` for a tiny Node HTTP server:
 
 ```js
 // serve.mjs
-import { createServer } from "@rift/node-adapter";
+import { createServer } from "@jslop/node-adapter";
 import { render } from "./dist/server/entry-server.js";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -90,7 +90,7 @@ Bun.serve({
 Cloudflare Workers / Deno / Lambda follow the same pattern — feed `url` in, send `html` back.
 
 > [!NOTE]
-> Right now `@rift/node-adapter` is the only adapter shipped. Bun, Workers, Deno, and edge adapters are on the [roadmap](./roadmap.md). The render contract is intentionally minimal so writing one is a small task.
+> Right now `@jslop/node-adapter` is the only adapter shipped. Bun, Workers, Deno, and edge adapters are on the [roadmap](./roadmap.md). The render contract is intentionally minimal so writing one is a small task.
 
 ## Streaming SSR
 
@@ -110,4 +110,4 @@ Vite's standard rules apply. Use `import.meta.env.VITE_*` in any code that needs
 
 - [Project structure](./project-structure.md) — where `serve.mjs` and `vite.config.mjs` sit.
 - [SSR & resumability](./ssr-and-resumability.md) — what the SSR pass produces and how the client picks up.
-- [Internals: architecture](./internals/architecture.md) — what `@rift/vite` does with the build hooks.
+- [Internals: architecture](./internals/architecture.md) — what `@jslop/vite` does with the build hooks.

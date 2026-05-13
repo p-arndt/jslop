@@ -2,9 +2,9 @@ component About {
   view {
     <main class="px-6 py-16">
       <div class="mx-auto max-w-2xl space-y-6">
-        <h1 class="text-4xl font-semibold tracking-tight">About Rift</h1>
+        <h1 class="text-4xl font-semibold tracking-tight">About JSlop</h1>
         <p class="text-slate-300 leading-relaxed">
-          Rift is an experimental framework. Resumable, fine-grained, no hook soup.
+          JSlop is an experimental framework. Resumable, fine-grained, no hook soup.
         </p>
       </div>
     </main>

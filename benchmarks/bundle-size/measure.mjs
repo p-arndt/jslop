@@ -1,5 +1,5 @@
 // Build both fixtures and report raw / gzip / brotli sizes side by side.
-// Run with: pnpm --filter @rift/benchmarks run bench:bundle
+// Run with: pnpm --filter @jslop/benchmarks run bench:bundle
 import { spawnSync } from "node:child_process";
 import { readFile, stat } from "node:fs/promises";
 import { gzipSync, brotliCompressSync, constants } from "node:zlib";
@@ -9,7 +9,7 @@ import { dirname, resolve } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
 
 const fixtures = [
-  { name: "Rift", buildScript: "rift-app/build.mjs", out: "rift-app/dist/main.js" },
+  { name: "JSlop", buildScript: "jslop-app/build.mjs", out: "jslop-app/dist/main.js" },
   { name: "Svelte 5", buildScript: "svelte-app/build.mjs", out: "svelte-app/dist/main.js" },
 ];
 
@@ -55,7 +55,7 @@ lines.push("Bundle size — counter app (same fixture in both frameworks)");
 lines.push("Built with esbuild, minify=true, target=es2020, format=esm");
 lines.push("");
 lines.push(
-  `| ${pad("Framework", 10)} | ${pad("Raw", 10)} | ${pad("Gzip", 10)} | ${pad("Brotli", 10)} | ${pad("vs Rift (gzip)", 16)} |`
+  `| ${pad("Framework", 10)} | ${pad("Raw", 10)} | ${pad("Gzip", 10)} | ${pad("Brotli", 10)} | ${pad("vs JSlop (gzip)", 16)} |`
 );
 lines.push(
   `| ${"-".repeat(10)} | ${"-".repeat(10)} | ${"-".repeat(10)} | ${"-".repeat(10)} | ${"-".repeat(16)} |`

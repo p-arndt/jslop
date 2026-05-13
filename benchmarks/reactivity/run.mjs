@@ -1,6 +1,6 @@
 // Reactivity microbenchmark.
 //
-// Scenarios are mirrored across the two frameworks (see rift-source.mjs and
+// Scenarios are mirrored across the two frameworks (see jslop-source.mjs and
 // svelte-source.svelte.js). Each scenario allocates its primitives, runs N
 // synchronous propagation steps, and tears the scope down. We measure wall
 // time and report ops/sec.
@@ -10,7 +10,7 @@
 // every set so the two frameworks are doing the same unit of work per
 // iteration. Real Svelte apps batch automatically, which is typically faster.
 //
-// Run: pnpm --filter @rift/benchmarks run bench:reactivity
+// Run: pnpm --filter @jslop/benchmarks run bench:reactivity
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -28,7 +28,7 @@ const importPath = (p) => pathToFileURL(resolve(here, p)).href;
   if (r.status !== 0) throw new Error("svelte compile failed");
 }
 
-const rift = await import(importPath("rift-source.mjs"));
+const jslop = await import(importPath("jslop-source.mjs"));
 const svelte = await import(importPath("dist/svelte-source.mjs"));
 
 const SCENARIOS = [
@@ -85,12 +85,12 @@ const pad = (s, n) => String(s) + " ".repeat(Math.max(0, n - String(s).length));
 const rows = [];
 for (const s of SCENARIOS) {
   const w = s.work(s.args);
-  const r = bench(rift[camel(s.id)], s.args, w);
+  const r = bench(jslop[camel(s.id)], s.args, w);
   const v = bench(svelte[camel(s.id)], s.args, w);
   rows.push({
     id: s.id,
     label: s.label,
-    rift: r,
+    jslop: r,
     svelte: v,
     ratio: r.opsPerSec / v.opsPerSec,
   });
@@ -117,14 +117,14 @@ lines.push("Reactivity microbenchmark");
 lines.push("Synchronous propagation; Svelte uses flushSync() per set (see caveat).");
 lines.push("");
 lines.push(
-  `| ${pad("Scenario", 34)} | ${pad("Rift ops/s", 12)} | ${pad("Svelte ops/s", 12)} | ${pad("Rift / Svelte", 14)} |`
+  `| ${pad("Scenario", 34)} | ${pad("JSlop ops/s", 12)} | ${pad("Svelte ops/s", 12)} | ${pad("JSlop / Svelte", 14)} |`
 );
 lines.push(
   `| ${"-".repeat(34)} | ${"-".repeat(12)} | ${"-".repeat(12)} | ${"-".repeat(14)} |`
 );
 for (const r of rows) {
   lines.push(
-    `| ${pad(r.label, 34)} | ${pad(fmt(r.rift.opsPerSec), 12)} | ${pad(fmt(r.svelte.opsPerSec), 12)} | ${pad(r.ratio.toFixed(2) + "×", 14)} |`
+    `| ${pad(r.label, 34)} | ${pad(fmt(r.jslop.opsPerSec), 12)} | ${pad(fmt(r.svelte.opsPerSec), 12)} | ${pad(r.ratio.toFixed(2) + "×", 14)} |`
   );
 }
 lines.push("");

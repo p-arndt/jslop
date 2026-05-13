@@ -6,7 +6,7 @@ export type RenderAttr =
 export type RenderNode =
   | { kind: "text"; value: string }
   | { kind: "bind"; get: () => string }
-  | { kind: "component"; name: string; instance: RiftInstance; view: RenderNode }
+  | { kind: "component"; name: string; instance: JSlopInstance; view: RenderNode }
   | { kind: "if"; test: () => unknown; consequent: RenderNode[]; alternate: RenderNode[] }
   | {
       kind: "each";
@@ -23,17 +23,17 @@ export type RenderNode =
       children: RenderNode[];
     };
 
-export interface RiftInstance {
+export interface JSlopInstance {
   actions: Record<string, (...args: unknown[]) => unknown>;
   buildView(): RenderNode;
   serializeState(): Record<string, unknown>;
   restoreState(s: Record<string, unknown>): void;
-  children?: RiftInstance[];
+  children?: JSlopInstance[];
 }
 
-export interface RiftComponent {
+export interface JSlopComponent {
   name: string;
-  create(props?: Record<string, unknown>): RiftInstance;
+  create(props?: Record<string, unknown>): JSlopInstance;
 }
 
 export interface RenderResult {
@@ -53,7 +53,7 @@ const VOID_ELEMENTS = new Set([
   "link", "meta", "param", "source", "track", "wbr",
 ]);
 
-const CHILDREN_PLACEHOLDER = "<rift-children></rift-children>";
+const CHILDREN_PLACEHOLDER = "<jslop-children></jslop-children>";
 
 // HTML boolean attributes: presence implies true, absence implies false.
 const BOOLEAN_ATTRS = new Set([
@@ -63,7 +63,7 @@ const BOOLEAN_ATTRS = new Set([
 ]);
 
 export function renderComponent(
-  component: RiftComponent,
+  component: JSlopComponent,
   props: Record<string, unknown> = {},
   cid = "c0"
 ): RenderResult {
@@ -88,10 +88,10 @@ export function renderComponent(
  * island independently.
  */
 export function renderRouteChain(opts: {
-  route: RiftComponent;
+  route: JSlopComponent;
   routeProps?: Record<string, unknown>;
   /** Outermost layout first. Each layout must have a `<children/>`. */
-  layouts?: RiftComponent[];
+  layouts?: JSlopComponent[];
 }): RenderResult {
   const layouts = opts.layouts ?? [];
   let cidCounter = 0;
@@ -132,13 +132,13 @@ function renderNode(node: RenderNode): string {
   if (node.kind === "text") return escapeHtml(node.value);
   if (node.kind === "children") return CHILDREN_PLACEHOLDER;
   if (node.kind === "bind") {
-    return `<rift-b>${escapeHtml(node.get())}</rift-b>`;
+    return `<jslop-b>${escapeHtml(node.get())}</jslop-b>`;
   }
   if (node.kind === "if") {
     const active = !!node.test();
     const branch = active ? node.consequent : node.alternate;
     const inner = branch.map(renderNode).join("");
-    return `<rift-if data-rift-active="${active ? "t" : "f"}">${inner}</rift-if>`;
+    return `<jslop-if data-jslop-active="${active ? "t" : "f"}">${inner}</jslop-if>`;
   }
   if (node.kind === "each") {
     const source = node.each();
@@ -148,15 +148,15 @@ function renderNode(node: RenderNode): string {
     for (const item of source) {
       const itemChildren = node.build(item, i);
       const keyAttr = keyed
-        ? ` data-rift-key="${escapeAttr(String(node.key!(item, i)))}"`
+        ? ` data-jslop-key="${escapeAttr(String(node.key!(item, i)))}"`
         : "";
       itemsHtml.push(
-        `<rift-each-item${keyAttr}>${itemChildren.map(renderNode).join("")}</rift-each-item>`
+        `<jslop-each-item${keyAttr}>${itemChildren.map(renderNode).join("")}</jslop-each-item>`
       );
       i++;
     }
-    const keyedAttr = keyed ? ` data-rift-keyed="t"` : "";
-    return `<rift-each data-rift-count="${i}"${keyedAttr}>${itemsHtml.join("")}</rift-each>`;
+    const keyedAttr = keyed ? ` data-jslop-keyed="t"` : "";
+    return `<jslop-each data-jslop-count="${i}"${keyedAttr}>${itemsHtml.join("")}</jslop-each>`;
   }
   if (node.kind === "component") {
     if (node.view.kind !== "element") {
@@ -177,26 +177,26 @@ function renderElement(
       attrParts.push(`${k}="${escapeAttr(v)}"`);
     } else if (v.kind === "bind") {
       const val = v.get();
-      attrParts.push(`${k}="${escapeAttr(val)}" data-rift-attr-${k}=""`);
+      attrParts.push(`${k}="${escapeAttr(val)}" data-jslop-attr-${k}=""`);
     } else {
       // kind: "prop" — boolean attributes render presence-based, others
       // stringify their value into the attribute.
       const val = v.get();
       if (BOOLEAN_ATTRS.has(k)) {
-        if (val) attrParts.push(`${k}="" data-rift-prop-${k}=""`);
+        if (val) attrParts.push(`${k}="" data-jslop-prop-${k}=""`);
       } else {
-        attrParts.push(`${k}="${escapeAttr(String(val ?? ""))}" data-rift-prop-${k}=""`);
+        attrParts.push(`${k}="${escapeAttr(String(val ?? ""))}" data-jslop-prop-${k}=""`);
       }
     }
   }
   for (const evt of Object.keys(node.events)) {
-    attrParts.push(`data-rift-on-${evt}=""`);
+    attrParts.push(`data-jslop-on-${evt}=""`);
   }
   if (marker.cid) {
-    attrParts.push(`data-rift-cid="${escapeAttr(marker.cid)}"`);
+    attrParts.push(`data-jslop-cid="${escapeAttr(marker.cid)}"`);
   }
   if (marker.componentName) {
-    attrParts.push(`data-rift-component="${escapeAttr(marker.componentName)}"`);
+    attrParts.push(`data-jslop-component="${escapeAttr(marker.componentName)}"`);
   }
   const open = `<${node.tag}${attrParts.length ? " " + attrParts.join(" ") : ""}>`;
   if (VOID_ELEMENTS.has(node.tag)) return open;
@@ -206,9 +206,9 @@ function renderElement(
 
 export function renderPage(opts: {
   title: string;
-  component: RiftComponent;
+  component: JSlopComponent;
   /** Layouts wrapping the route, outermost first. Each must have `<children/>`. */
-  layouts?: RiftComponent[];
+  layouts?: JSlopComponent[];
   appScriptUrl: string;
   props?: Record<string, unknown>;
   stylesheets?: string[];
@@ -236,7 +236,7 @@ export function renderPage(opts: {
 ${linkTags}${extraHead}</head>
 <body>
 <div id="app">${html}</div>
-<script type="application/rift+json" id="__rift_capsule">${capsuleJson}</script>
+<script type="application/jslop+json" id="__jslop_capsule">${capsuleJson}</script>
 <script type="module" src="${opts.appScriptUrl}"></script>
 </body>
 </html>`;

@@ -1,4 +1,4 @@
-import { effect, createScope, runInScope, disposeScope, type Scope } from "@rift/runtime";
+import { effect, createScope, runInScope, disposeScope, type Scope } from "@jslop/runtime";
 
 type Actions = Record<string, (...args: unknown[]) => unknown>;
 
@@ -27,22 +27,22 @@ type EachNode = {
 type ComponentNode = {
   kind: "component";
   name: string;
-  instance: RiftInstance;
+  instance: JSlopInstance;
   view: ElNode;
 };
 type ChildrenNode = { kind: "children" };
 type ViewNode = ElNode | TextNode | BindNode | ComponentNode | IfNode | EachNode | ChildrenNode;
 
-interface RiftInstance {
+interface JSlopInstance {
   actions: Actions;
   buildView(): ElNode;
   serializeState(): Record<string, unknown>;
   restoreState(s: Record<string, unknown>): void;
 }
 
-interface RiftModule {
+interface JSlopModule {
   name: string;
-  create(props?: Record<string, unknown>): RiftInstance;
+  create(props?: Record<string, unknown>): JSlopInstance;
 }
 
 interface Capsule {
@@ -56,18 +56,18 @@ interface Capsule {
 
 const ROOT_SCOPES = new WeakMap<Element, Scope>();
 
-export function boot(modules: Record<string, RiftModule>): void {
-  const capsuleEl = document.getElementById("__rift_capsule");
+export function boot(modules: Record<string, JSlopModule>): void {
+  const capsuleEl = document.getElementById("__jslop_capsule");
   if (!capsuleEl || !capsuleEl.textContent) return;
   const capsule = JSON.parse(capsuleEl.textContent) as Capsule;
 
   for (const entry of capsule.components) {
     const mod = modules[entry.name];
     if (!mod) {
-      console.warn(`[rift] no module registered for component ${entry.name}`);
+      console.warn(`[jslop] no module registered for component ${entry.name}`);
       continue;
     }
-    const root = document.querySelector<HTMLElement>(`[data-rift-cid="${entry.cid}"]`);
+    const root = document.querySelector<HTMLElement>(`[data-jslop-cid="${entry.cid}"]`);
     if (!root) continue;
 
     const previous = ROOT_SCOPES.get(root);
@@ -132,9 +132,9 @@ function attachChildList(parent: Element, viewChildren: ViewNode[], actions: Act
   const elEls: Element[] = [];
   for (const c of direct) {
     const tag = c.tagName.toLowerCase();
-    if (tag === "rift-b") bindEls.push(c);
-    else if (tag === "rift-if") ifEls.push(c);
-    else if (tag === "rift-each") eachEls.push(c);
+    if (tag === "jslop-b") bindEls.push(c);
+    else if (tag === "jslop-if") ifEls.push(c);
+    else if (tag === "jslop-each") eachEls.push(c);
     else elEls.push(c);
   }
   let bI = 0;
@@ -165,7 +165,7 @@ function attachChildList(parent: Element, viewChildren: ViewNode[], actions: Act
     } else if (child.kind === "children") {
       // The <children/> placeholder was replaced at SSR with the routed child's
       // root element. Skip past it without recursing: the child component owns
-      // its own attach via its data-rift-cid in the capsule.
+      // its own attach via its data-jslop-cid in the capsule.
       eI++;
     } else {
       const target = elEls[eI++];
@@ -181,8 +181,8 @@ interface ItemEntry {
 }
 
 function mountEach(wrapper: Element, node: EachNode, actions: Actions): void {
-  const ssrCount = Number(wrapper.getAttribute("data-rift-count") ?? "0");
-  const ssrKeyed = wrapper.getAttribute("data-rift-keyed") === "t";
+  const ssrCount = Number(wrapper.getAttribute("data-jslop-count") ?? "0");
+  const ssrKeyed = wrapper.getAttribute("data-jslop-keyed") === "t";
   const keyed = typeof node.key === "function";
   let mounted = false;
   // Live map of key (as string) → entry, for keyed reconciliation.
@@ -196,7 +196,7 @@ function mountEach(wrapper: Element, node: EachNode, actions: Actions): void {
     if (!mounted) {
       mounted = true;
       const existingItems = Array.from(wrapper.children).filter(
-        (c) => c.tagName.toLowerCase() === "rift-each-item"
+        (c) => c.tagName.toLowerCase() === "jslop-each-item"
       );
       if (list.length === ssrCount && list.length === existingItems.length) {
         // Hydrate in place: adopt SSR DOM, attach effects per-item in its own scope.
@@ -226,7 +226,7 @@ function mountEach(wrapper: Element, node: EachNode, actions: Actions): void {
     } else {
       reconcileUnkeyed(wrapper, node, list, actions, ordered);
     }
-    wrapper.setAttribute("data-rift-count", String(list.length));
+    wrapper.setAttribute("data-jslop-count", String(list.length));
   });
 }
 
@@ -262,8 +262,8 @@ function reconcileKeyed(
     let entry = byKey.get(k);
     const item = list[i];
     if (!entry) {
-      const itemEl = document.createElement("rift-each-item");
-      itemEl.setAttribute("data-rift-key", k);
+      const itemEl = document.createElement("jslop-each-item");
+      itemEl.setAttribute("data-jslop-key", k);
       const scope = createScope();
       runInScope(scope, () => {
         const itemView = node.build(item, i);
@@ -297,7 +297,7 @@ function reconcileUnkeyed(
   }
   ordered.length = 0;
   for (let i = 0; i < list.length; i++) {
-    const itemEl = document.createElement("rift-each-item");
+    const itemEl = document.createElement("jslop-each-item");
     const scope = createScope();
     runInScope(scope, () => {
       const itemView = node.build(list[i], i);
@@ -312,7 +312,7 @@ function reconcileUnkeyed(
 }
 
 function mountIf(wrapper: Element, node: IfNode, actions: Actions): void {
-  const ssrActive = wrapper.getAttribute("data-rift-active") === "t";
+  const ssrActive = wrapper.getAttribute("data-jslop-active") === "t";
   let mounted = false;
   let lastBranch: boolean | null = null;
   let branchScope: Scope | null = null;
@@ -345,7 +345,7 @@ function rebuildIf(wrapper: Element, node: IfNode, active: boolean, actions: Act
     const built = buildNode(child, actions);
     if (built) wrapper.appendChild(built);
   }
-  wrapper.setAttribute("data-rift-active", active ? "t" : "f");
+  wrapper.setAttribute("data-jslop-active", active ? "t" : "f");
 }
 
 function buildNode(node: ViewNode, actions: Actions): Node | null {
@@ -355,10 +355,10 @@ function buildNode(node: ViewNode, actions: Actions): Node | null {
     // flipped after hydration) can't synthesize the routed page out of nothing.
     // For now this is unsupported — layouts should keep <children/> in a static
     // position. Emit a marker so it's visible in DOM and skipped on next attach.
-    return document.createElement("rift-children");
+    return document.createElement("jslop-children");
   }
   if (node.kind === "bind") {
-    const w = document.createElement("rift-b");
+    const w = document.createElement("jslop-b");
     const b = node;
     effect(() => {
       w.textContent = b.get();
@@ -366,7 +366,7 @@ function buildNode(node: ViewNode, actions: Actions): Node | null {
     return w;
   }
   if (node.kind === "if") {
-    const w = document.createElement("rift-if");
+    const w = document.createElement("jslop-if");
     let lastBranch: boolean | null = null;
     let branchScope: Scope | null = null;
     effect(() => {
@@ -380,15 +380,15 @@ function buildNode(node: ViewNode, actions: Actions): Node | null {
     return w;
   }
   if (node.kind === "each") {
-    const w = document.createElement("rift-each");
-    if (typeof node.key === "function") w.setAttribute("data-rift-keyed", "t");
+    const w = document.createElement("jslop-each");
+    if (typeof node.key === "function") w.setAttribute("data-jslop-keyed", "t");
     mountEach(w, node, actions);
     return w;
   }
   if (node.kind === "component") {
     const view = node.view;
     const el = document.createElement(view.tag);
-    el.setAttribute("data-rift-component", node.name);
+    el.setAttribute("data-jslop-component", node.name);
     buildElementInto(el, view, node.instance.actions);
     return el;
   }

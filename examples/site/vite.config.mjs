@@ -1,9 +1,9 @@
 import { defineConfig } from "vite";
-import rift from "@rift/vite";
+import jslop from "@jslop/vite";
 
 export default defineConfig({
   plugins: [
-    rift({
+    jslop({
       tailwind: true,
       css: "/src/app.css",
     }),

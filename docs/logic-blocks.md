@@ -1,6 +1,6 @@
 # Logic blocks
 
-Logic blocks let your view branch and loop. Rift has two: `{#if}` and `{#each}`.
+Logic blocks let your view branch and loop. JSlop has two: `{#if}` and `{#each}`.
 
 ## `{#if}`
 
@@ -27,7 +27,7 @@ The condition is any expression. It's re-evaluated whenever its dependencies cha
 
 ### Scopes and cleanup
 
-When a branch becomes inactive, Rift **disposes** everything inside it: child component instances, per-item effects, event listeners, the DOM itself. There's no zombie state lurking under a hidden subtree.
+When a branch becomes inactive, JSlop **disposes** everything inside it: child component instances, per-item effects, event listeners, the DOM itself. There's no zombie state lurking under a hidden subtree.
 
 Re-entering a branch builds it fresh from scratch.
 
@@ -59,7 +59,7 @@ Wrap a key expression in `(...)` after the bindings:
 {/each}
 ```
 
-With a key, Rift reconciles the list **by identity**, not by position:
+With a key, JSlop reconciles the list **by identity**, not by position:
 
 - Matching keys keep their existing DOM, per-item effects, and any nested component state across reorders and inserts.
 - New keys get a fresh build.
@@ -134,7 +134,7 @@ There's no `{:empty}` clause yet. Pair an `{#each}` with an `{#if}`:
 ## What's not here
 
 > [!NOTE]
-> Logic blocks Rift does **not** yet implement (see [roadmap](./roadmap.md)):
+> Logic blocks JSlop does **not** yet implement (see [roadmap](./roadmap.md)):
 >
 > - `{:else if}` chains
 > - `{#await promise}` / `{:then}` / `{:catch}`

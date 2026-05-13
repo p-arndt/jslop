@@ -1,7 +1,7 @@
-// Same scenarios as svelte-source.svelte.js, expressed against @rift/runtime
+// Same scenarios as svelte-source.svelte.js, expressed against @jslop/runtime
 // primitives. Each function returns a small accumulator so dead-code-elim
 // can't strip the work.
-import { cell, effect, createScope, runInScope, disposeScope } from "@rift/runtime";
+import { cell, effect, createScope, runInScope, disposeScope } from "@jslop/runtime";
 
 export function singleCellSingleEffect(iterations) {
   let total = 0;

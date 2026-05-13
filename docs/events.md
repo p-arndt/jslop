@@ -1,6 +1,6 @@
 # Events
 
-DOM event handlers in Rift are just attributes that start with `on` followed by a lowercase letter.
+DOM event handlers in JSlop are just attributes that start with `on` followed by a lowercase letter.
 
 ## The basics
 
@@ -52,7 +52,7 @@ DOM event handlers receive a regular `Event` (or subclass — `MouseEvent`, `Inp
 }} />
 ```
 
-There are no synthetic events — Rift attaches real DOM listeners.
+There are no synthetic events — JSlop attaches real DOM listeners.
 
 ## Common events
 
@@ -76,10 +76,10 @@ The attribute name is the standard `on<event>` form, lowercase.
 
 ## Component callbacks
 
-When you put `on*` on a **component** tag, it's just a regular prop — Rift does not auto-bind component callbacks to DOM events. The component decides what to call it:
+When you put `on*` on a **component** tag, it's just a regular prop — JSlop does not auto-bind component callbacks to DOM events. The component decides what to call it:
 
 ```tsx
-// Stepper.rift
+// Stepper.jslop
 component Stepper {
   prop label = "?"
   prop onstep = () => {}
@@ -100,7 +100,7 @@ Naming is convention. Call it `onstep`, `onclick`, `onclose`, `onaction` — wha
 ## Capture phase, once, passive
 
 > [!NOTE]
-> Modifier suffixes like `onclick|capture`, `onclick|once`, `onclick|passive` are **not implemented** today. If you need them, attach the listener yourself with `effect` + `onCleanup` from `@rift/runtime`, or wrap the call:
+> Modifier suffixes like `onclick|capture`, `onclick|once`, `onclick|passive` are **not implemented** today. If you need them, attach the listener yourself with `effect` + `onCleanup` from `@jslop/runtime`, or wrap the call:
 >
 > ```tsx
 > let didFire = false
@@ -142,7 +142,7 @@ The item binding is in scope inside the handler:
 {/each}
 ```
 
-`t` is a normal local variable inside the each-body, so reads of it aren't rewritten — Rift just reads the value at the point the handler fires.
+`t` is a normal local variable inside the each-body, so reads of it aren't rewritten — JSlop just reads the value at the point the handler fires.
 
 ## See also
 

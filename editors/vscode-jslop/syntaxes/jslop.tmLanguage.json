@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "Rift",
-  "scopeName": "source.rift",
-  "fileTypes": ["rift"],
+  "name": "JSlop",
+  "scopeName": "source.jslop",
+  "fileTypes": ["jslop"],
   "patterns": [
     { "include": "#comments" },
     { "include": "#import-statement" },
@@ -25,14 +25,14 @@
     "comments": {
       "patterns": [
         {
-          "name": "comment.line.double-slash.rift",
+          "name": "comment.line.double-slash.jslop",
           "match": "//.*$"
         },
         {
-          "name": "comment.block.rift",
+          "name": "comment.block.jslop",
           "begin": "/\\*",
           "end": "\\*/",
-          "captures": { "0": { "name": "punctuation.definition.comment.rift" } }
+          "captures": { "0": { "name": "punctuation.definition.comment.jslop" } }
         }
       ]
     },
@@ -40,43 +40,43 @@
     "import-statement": {
       "begin": "\\b(import)\\b",
       "beginCaptures": {
-        "1": { "name": "keyword.control.import.rift" }
+        "1": { "name": "keyword.control.import.jslop" }
       },
       "end": "(?=\\n)|;",
-      "endCaptures": { "0": { "name": "punctuation.terminator.statement.rift" } },
+      "endCaptures": { "0": { "name": "punctuation.terminator.statement.jslop" } },
       "patterns": [
         {
           "match": "\\b(from)\\b",
-          "name": "keyword.control.from.rift"
+          "name": "keyword.control.from.jslop"
         },
         { "include": "#strings" },
         {
           "match": "\\b([A-Z][A-Za-z0-9_]*)\\b",
-          "name": "support.class.component.rift"
+          "name": "support.class.component.jslop"
         },
         {
           "match": "\\b([A-Za-z_$][A-Za-z0-9_$]*)\\b",
-          "name": "variable.other.readwrite.alias.rift"
+          "name": "variable.other.readwrite.alias.jslop"
         },
-        { "match": ",", "name": "punctuation.separator.comma.rift" },
-        { "match": "\\{|\\}", "name": "punctuation.section.imports.rift" },
-        { "match": "\\*", "name": "constant.language.import-all.rift" },
-        { "match": "\\bas\\b", "name": "keyword.control.as.rift" }
+        { "match": ",", "name": "punctuation.separator.comma.jslop" },
+        { "match": "\\{|\\}", "name": "punctuation.section.imports.jslop" },
+        { "match": "\\*", "name": "constant.language.import-all.jslop" },
+        { "match": "\\bas\\b", "name": "keyword.control.as.jslop" }
       ]
     },
 
     "component-decl": {
       "match": "\\b(component)\\s+([A-Z][A-Za-z0-9_]*)",
       "captures": {
-        "1": { "name": "storage.type.component.rift" },
-        "2": { "name": "entity.name.type.component.rift" }
+        "1": { "name": "storage.type.component.jslop" },
+        "2": { "name": "entity.name.type.component.jslop" }
       }
     },
 
     "route-decl": {
       "begin": "\\b(route)\\b",
       "beginCaptures": {
-        "1": { "name": "storage.type.route.rift" }
+        "1": { "name": "storage.type.route.jslop" }
       },
       "end": "(?=\\{)",
       "patterns": [
@@ -87,31 +87,31 @@
     "schema-block": {
       "begin": "\\b(schema)\\s+([A-Z][A-Za-z0-9_]*)\\s*(\\{)",
       "beginCaptures": {
-        "1": { "name": "storage.type.schema.rift" },
-        "2": { "name": "entity.name.type.schema.rift" },
-        "3": { "name": "punctuation.section.block.begin.rift" }
+        "1": { "name": "storage.type.schema.jslop" },
+        "2": { "name": "entity.name.type.schema.jslop" },
+        "3": { "name": "punctuation.section.block.begin.jslop" }
       },
       "end": "(\\})",
       "endCaptures": {
-        "1": { "name": "punctuation.section.block.end.rift" }
+        "1": { "name": "punctuation.section.block.end.jslop" }
       },
       "patterns": [
         { "include": "#comments" },
         {
           "match": "\\b([A-Za-z_$][A-Za-z0-9_$]*)\\s*(\\??)\\s*(:)",
           "captures": {
-            "1": { "name": "variable.other.property.rift" },
-            "2": { "name": "keyword.operator.optional.rift" },
-            "3": { "name": "punctuation.separator.type.rift" }
+            "1": { "name": "variable.other.property.jslop" },
+            "2": { "name": "keyword.operator.optional.jslop" },
+            "3": { "name": "punctuation.separator.type.jslop" }
           }
         },
         {
           "match": "\\b(string|number|boolean|bigint|symbol|any|unknown|never|void|null|undefined|object|array|date)\\b",
-          "name": "support.type.primitive.rift"
+          "name": "support.type.primitive.jslop"
         },
         {
           "match": "\\.(min|max|length|optional|nullable|email|url|uuid|regex|positive|negative|int|gt|lt|gte|lte|trim|toLowerCase|toUpperCase|default|describe)\\b",
-          "name": "support.function.schema.rift"
+          "name": "support.function.schema.jslop"
         },
         { "include": "#strings" },
         { "include": "#numbers" },
@@ -122,19 +122,19 @@
     "style-block": {
       "begin": "\\b(style)\\s+([A-Z][A-Za-z0-9_]*)\\s*(\\{)",
       "beginCaptures": {
-        "1": { "name": "storage.type.style.rift" },
-        "2": { "name": "entity.name.type.style.rift" },
-        "3": { "name": "punctuation.section.block.begin.rift" }
+        "1": { "name": "storage.type.style.jslop" },
+        "2": { "name": "entity.name.type.style.jslop" },
+        "3": { "name": "punctuation.section.block.begin.jslop" }
       },
       "end": "(\\})",
       "endCaptures": {
-        "1": { "name": "punctuation.section.block.end.rift" }
+        "1": { "name": "punctuation.section.block.end.jslop" }
       },
       "patterns": [
         { "include": "#comments" },
         {
           "match": "\\b(base|variants|defaultVariants|compoundVariants)\\b",
-          "name": "support.type.property-name.style.rift"
+          "name": "support.type.property-name.style.jslop"
         },
         { "include": "#strings" },
         { "include": "#expression" }
@@ -144,20 +144,20 @@
     "meta-block": {
       "begin": "\\b(meta)\\s*(\\{)",
       "beginCaptures": {
-        "1": { "name": "keyword.control.meta.rift" },
-        "2": { "name": "punctuation.section.block.begin.rift" }
+        "1": { "name": "keyword.control.meta.jslop" },
+        "2": { "name": "punctuation.section.block.begin.jslop" }
       },
       "end": "(\\})",
       "endCaptures": {
-        "1": { "name": "punctuation.section.block.end.rift" }
+        "1": { "name": "punctuation.section.block.end.jslop" }
       },
       "patterns": [
         { "include": "#comments" },
         {
           "match": "\\b([A-Za-z_$][A-Za-z0-9_$]*)\\s*(:)",
           "captures": {
-            "1": { "name": "variable.other.property.rift" },
-            "2": { "name": "punctuation.separator.key-value.rift" }
+            "1": { "name": "variable.other.property.jslop" },
+            "2": { "name": "punctuation.separator.key-value.jslop" }
           }
         },
         { "include": "#expression" }
@@ -167,20 +167,20 @@
     "lifecycle-block": {
       "match": "\\b(mount|cleanup)\\b",
       "captures": {
-        "1": { "name": "keyword.control.lifecycle.rift" }
+        "1": { "name": "keyword.control.lifecycle.jslop" }
       }
     },
 
     "when-block": {
       "begin": "\\b(when)\\b",
       "beginCaptures": {
-        "1": { "name": "keyword.control.when.rift" }
+        "1": { "name": "keyword.control.when.jslop" }
       },
       "end": "(?=\\{)",
       "patterns": [
         {
           "match": "\\b(changes)\\b",
-          "name": "keyword.control.when.changes.rift"
+          "name": "keyword.control.when.changes.jslop"
         },
         { "include": "#expression" }
       ]
@@ -188,14 +188,14 @@
 
     "sync-block": {
       "match": "\\b(sync|with|conflict|invalidate|cleanup)\\b",
-      "name": "keyword.control.sync.rift"
+      "name": "keyword.control.sync.jslop"
     },
 
     "prop-decl": {
       "match": "\\b(prop)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
       "captures": {
-        "1": { "name": "storage.type.prop.rift" },
-        "2": { "name": "variable.other.readwrite.rift" }
+        "1": { "name": "storage.type.prop.jslop" },
+        "2": { "name": "variable.other.readwrite.jslop" }
       }
     },
 
@@ -204,15 +204,15 @@
         {
           "match": "\\b(state)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
           "captures": {
-            "1": { "name": "storage.type.reactive.rift" },
-            "2": { "name": "variable.other.reactive.rift" }
+            "1": { "name": "storage.type.reactive.jslop" },
+            "2": { "name": "variable.other.reactive.jslop" }
           }
         },
         {
           "match": "\\b(let|const|derived|local)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
           "captures": {
-            "1": { "name": "storage.type.var.rift" },
-            "2": { "name": "variable.other.readwrite.rift" }
+            "1": { "name": "storage.type.var.jslop" },
+            "2": { "name": "variable.other.readwrite.jslop" }
           }
         }
       ]
@@ -221,13 +221,13 @@
     "fn-decl": {
       "begin": "\\b(function)\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\s*(\\()",
       "beginCaptures": {
-        "1": { "name": "storage.type.function.rift" },
-        "2": { "name": "entity.name.function.rift" },
-        "3": { "name": "punctuation.definition.parameters.begin.rift" }
+        "1": { "name": "storage.type.function.jslop" },
+        "2": { "name": "entity.name.function.jslop" },
+        "3": { "name": "punctuation.definition.parameters.begin.jslop" }
       },
       "end": "(\\))",
       "endCaptures": {
-        "1": { "name": "punctuation.definition.parameters.end.rift" }
+        "1": { "name": "punctuation.definition.parameters.end.jslop" }
       },
       "patterns": [
         { "include": "#comments" },
@@ -240,17 +240,17 @@
         {
           "match": "\\b([A-Za-z_$][A-Za-z0-9_$]*)\\s*(\\??)\\s*(:)\\s*",
           "captures": {
-            "1": { "name": "variable.parameter.rift" },
-            "2": { "name": "keyword.operator.optional.rift" },
-            "3": { "name": "punctuation.separator.type.rift" }
+            "1": { "name": "variable.parameter.jslop" },
+            "2": { "name": "keyword.operator.optional.jslop" },
+            "3": { "name": "punctuation.separator.type.jslop" }
           }
         },
         {
           "match": "\\b([A-Za-z_$][A-Za-z0-9_$]*)\\b",
-          "name": "variable.parameter.rift"
+          "name": "variable.parameter.jslop"
         },
         { "include": "#type-annotation" },
-        { "match": ",", "name": "punctuation.separator.parameter.rift" },
+        { "match": ",", "name": "punctuation.separator.parameter.jslop" },
         { "include": "#expression" }
       ]
     },
@@ -259,28 +259,28 @@
       "patterns": [
         {
           "match": "\\b(string|number|boolean|bigint|symbol|any|unknown|never|void|null|undefined|object)\\b",
-          "name": "support.type.primitive.rift"
+          "name": "support.type.primitive.jslop"
         },
         {
           "match": "\\b([A-Z][A-Za-z0-9_]*)\\b",
-          "name": "entity.name.type.rift"
+          "name": "entity.name.type.jslop"
         }
       ]
     },
 
     "modifier-keywords": {
       "match": "\\b(server|client|browser|async)\\b(?=\\s+(?:function|let|const|prop|data|derived|local|[A-Za-z_$]))",
-      "name": "storage.modifier.rift"
+      "name": "storage.modifier.jslop"
     },
 
     "view-block": {
       "begin": "\\b(view)\\s*(\\{)",
       "beginCaptures": {
-        "1": { "name": "keyword.control.view.rift" },
-        "2": { "name": "punctuation.section.block.begin.rift" }
+        "1": { "name": "keyword.control.view.jslop" },
+        "2": { "name": "punctuation.section.block.begin.jslop" }
       },
       "end": "\\}",
-      "endCaptures": { "0": { "name": "punctuation.section.block.end.rift" } },
+      "endCaptures": { "0": { "name": "punctuation.section.block.end.jslop" } },
       "patterns": [
         { "include": "#view-contents" }
       ]
@@ -301,12 +301,12 @@
     "view-block-if": {
       "begin": "(\\{)(#if)\\b",
       "beginCaptures": {
-        "1": { "name": "punctuation.section.embedded.begin.rift" },
-        "2": { "name": "keyword.control.conditional.rift" }
+        "1": { "name": "punctuation.section.embedded.begin.jslop" },
+        "2": { "name": "keyword.control.conditional.jslop" }
       },
       "end": "(\\})",
       "endCaptures": {
-        "1": { "name": "punctuation.section.embedded.end.rift" }
+        "1": { "name": "punctuation.section.embedded.end.jslop" }
       },
       "patterns": [
         { "include": "#expression" }
@@ -316,17 +316,17 @@
     "view-block-each": {
       "begin": "(\\{)(#each)\\b",
       "beginCaptures": {
-        "1": { "name": "punctuation.section.embedded.begin.rift" },
-        "2": { "name": "keyword.control.loop.rift" }
+        "1": { "name": "punctuation.section.embedded.begin.jslop" },
+        "2": { "name": "keyword.control.loop.jslop" }
       },
       "end": "(\\})",
       "endCaptures": {
-        "1": { "name": "punctuation.section.embedded.end.rift" }
+        "1": { "name": "punctuation.section.embedded.end.jslop" }
       },
       "patterns": [
         {
           "match": "\\b(as)\\b",
-          "name": "keyword.control.as.rift"
+          "name": "keyword.control.as.jslop"
         },
         { "include": "#expression" }
       ]
@@ -335,12 +335,12 @@
     "view-block-else": {
       "begin": "(\\{)(:else(?:\\s+if)?)\\b",
       "beginCaptures": {
-        "1": { "name": "punctuation.section.embedded.begin.rift" },
-        "2": { "name": "keyword.control.conditional.rift" }
+        "1": { "name": "punctuation.section.embedded.begin.jslop" },
+        "2": { "name": "keyword.control.conditional.jslop" }
       },
       "end": "(\\})",
       "endCaptures": {
-        "1": { "name": "punctuation.section.embedded.end.rift" }
+        "1": { "name": "punctuation.section.embedded.end.jslop" }
       },
       "patterns": [
         { "include": "#expression" }
@@ -350,9 +350,9 @@
     "view-block-close": {
       "match": "(\\{)(/(?:if|each))(\\})",
       "captures": {
-        "1": { "name": "punctuation.section.embedded.begin.rift" },
-        "2": { "name": "keyword.control.rift" },
-        "3": { "name": "punctuation.section.embedded.end.rift" }
+        "1": { "name": "punctuation.section.embedded.begin.jslop" },
+        "2": { "name": "keyword.control.jslop" },
+        "3": { "name": "punctuation.section.embedded.end.jslop" }
       }
     },
 
@@ -360,10 +360,10 @@
       "begin": "\\{",
       "end": "\\}",
       "beginCaptures": {
-        "0": { "name": "punctuation.section.embedded.begin.rift" }
+        "0": { "name": "punctuation.section.embedded.begin.jslop" }
       },
       "endCaptures": {
-        "0": { "name": "punctuation.section.embedded.end.rift" }
+        "0": { "name": "punctuation.section.embedded.end.jslop" }
       },
       "patterns": [
         { "include": "#tag-interpolation" },
@@ -374,63 +374,63 @@
     "tag": {
       "patterns": [
         {
-          "name": "meta.tag.children-placeholder.rift",
+          "name": "meta.tag.children-placeholder.jslop",
           "match": "(<)(children)(\\s*/?>)",
           "captures": {
-            "1": { "name": "punctuation.definition.tag.begin.rift" },
-            "2": { "name": "keyword.other.children-placeholder.rift" },
-            "3": { "name": "punctuation.definition.tag.end.rift" }
+            "1": { "name": "punctuation.definition.tag.begin.jslop" },
+            "2": { "name": "keyword.other.children-placeholder.jslop" },
+            "3": { "name": "punctuation.definition.tag.end.jslop" }
           }
         },
         {
-          "name": "meta.tag.close.rift",
+          "name": "meta.tag.close.jslop",
           "begin": "(</)([A-Z][A-Za-z0-9_]*)",
           "beginCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.rift" },
-            "2": { "name": "support.class.component.rift" }
+            "1": { "name": "punctuation.definition.tag.begin.jslop" },
+            "2": { "name": "support.class.component.jslop" }
           },
           "end": "(>)",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.tag.end.rift" }
+            "1": { "name": "punctuation.definition.tag.end.jslop" }
           }
         },
         {
-          "name": "meta.tag.close.rift",
+          "name": "meta.tag.close.jslop",
           "begin": "(</)([a-z][A-Za-z0-9-]*)",
           "beginCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.rift" },
-            "2": { "name": "entity.name.tag.rift" }
+            "1": { "name": "punctuation.definition.tag.begin.jslop" },
+            "2": { "name": "entity.name.tag.jslop" }
           },
           "end": "(>)",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.tag.end.rift" }
+            "1": { "name": "punctuation.definition.tag.end.jslop" }
           }
         },
         {
-          "name": "meta.tag.component.rift",
+          "name": "meta.tag.component.jslop",
           "begin": "(<)([A-Z][A-Za-z0-9_]*)",
           "beginCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.rift" },
-            "2": { "name": "support.class.component.rift" }
+            "1": { "name": "punctuation.definition.tag.begin.jslop" },
+            "2": { "name": "support.class.component.jslop" }
           },
           "end": "(/?>)",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.tag.end.rift" }
+            "1": { "name": "punctuation.definition.tag.end.jslop" }
           },
           "patterns": [
             { "include": "#tag-attributes" }
           ]
         },
         {
-          "name": "meta.tag.element.rift",
+          "name": "meta.tag.element.jslop",
           "begin": "(<)([a-z][A-Za-z0-9-]*)",
           "beginCaptures": {
-            "1": { "name": "punctuation.definition.tag.begin.rift" },
-            "2": { "name": "entity.name.tag.rift" }
+            "1": { "name": "punctuation.definition.tag.begin.jslop" },
+            "2": { "name": "entity.name.tag.jslop" }
           },
           "end": "(/?>)",
           "endCaptures": {
-            "1": { "name": "punctuation.definition.tag.end.rift" }
+            "1": { "name": "punctuation.definition.tag.end.jslop" }
           },
           "patterns": [
             { "include": "#tag-attributes" }
@@ -445,49 +445,49 @@
         {
           "match": "\\b(on)(:)([A-Za-z_][A-Za-z0-9_-]*)",
           "captures": {
-            "1": { "name": "entity.other.attribute-name.event-prefix.rift" },
-            "2": { "name": "punctuation.separator.event.rift" },
-            "3": { "name": "entity.other.attribute-name.event.rift" }
+            "1": { "name": "entity.other.attribute-name.event-prefix.jslop" },
+            "2": { "name": "punctuation.separator.event.jslop" },
+            "3": { "name": "entity.other.attribute-name.event.jslop" }
           }
         },
         {
           "match": "\\b(bind)(:)([A-Za-z_][A-Za-z0-9_-]*)",
           "captures": {
-            "1": { "name": "entity.other.attribute-name.binding-prefix.rift" },
-            "2": { "name": "punctuation.separator.binding.rift" },
-            "3": { "name": "entity.other.attribute-name.binding.rift" }
+            "1": { "name": "entity.other.attribute-name.binding-prefix.jslop" },
+            "2": { "name": "punctuation.separator.binding.jslop" },
+            "3": { "name": "entity.other.attribute-name.binding.jslop" }
           }
         },
         {
           "match": "\\b(class|client|server|use|transition|in|out|animate)(:)([A-Za-z_][A-Za-z0-9_-]*)",
           "captures": {
-            "1": { "name": "entity.other.attribute-name.directive-prefix.rift" },
-            "2": { "name": "punctuation.separator.directive.rift" },
-            "3": { "name": "entity.other.attribute-name.directive.rift" }
+            "1": { "name": "entity.other.attribute-name.directive-prefix.jslop" },
+            "2": { "name": "punctuation.separator.directive.jslop" },
+            "3": { "name": "entity.other.attribute-name.directive.jslop" }
           }
         },
         {
           "match": "\\b([A-Za-z_][A-Za-z0-9_-]*)(?=\\s*=)",
-          "name": "entity.other.attribute-name.rift"
+          "name": "entity.other.attribute-name.jslop"
         },
         {
           "match": "\\b([A-Za-z_][A-Za-z0-9_-]*)(?!\\s*=)",
-          "name": "entity.other.attribute-name.boolean.rift"
+          "name": "entity.other.attribute-name.boolean.jslop"
         },
-        { "match": "=", "name": "punctuation.separator.key-value.rift" },
+        { "match": "=", "name": "punctuation.separator.key-value.jslop" },
         {
           "begin": "\"",
           "end": "\"",
-          "name": "string.quoted.double.rift",
-          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.rift" } },
-          "endCaptures": { "0": { "name": "punctuation.definition.string.end.rift" } }
+          "name": "string.quoted.double.jslop",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.jslop" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.jslop" } }
         },
         {
           "begin": "'",
           "end": "'",
-          "name": "string.quoted.single.rift",
-          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.rift" } },
-          "endCaptures": { "0": { "name": "punctuation.definition.string.end.rift" } }
+          "name": "string.quoted.single.jslop",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.jslop" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.jslop" } }
         },
         { "include": "#tag-interpolation" }
       ]
@@ -517,78 +517,78 @@
 
     "keywords-control": {
       "match": "\\b(if|else|for|while|do|return|break|continue|switch|case|default|throw|try|catch|finally|await|yield|new|in|of|typeof|instanceof|delete|void|as|when|changes|mount|cleanup|invalidate|sync|with|conflict|meta|view|route)\\b",
-      "name": "keyword.control.rift"
+      "name": "keyword.control.jslop"
     },
 
     "keywords-storage": {
       "patterns": [
         {
           "match": "\\b(state)\\b",
-          "name": "storage.type.reactive.rift"
+          "name": "storage.type.reactive.jslop"
         },
         {
           "match": "\\b(let|const|var|function|prop|derived|local|component|schema|style|route|import|from|export)\\b",
-          "name": "storage.type.rift"
+          "name": "storage.type.jslop"
         }
       ]
     },
 
     "keywords-modifier": {
       "match": "\\b(server|client|browser|async|static|readonly|public|private|protected)\\b",
-      "name": "storage.modifier.rift"
+      "name": "storage.modifier.jslop"
     },
 
     "keywords-operator": {
       "match": "\\b(and|or|not)\\b",
-      "name": "keyword.operator.logical.word.rift"
+      "name": "keyword.operator.logical.word.jslop"
     },
 
     "constants": {
       "patterns": [
         {
           "match": "\\b(true|false)\\b",
-          "name": "constant.language.boolean.rift"
+          "name": "constant.language.boolean.jslop"
         },
         {
           "match": "\\b(null|undefined|NaN|Infinity)\\b",
-          "name": "constant.language.rift"
+          "name": "constant.language.jslop"
         },
         {
           "match": "\\b(this|self|super)\\b",
-          "name": "variable.language.this.rift"
+          "name": "variable.language.this.jslop"
         }
       ]
     },
 
     "types-primitive": {
       "match": "\\b(string|number|boolean|bigint|symbol|any|unknown|never|void|object)\\b",
-      "name": "support.type.primitive.rift"
+      "name": "support.type.primitive.jslop"
     },
 
     "builtin-components": {
       "match": "(?<=<\\/?)(For|Await|Pending|Resolved|Error|Form|Field|Submit|Page|Slot|Fragment|Show|Match|Switch|Suspense|Portal|Layout)\\b",
-      "name": "support.class.builtin-component.rift"
+      "name": "support.class.builtin-component.jslop"
     },
 
     "builtin-functions": {
       "match": "\\b(invalidate|refresh|connect|fetch|requireUser|collection|search|debounce)\\s*(?=\\()",
-      "name": "support.function.builtin.rift"
+      "name": "support.function.builtin.jslop"
     },
 
     "function-call": {
       "match": "\\b([A-Za-z_$][A-Za-z0-9_$]*)\\s*(?=\\()",
-      "name": "entity.name.function.rift"
+      "name": "entity.name.function.jslop"
     },
 
     "identifier": {
       "patterns": [
         {
           "match": "\\b([A-Z][A-Za-z0-9_]*)\\b",
-          "name": "entity.name.type.rift"
+          "name": "entity.name.type.jslop"
         },
         {
           "match": "\\b([A-Za-z_$][A-Za-z0-9_$]*)\\b",
-          "name": "variable.other.readwrite.rift"
+          "name": "variable.other.readwrite.jslop"
         }
       ]
     },
@@ -596,23 +596,23 @@
     "strings": {
       "patterns": [
         {
-          "name": "string.quoted.double.rift",
+          "name": "string.quoted.double.jslop",
           "begin": "\"",
           "end": "\"",
           "patterns": [
             {
-              "name": "constant.character.escape.rift",
+              "name": "constant.character.escape.jslop",
               "match": "\\\\."
             }
           ]
         },
         {
-          "name": "string.quoted.single.rift",
+          "name": "string.quoted.single.jslop",
           "begin": "'",
           "end": "'",
           "patterns": [
             {
-              "name": "constant.character.escape.rift",
+              "name": "constant.character.escape.jslop",
               "match": "\\\\."
             }
           ]
@@ -621,20 +621,20 @@
     },
 
     "template-string": {
-      "name": "string.template.rift",
+      "name": "string.template.jslop",
       "begin": "`",
       "end": "`",
       "patterns": [
         {
-          "name": "constant.character.escape.rift",
+          "name": "constant.character.escape.jslop",
           "match": "\\\\."
         },
         {
-          "name": "meta.template.expression.rift",
+          "name": "meta.template.expression.jslop",
           "begin": "\\$\\{",
           "end": "\\}",
-          "beginCaptures": { "0": { "name": "punctuation.definition.template-expression.begin.rift" } },
-          "endCaptures": { "0": { "name": "punctuation.definition.template-expression.end.rift" } },
+          "beginCaptures": { "0": { "name": "punctuation.definition.template-expression.begin.jslop" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.template-expression.end.jslop" } },
           "patterns": [
             { "include": "#expression" }
           ]
@@ -645,35 +645,35 @@
     "numbers": {
       "patterns": [
         {
-          "name": "constant.numeric.hex.rift",
+          "name": "constant.numeric.hex.jslop",
           "match": "\\b0[xX][0-9a-fA-F_]+n?\\b"
         },
         {
-          "name": "constant.numeric.binary.rift",
+          "name": "constant.numeric.binary.jslop",
           "match": "\\b0[bB][01_]+n?\\b"
         },
         {
-          "name": "constant.numeric.octal.rift",
+          "name": "constant.numeric.octal.jslop",
           "match": "\\b0[oO][0-7_]+n?\\b"
         },
         {
-          "name": "constant.numeric.decimal.rift",
+          "name": "constant.numeric.decimal.jslop",
           "match": "\\b\\d[\\d_]*(?:\\.[\\d_]+)?(?:[eE][+-]?\\d+)?n?\\b"
         }
       ]
     },
 
     "regex": {
-      "name": "string.regexp.rift",
+      "name": "string.regexp.jslop",
       "begin": "(?<=[=(,:;!&|?{}+\\-*/~^<>%\\[]|\\breturn|\\btypeof|\\binstanceof|\\bin|\\bof|\\bnew|\\bdelete|\\bvoid|\\bawait|\\byield|^)\\s*(/)(?![/*])",
-      "beginCaptures": { "1": { "name": "punctuation.definition.string.begin.rift" } },
+      "beginCaptures": { "1": { "name": "punctuation.definition.string.begin.jslop" } },
       "end": "(/)([gimsuy]*)",
       "endCaptures": {
-        "1": { "name": "punctuation.definition.string.end.rift" },
-        "2": { "name": "keyword.other.regexp.flag.rift" }
+        "1": { "name": "punctuation.definition.string.end.jslop" },
+        "2": { "name": "keyword.other.regexp.flag.jslop" }
       },
       "patterns": [
-        { "match": "\\\\.", "name": "constant.character.escape.rift" }
+        { "match": "\\\\.", "name": "constant.character.escape.jslop" }
       ]
     },
 
@@ -681,50 +681,50 @@
       "patterns": [
         {
           "match": "(===|!==|==|!=|<=|>=|&&|\\|\\||\\?\\?|<<|>>>|>>|\\+\\+|--)",
-          "name": "keyword.operator.rift"
+          "name": "keyword.operator.jslop"
         },
         {
           "match": "(=>|->)",
-          "name": "keyword.operator.arrow.rift"
+          "name": "keyword.operator.arrow.jslop"
         },
         {
           "match": "(\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=|<<=|>>=|>>>=|\\*\\*=|\\?\\?=|\\|\\|=|&&=)",
-          "name": "keyword.operator.assignment.compound.rift"
+          "name": "keyword.operator.assignment.compound.jslop"
         },
         {
           "match": "=",
-          "name": "keyword.operator.assignment.rift"
+          "name": "keyword.operator.assignment.jslop"
         },
         {
           "match": "(\\+|-|\\*|/|%|\\*\\*)",
-          "name": "keyword.operator.arithmetic.rift"
+          "name": "keyword.operator.arithmetic.jslop"
         },
         {
           "match": "(!|&|\\||\\^|~|<|>)",
-          "name": "keyword.operator.rift"
+          "name": "keyword.operator.jslop"
         },
         {
           "match": "(\\?|:)",
-          "name": "keyword.operator.ternary.rift"
+          "name": "keyword.operator.ternary.jslop"
         },
         {
           "match": "\\.{3}",
-          "name": "keyword.operator.spread.rift"
+          "name": "keyword.operator.spread.jslop"
         },
         {
           "match": "\\.",
-          "name": "punctuation.accessor.rift"
+          "name": "punctuation.accessor.jslop"
         }
       ]
     },
 
     "punctuation": {
       "patterns": [
-        { "match": ";", "name": "punctuation.terminator.statement.rift" },
-        { "match": ",", "name": "punctuation.separator.comma.rift" },
-        { "match": "\\{|\\}", "name": "punctuation.section.block.rift" },
-        { "match": "\\(|\\)", "name": "punctuation.section.parens.rift" },
-        { "match": "\\[|\\]", "name": "punctuation.section.brackets.rift" }
+        { "match": ";", "name": "punctuation.terminator.statement.jslop" },
+        { "match": ",", "name": "punctuation.separator.comma.jslop" },
+        { "match": "\\{|\\}", "name": "punctuation.section.block.jslop" },
+        { "match": "\\(|\\)", "name": "punctuation.section.parens.jslop" },
+        { "match": "\\[|\\]", "name": "punctuation.section.brackets.jslop" }
       ]
     }
   }

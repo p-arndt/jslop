@@ -1,19 +1,19 @@
 # Routing
 
-Rift uses **file-system routing**: every `.rift` file under `src/routes/` becomes a route. The `@rift/router` package walks the directory; `@rift/vite`'s SSR middleware matches incoming URLs against the result.
+JSlop uses **file-system routing**: every `.jslop` file under `src/routes/` becomes a route. The `@jslop/router` package walks the directory; `@jslop/vite`'s SSR middleware matches incoming URLs against the result.
 
 ## File conventions
 
 | File path                        | URL pattern         |
 |----------------------------------|---------------------|
-| `routes/index.rift`              | `/`                 |
-| `routes/about.rift`              | `/about`            |
-| `routes/dashboard/index.rift`    | `/dashboard`        |
-| `routes/dashboard/settings.rift` | `/dashboard/settings` |
-| `routes/posts/[slug].rift`       | `/posts/:slug`      |
-| `routes/[a]/[b].rift`            | `/:a/:b`            |
-| `routes/_layout.rift`            | wraps siblings + descendants |
-| `routes/_404.rift`               | served on no match  |
+| `routes/index.jslop`              | `/`                 |
+| `routes/about.jslop`              | `/about`            |
+| `routes/dashboard/index.jslop`    | `/dashboard`        |
+| `routes/dashboard/settings.jslop` | `/dashboard/settings` |
+| `routes/posts/[slug].jslop`       | `/posts/:slug`      |
+| `routes/[a]/[b].jslop`            | `/:a/:b`            |
+| `routes/_layout.jslop`            | wraps siblings + descendants |
+| `routes/_404.jslop`               | served on no match  |
 
 Rules:
 
@@ -24,7 +24,7 @@ Rules:
 
 ## Dynamic params
 
-Define your route at `routes/posts/[slug].rift` and declare the matching `prop`:
+Define your route at `routes/posts/[slug].jslop` and declare the matching `prop`:
 
 ```tsx
 component PostBySlug {
@@ -41,7 +41,7 @@ component PostBySlug {
 The router decodes the path segment with `decodeURIComponent` and passes it as the prop value. Multiple params work the same way:
 
 ```tsx
-// routes/[org]/[repo].rift
+// routes/[org]/[repo].jslop
 component Repo {
   prop org = ""
   prop repo = ""
@@ -57,16 +57,16 @@ The prop name **must match** the bracket name — that's how the router knows wh
 Routes are sorted **most-specific first** before matching. Static segments outrank dynamic ones, so `/posts/featured` always beats `/posts/[slug]` even though both match the URL.
 
 ```
-routes/posts/featured.rift     → /posts/featured     (wins for exact match)
-routes/posts/[slug].rift       → /posts/:slug        (catches everything else)
+routes/posts/featured.jslop     → /posts/featured     (wins for exact match)
+routes/posts/[slug].jslop       → /posts/:slug        (catches everything else)
 ```
 
 ## Layouts
 
-A `_layout.rift` file wraps every route in its folder (and all subfolders) in a shared shell. Use `<children/>` to mark where the page renders:
+A `_layout.jslop` file wraps every route in its folder (and all subfolders) in a shared shell. Use `<children/>` to mark where the page renders:
 
 ```tsx
-// src/routes/_layout.rift
+// src/routes/_layout.jslop
 component Layout {
   view {
     <div class="app">
@@ -85,20 +85,20 @@ component Layout {
 }
 ```
 
-Layouts **chain**: a `routes/_layout.rift` wraps the whole site; a `routes/dashboard/_layout.rift` wraps only the dashboard pages but is itself wrapped by the outer layout. The matched page sits at the inside of the chain.
+Layouts **chain**: a `routes/_layout.jslop` wraps the whole site; a `routes/dashboard/_layout.jslop` wraps only the dashboard pages but is itself wrapped by the outer layout. The matched page sits at the inside of the chain.
 
 ```
-routes/_layout.rift                ── outer shell
-  routes/dashboard/_layout.rift    ── dashboard sidebar etc.
-    routes/dashboard/settings.rift ── the actual page
+routes/_layout.jslop                ── outer shell
+  routes/dashboard/_layout.jslop    ── dashboard sidebar etc.
+    routes/dashboard/settings.jslop ── the actual page
 ```
 
 ## 404 pages
 
-A `_404.rift` is rendered when no route matches:
+A `_404.jslop` is rendered when no route matches:
 
 ```tsx
-// src/routes/_404.rift
+// src/routes/_404.jslop
 component NotFound {
   view {
     <main>
@@ -111,18 +111,18 @@ component NotFound {
 
 The 404 page goes through the layout chain like any other page, so it inherits the site shell automatically. The HTTP response status is `404` when this component renders.
 
-If there's no `_404.rift` and no route matches, the response is a plain 404 with minimal HTML.
+If there's no `_404.jslop` and no route matches, the response is a plain 404 with minimal HTML.
 
 ## Customizing the routes directory
 
 ```js
 // vite.config.mjs
 import { defineConfig } from "vite";
-import rift from "@rift/vite";
+import jslop from "@jslop/vite";
 
 export default defineConfig({
   plugins: [
-    rift({
+    jslop({
       routesDir: "src/pages",        // default: "src/routes"
       title: (url) => `Site — ${url}`, // <title> per route
     }),
@@ -132,15 +132,15 @@ export default defineConfig({
 
 ## Programmatic API
 
-You can drive the router yourself if you're embedding Rift somewhere unusual:
+You can drive the router yourself if you're embedding JSlop somewhere unusual:
 
 ```ts
-import { scanRoutes, matchRoute } from "@rift/router";
+import { scanRoutes, matchRoute } from "@jslop/router";
 
 const routes = await scanRoutes("/abs/path/to/routes");
 const match = matchRoute("/posts/hello-world", routes);
 if (match) {
-  console.log(match.route.relPath);   // "posts/[slug].rift"
+  console.log(match.route.relPath);   // "posts/[slug].jslop"
   console.log(match.params);          // { slug: "hello-world" }
 }
 ```
@@ -148,7 +148,7 @@ if (match) {
 ## Client-side navigation
 
 > [!WARNING]
-> Today, **every `<a href>` is a full document load.** SPA-mode client navigation (intercepting clicks, fetching the next page, swapping the DOM in place) is not implemented yet. Because Rift resumes rather than hydrates, full loads are cheap — but a client router is on the [roadmap](./roadmap.md).
+> Today, **every `<a href>` is a full document load.** SPA-mode client navigation (intercepting clicks, fetching the next page, swapping the DOM in place) is not implemented yet. Because JSlop resumes rather than hydrates, full loads are cheap — but a client router is on the [roadmap](./roadmap.md).
 
 ## Not yet supported
 

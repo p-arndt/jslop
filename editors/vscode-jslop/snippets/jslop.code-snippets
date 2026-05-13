@@ -14,7 +14,7 @@
       "  }",
       "}"
     ],
-    "description": "Rift component scaffold"
+    "description": "JSlop component scaffold"
   },
   "Component with prop": {
     "prefix": "componentprop",
@@ -27,7 +27,7 @@
       "  }",
       "}"
     ],
-    "description": "Rift component with a prop"
+    "description": "JSlop component with a prop"
   },
   "Route": {
     "prefix": "route",
@@ -40,7 +40,7 @@
       "  }",
       "}"
     ],
-    "description": "Rift route declaration"
+    "description": "JSlop route declaration"
   },
   "Schema": {
     "prefix": "schema",
@@ -49,7 +49,7 @@
       "  ${2:field}: ${3:string}",
       "}"
     ],
-    "description": "Rift schema declaration"
+    "description": "JSlop schema declaration"
   },
   "function": {
     "prefix": "function",

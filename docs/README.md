@@ -1,17 +1,17 @@
-# Rift docs
+# JSlop docs
 
-Welcome. These docs cover the **currently implemented** surface of Rift. Aspirational features (server functions, schema forms, local-first collections, devtools) are tracked in [`PLAN.md`](../PLAN.md) and [`TODO.md`](../TODO.md) — they aren't documented here yet because they don't exist yet.
+Welcome. These docs cover the **currently implemented** surface of JSlop. Aspirational features (server functions, schema forms, local-first collections, devtools) are tracked in [`PLAN.md`](../PLAN.md) and [`TODO.md`](../TODO.md) — they aren't documented here yet because they don't exist yet.
 
 > [!WARNING]
 > **Status: pre-1.0.** No semver guarantees, no release cadence. Everything below works end-to-end for the example apps in `examples/`.
 
 ## Start here
 
-1. **[Introduction](./introduction.md)** — what Rift is and the mental model in 60 seconds.
+1. **[Introduction](./introduction.md)** — what JSlop is and the mental model in 60 seconds.
 2. **[Getting started](./getting-started.md)** — install, run the examples, write your first component.
 3. **[Project structure](./project-structure.md)** — `package.json`, `vite.config.mjs`, where files go.
 
-## Authoring `.rift` files
+## Authoring `.jslop` files
 
 4. **[Components](./components.md)** — `component`, `prop`, `state`, `let`, `function`, `view`.
 5. **[Template syntax](./template-syntax.md)** — tags, attributes, text interpolation, `<children/>`.
@@ -24,7 +24,7 @@ Welcome. These docs cover the **currently implemented** surface of Rift. Aspirat
 
 10. **[Routing](./routing.md)** — file-system routes, dynamic `[param]` segments, layouts, 404.
 11. **[SSR & resumability](./ssr-and-resumability.md)** — how state survives the network without re-rendering.
-12. **[Building & deploying](./building.md)** — the two-pass production build and `@rift/node-adapter`.
+12. **[Building & deploying](./building.md)** — the two-pass production build and `@jslop/node-adapter`.
 
 ## Reference
 

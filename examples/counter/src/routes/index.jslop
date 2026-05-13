@@ -1,10 +1,9 @@
-import Display from "../components/Display.rift"
-import Stepper from "../components/Stepper.rift"
+import { Display, Stepper } from "../components/widgets.jslop"
 
 component Index {
   state count = 0
   state showHelp = false
-  state todos = ["learn rift", "build something"]
+  state todos = ["learn jslop", "build something"]
   state draft = ""
 
   function increment() {
@@ -34,13 +33,9 @@ component Index {
     todos = []
   }
 
-  function onDraftInput(e) {
-    draft = e.target.value
-  }
-
   view {
     <div>
-      <h1>Rift Counter</h1>
+      <h1>JSlop Counter</h1>
       <Display value={count} label="Count" />
       <Stepper label="+" onstep={increment} />
       <Stepper label="-" onstep={decrement} />
@@ -57,7 +52,7 @@ component Index {
       {/if}
 
       <h2>Todos</h2>
-      <input value={draft} oninput={onDraftInput} placeholder="add a todo..." />
+      <input bind:value={draft} placeholder="add a todo..." />
       <button onclick={addTodo}>add</button>
       <button onclick={clearTodos}>clear</button>
 

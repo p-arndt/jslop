@@ -1,17 +1,17 @@
-# Rift for VS Code
+# JSlop for VS Code
 
-Syntax highlighting, language configuration, and snippets for `.rift` files
-used by the Rift framework.
+Syntax highlighting, language configuration, and snippets for `.jslop` files
+used by the JSlop framework.
 
 ## Features
 
-- Highlighting for Rift declarations: `component`, `route`, `schema`, `style`,
+- Highlighting for JSlop declarations: `component`, `route`, `schema`, `style`,
   `prop`, `state`, `let`, `const`, `derived`, `local`, `function`, `view`,
   `meta`, `mount`, `cleanup`, `when ... changes`, `sync ... with`.
-- The reactive `state` keyword gets its own scope (`storage.type.reactive.rift`)
+- The reactive `state` keyword gets its own scope (`storage.type.reactive.jslop`)
   so themes can color it distinctly from plain `let`/`const`.
 - The `<children/>` placeholder gets its own scope
-  (`keyword.other.children-placeholder.rift`) so it stands out from regular
+  (`keyword.other.children-placeholder.jslop`) so it stands out from regular
   HTML elements in layouts and component bodies.
 - Modifier keywords `server`, `client`, `browser` before bindings and
   functions.
@@ -31,25 +31,25 @@ From the repo root:
 
 ```bash
 # package the extension
-cd editors/vscode-rift
+cd editors/vscode-jslop
 pnpm dlx @vscode/vsce package --no-dependencies
 # install the produced .vsix
-code --install-extension vscode-rift-0.1.0.vsix
+code --install-extension vscode-jslop-0.1.0.vsix
 ```
 
 Or, for live development, symlink/copy this folder into your VS Code
 extensions directory and reload:
 
-- Windows: `%USERPROFILE%\.vscode\extensions\rift.vscode-rift-0.1.0`
-- macOS / Linux: `~/.vscode/extensions/rift.vscode-rift-0.1.0`
+- Windows: `%USERPROFILE%\.vscode\extensions\jslop.vscode-jslop-0.1.0`
+- macOS / Linux: `~/.vscode/extensions/jslop.vscode-jslop-0.1.0`
 
 ## File layout
 
 ```
-editors/vscode-rift/
+editors/vscode-jslop/
   package.json                  extension manifest
   language-configuration.json   brackets, comments, autoclose
-  syntaxes/rift.tmLanguage.json TextMate grammar
-  snippets/rift.code-snippets   common Rift scaffolds
-  icons/rift-file.svg           file icon
+  syntaxes/jslop.tmLanguage.json TextMate grammar
+  snippets/jslop.code-snippets   common JSlop scaffolds
+  icons/jslop-file.svg           file icon
 ```

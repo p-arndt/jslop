@@ -6,7 +6,7 @@ component Layout {
           <a href="/" class="hover:text-slate-100">home</a>
           <a href="/about" class="hover:text-slate-100">about</a>
           <a href="/posts/hello-world" class="hover:text-slate-100">hello post</a>
-          <a href="/posts/rift" class="hover:text-slate-100">rift post</a>
+          <a href="/posts/jslop" class="hover:text-slate-100">jslop post</a>
         </nav>
       </header>
       <children/>

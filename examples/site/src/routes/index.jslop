@@ -8,7 +8,7 @@ component Index {
   view {
     <main class="px-6 py-16">
       <div class="mx-auto max-w-2xl space-y-8">
-        <h1 class="text-4xl font-semibold tracking-tight">Rift Site</h1>
+        <h1 class="text-4xl font-semibold tracking-tight">JSlop Site</h1>
         <p class="text-slate-300">Welcome. Count: <span class="font-mono text-emerald-400">{count}</span></p>
         <button
           onclick={inc}

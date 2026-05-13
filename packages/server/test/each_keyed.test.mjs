@@ -33,7 +33,7 @@ function makeListComponent({ keyed }) {
   };
 }
 
-test("unkeyed each renders without data-rift-keyed/data-rift-key", () => {
+test("unkeyed each renders without data-jslop-keyed/data-jslop-key", () => {
   const comp = makeListComponent({ keyed: false });
   const { html } = renderComponent(comp, {
     items: [
@@ -41,13 +41,13 @@ test("unkeyed each renders without data-rift-keyed/data-rift-key", () => {
       { id: "b", label: "B" },
     ],
   });
-  assert.ok(html.includes('data-rift-count="2"'));
-  assert.ok(!html.includes("data-rift-keyed"));
-  assert.ok(!html.includes("data-rift-key="));
-  assert.ok(html.includes("<rift-each-item>A</rift-each-item>"));
+  assert.ok(html.includes('data-jslop-count="2"'));
+  assert.ok(!html.includes("data-jslop-keyed"));
+  assert.ok(!html.includes("data-jslop-key="));
+  assert.ok(html.includes("<jslop-each-item>A</jslop-each-item>"));
 });
 
-test("keyed each renders data-rift-keyed and per-item data-rift-key", () => {
+test("keyed each renders data-jslop-keyed and per-item data-jslop-key", () => {
   const comp = makeListComponent({ keyed: true });
   const { html } = renderComponent(comp, {
     items: [
@@ -55,10 +55,10 @@ test("keyed each renders data-rift-keyed and per-item data-rift-key", () => {
       { id: "b", label: "B" },
     ],
   });
-  assert.ok(html.includes('data-rift-count="2"'));
-  assert.ok(html.includes('data-rift-keyed="t"'));
-  assert.ok(html.includes('data-rift-key="a"'));
-  assert.ok(html.includes('data-rift-key="b"'));
+  assert.ok(html.includes('data-jslop-count="2"'));
+  assert.ok(html.includes('data-jslop-keyed="t"'));
+  assert.ok(html.includes('data-jslop-key="a"'));
+  assert.ok(html.includes('data-jslop-key="b"'));
 });
 
 test("each containing a child component renders the component's HTML per item", () => {
@@ -121,8 +121,8 @@ test("each containing a child component renders the component's HTML per item", 
   const { html } = renderComponent(Parent, {
     items: [{ id: "a", label: "A" }, { id: "b", label: "B" }],
   });
-  assert.match(html, /<rift-each-item data-rift-key="a"><span data-id="a" data-rift-component="Child">A<\/span><\/rift-each-item>/);
-  assert.match(html, /<rift-each-item data-rift-key="b"><span data-id="b" data-rift-component="Child">B<\/span><\/rift-each-item>/);
+  assert.match(html, /<jslop-each-item data-jslop-key="a"><span data-id="a" data-jslop-component="Child">A<\/span><\/jslop-each-item>/);
+  assert.match(html, /<jslop-each-item data-jslop-key="b"><span data-id="b" data-jslop-component="Child">B<\/span><\/jslop-each-item>/);
 });
 
 test("keyed each escapes key values for the HTML attribute", () => {
@@ -130,5 +130,5 @@ test("keyed each escapes key values for the HTML attribute", () => {
   const { html } = renderComponent(comp, {
     items: [{ id: 'x"&y', label: "X" }],
   });
-  assert.ok(html.includes('data-rift-key="x&quot;&amp;y"'));
+  assert.ok(html.includes('data-jslop-key="x&quot;&amp;y"'));
 });

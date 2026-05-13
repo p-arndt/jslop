@@ -1,12 +1,12 @@
 import type { Plugin, PluginOption, UserConfig } from "vite";
-import { compile } from "@rift/compiler";
-import { scanRoutes, matchRoute, type RouteManifest } from "@rift/router";
-import { renderPage, type RiftComponent } from "@rift/server";
+import { compile } from "@jslop/compiler";
+import { scanRoutes, matchRoute, type RouteManifest } from "@jslop/router";
+import { renderPage, type JSlopComponent } from "@jslop/server";
 import { resolve, posix, isAbsolute } from "node:path";
 
-export interface RiftPluginOptions {
+export interface JSlopPluginOptions {
   /**
-   * Directory containing route .rift files, resolved relative to the project root.
+   * Directory containing route .jslop files, resolved relative to the project root.
    * Defaults to `src/routes`.
    */
   routesDir?: string;
@@ -33,14 +33,14 @@ export interface RiftPluginOptions {
   tailwind?: boolean;
 }
 
-const VIRTUAL_ROUTES = "virtual:rift-routes";
-const VIRTUAL_CLIENT = "virtual:rift-client";
-const VIRTUAL_ENTRY_SERVER = "virtual:rift-entry-server";
+const VIRTUAL_ROUTES = "virtual:jslop-routes";
+const VIRTUAL_CLIENT = "virtual:jslop-client";
+const VIRTUAL_ENTRY_SERVER = "virtual:jslop-entry-server";
 const RESOLVED_ROUTES = "\0" + VIRTUAL_ROUTES;
 const RESOLVED_CLIENT = "\0" + VIRTUAL_CLIENT;
 const RESOLVED_ENTRY_SERVER = "\0" + VIRTUAL_ENTRY_SERVER;
 
-export default function rift(opts: RiftPluginOptions = {}): PluginOption[] {
+export default function jslop(opts: JSlopPluginOptions = {}): PluginOption[] {
   const routesDirRel = opts.routesDir ?? "src/routes";
   const stylesheets = opts.css == null
     ? []
@@ -62,26 +62,26 @@ export default function rift(opts: RiftPluginOptions = {}): PluginOption[] {
   };
 
   const titleFor = (url: string, params: Record<string, string>): string =>
-    opts.title ? opts.title(url, params) : `Rift — ${url}`;
+    opts.title ? opts.title(url, params) : `JSlop — ${url}`;
 
   const transformPlugin: Plugin = {
-    name: "rift:transform",
+    name: "jslop:transform",
     enforce: "pre",
     transform(code, id) {
-      if (!id.endsWith(".rift")) return null;
-      const out = compile(code, { compiledExtension: ".rift" });
+      if (!id.endsWith(".jslop")) return null;
+      const out = compile(code, { compiledExtension: ".jslop" });
       return { code: out, map: null };
     },
   };
 
   const virtualPlugin: Plugin = {
-    name: "rift:virtual",
+    name: "jslop:virtual",
     config(_config, env): UserConfig | undefined {
       // In build mode, point rollup at the right virtual entry depending on
       // whether this is the client or the SSR pass. Users run:
       //   vite build              (client → dist/client, with manifest)
       //   vite build --ssr        (server → dist/server/entry-server.js)
-      // The adapter (e.g. @rift/node-adapter) imports the server entry and
+      // The adapter (e.g. @jslop/node-adapter) imports the server entry and
       // serves static assets from dist/client.
       if (env.command !== "build") return undefined;
       if (env.isSsrBuild) {
@@ -102,7 +102,7 @@ export default function rift(opts: RiftPluginOptions = {}): PluginOption[] {
             // Workspace packages need to be bundled into the server entry so
             // it can run standalone. Externalizing them would require the user
             // to install them at deploy time.
-            noExternal: [/^@rift\//],
+            noExternal: [/^@jslop\//],
           },
         };
         return cfg;
@@ -134,7 +134,7 @@ export default function rift(opts: RiftPluginOptions = {}): PluginOption[] {
     async load(id) {
       if (id === RESOLVED_ROUTES) {
         const m = await loadManifest();
-        const allFiles = collectAllRiftFiles(m);
+        const allFiles = collectAllJSlopFiles(m);
         const imports = allFiles
           .map((f, i) => `import C${i} from ${JSON.stringify(toImportPath(routesDir, f))};`)
           .join("\n");
@@ -154,7 +154,7 @@ export default function rift(opts: RiftPluginOptions = {}): PluginOption[] {
       }
       if (id === RESOLVED_CLIENT) {
         const m = await loadManifest();
-        const allFiles = collectAllRiftFiles(m);
+        const allFiles = collectAllJSlopFiles(m);
         const imports = allFiles
           .map((f, i) => `import C${i} from ${JSON.stringify(toImportPath(routesDir, f))};`)
           .join("\n");
@@ -169,7 +169,7 @@ export default function rift(opts: RiftPluginOptions = {}): PluginOption[] {
                 .map((s) => `import ${JSON.stringify(s)};`)
                 .join("\n") + "\n"
             : "";
-        return `${cssImports}import { boot } from "@rift/client";\n${imports}\n\nboot({\n${registry}\n});\n`;
+        return `${cssImports}import { boot } from "@jslop/client";\n${imports}\n\nboot({\n${registry}\n});\n`;
       }
       if (id === RESOLVED_ENTRY_SERVER) {
         // `opts.css` entries are source-path stylesheets used by the dev
@@ -182,8 +182,8 @@ export default function rift(opts: RiftPluginOptions = {}): PluginOption[] {
       return null;
     },
     handleHotUpdate(ctx) {
-      if (ctx.file.endsWith(".rift")) {
-        // If a new .rift file was added or removed, invalidate route list.
+      if (ctx.file.endsWith(".jslop")) {
+        // If a new .jslop file was added or removed, invalidate route list.
         invalidateRoutes();
         // Touch the virtual modules so dependents reload.
         const routesMod = ctx.server.moduleGraph.getModuleById(RESOLVED_ROUTES);
@@ -195,7 +195,7 @@ export default function rift(opts: RiftPluginOptions = {}): PluginOption[] {
   };
 
   const ssrPlugin: Plugin = {
-    name: "rift:ssr",
+    name: "jslop:ssr",
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
           try {
@@ -222,13 +222,13 @@ export default function rift(opts: RiftPluginOptions = {}): PluginOption[] {
             const manifest = await loadManifest();
             const match = matchRoute(url, manifest.routes);
 
-            const loadComponent = async (rel: string): Promise<RiftComponent> => {
+            const loadComponent = async (rel: string): Promise<JSlopComponent> => {
               const mod = await server.ssrLoadModule(resolve(routesDir, rel));
               const c =
                 (mod as { default?: unknown }).default ??
-                (mod as { __rift_component?: unknown }).__rift_component;
+                (mod as { __jslop_component?: unknown }).__jslop_component;
               if (!c) throw new Error(`${rel} has no default export`);
-              return c as RiftComponent;
+              return c as JSlopComponent;
             };
 
             if (!match) {
@@ -299,7 +299,7 @@ async function loadTailwindPlugin(): Promise<PluginOption> {
     return mod.default();
   } catch (err) {
     throw new Error(
-      "[@rift/vite] tailwind: true requires `@tailwindcss/vite` and `tailwindcss` to be installed in the project. " +
+      "[@jslop/vite] tailwind: true requires `@tailwindcss/vite` and `tailwindcss` to be installed in the project. " +
         "Run `pnpm add -D tailwindcss @tailwindcss/vite`.\n" +
         `Original error: ${(err as Error).message}`
     );
@@ -311,10 +311,10 @@ function toImportPath(routesDir: string, relPath: string): string {
 }
 
 /**
- * Deduplicated list of every .rift file in the manifest (routes + layouts +
+ * Deduplicated list of every .jslop file in the manifest (routes + layouts +
  * 404). Order is stable so the same file always gets the same Cn identifier.
  */
-function collectAllRiftFiles(m: RouteManifest): string[] {
+function collectAllJSlopFiles(m: RouteManifest): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   const push = (rel: string) => {
@@ -330,7 +330,7 @@ function collectAllRiftFiles(m: RouteManifest): string[] {
 }
 
 /**
- * Generate the source for `virtual:rift-entry-server`. The result is a JS
+ * Generate the source for `virtual:jslop-entry-server`. The result is a JS
  * module that exports an async `render(url, opts?)` function.
  *
  * Static imports keep tree-shaking and code-splitting honest, and let the SSR
@@ -341,7 +341,7 @@ function generateServerEntry(
   routesDir: string,
   staticStylesheets: string[]
 ): string {
-  const allFiles = collectAllRiftFiles(m);
+  const allFiles = collectAllJSlopFiles(m);
   const indexOf = (rel: string): number => allFiles.indexOf(rel);
   const componentImports = allFiles
     .map((f, i) => `import C${i} from ${JSON.stringify(toImportPath(routesDir, f))};`)
@@ -364,8 +364,8 @@ function generateServerEntry(
 
   const staticCss = JSON.stringify(staticStylesheets);
 
-  return `import { renderPage } from "@rift/server";
-import { matchRoute } from "@rift/router";
+  return `import { renderPage } from "@jslop/server";
+import { matchRoute } from "@jslop/router";
 import { readFile } from "node:fs/promises";
 import { dirname, join, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -387,10 +387,10 @@ function loadClientManifest(manifestPath) {
     if (manifestPath) {
       candidates.push(isAbsolute(manifestPath) ? manifestPath : join(process.cwd(), manifestPath));
     }
-    if (process.env.RIFT_CLIENT_MANIFEST) {
-      candidates.push(process.env.RIFT_CLIENT_MANIFEST);
+    if (process.env.JSLOP_CLIENT_MANIFEST) {
+      candidates.push(process.env.JSLOP_CLIENT_MANIFEST);
     }
-    // Default layout produced by @rift/vite:
+    // Default layout produced by @jslop/vite:
     //   <root>/dist/server/entry-server.js
     //   <root>/dist/client/.vite/manifest.json
     candidates.push(join(dirname(here), "..", "client", ".vite", "manifest.json"));
@@ -423,11 +423,11 @@ function normalizeUrl(raw) {
 }
 
 function defaultTitle(url) {
-  return "Rift — " + url;
+  return "JSlop — " + url;
 }
 
 /**
- * Render a Rift route for a given URL.
+ * Render a JSlop route for a given URL.
  *
  * @param {string} rawUrl - The request URL (path or full).
  * @param {object} [opts]
@@ -493,6 +493,6 @@ export async function render(rawUrl, opts = {}) {
   return { status: 200, html, headers: { "content-type": "text/html; charset=utf-8" } };
 }
 
-export const __rift = { routes, notFound };
+export const __jslop = { routes, notFound };
 `;
 }

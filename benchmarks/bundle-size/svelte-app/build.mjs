@@ -1,5 +1,5 @@
 // Bundle the Svelte 5 counter fixture with esbuild + an on-the-fly Svelte
-// compiler plugin. Same bundler + minifier settings as the Rift fixture so
+// compiler plugin. Same bundler + minifier settings as the JSlop fixture so
 // the comparison is apples-to-apples.
 import { build } from "esbuild";
 import { compile } from "svelte/compiler";

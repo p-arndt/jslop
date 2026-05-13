@@ -1,21 +1,21 @@
 # Roadmap
 
-This page summarizes where Rift is going. For the design rationale, read [`PLAN.md`](../PLAN.md). For the current punch list with statuses, read [`TODO.md`](../TODO.md). This file just stitches the two together.
+This page summarizes where JSlop is going. For the design rationale, read [`PLAN.md`](../PLAN.md). For the current punch list with statuses, read [`TODO.md`](../TODO.md). This file just stitches the two together.
 
 ## Where we are
 
 Working today (in `vite dev` **and** in production builds):
 
-- `.rift` parsing + AST-aware identifier rewriting
+- `.jslop` parsing + AST-aware identifier rewriting
 - `cell` / `derived` / `effect` / `batch` / `untrack`
 - Reactive scopes: `createScope` / `runInScope` / `disposeScope` / `onCleanup`. `{#if}` swaps and `{#each}` removals dispose the prior subtree's effects, no leaks.
 - View constructs: elements, components, `{expr}`, `on<event>` handlers, `bind:value` / `bind:checked`, `{#if}`/`{:else}`/`{/if}`, `{#each list as item, i (key)}`
 - Keyed `{#each}` reconciliation: DOM identity preserved per key across reorders / inserts / removes; per-item child component instances reused for matching keys.
 - SSR with serialized state capsule
 - Client boot that **resumes** rather than hydrates
-- File-system routing with dynamic `[param]` segments, `_layout.rift` chains, `_404.rift`
+- File-system routing with dynamic `[param]` segments, `_layout.jslop` chains, `_404.jslop`
 - Vite plugin: transform + virtual modules + dev SSR middleware + dual-pass production build (`vite build` → `dist/client/`, `vite build --ssr` → `dist/server/entry-server.js`)
-- `@rift/node-adapter` for serving the production build (static assets + `render(url)`)
+- `@jslop/node-adapter` for serving the production build (static assets + `render(url)`)
 - Optional Tailwind v4
 
 ## North star priorities
@@ -25,7 +25,7 @@ In order, from [`TODO.md`](../TODO.md):
 1. ~~**Effect disposers + keyed `<For>` reconciliation.**~~ ✅ Done.
 2. ~~**Two-way binding sugar** (`bind:value={cell}`).~~ ✅ Done.
 3. ~~**Layouts + 404 routes.**~~ ✅ Done.
-4. ~~**Production build path.**~~ ✅ Done — two-pass build + `@rift/node-adapter`. Static prerender and Bun/edge adapters still to come.
+4. ~~**Production build path.**~~ ✅ Done — two-pass build + `@jslop/node-adapter`. Static prerender and Bun/edge adapters still to come.
 5. **Server functions.** The killer protocol from PLAN.md. Split bundling + JSON-only RPC + security defaults.
 6. **Schema-native forms.** Built on top of server functions.
 

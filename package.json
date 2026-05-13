@@ -1,13 +1,13 @@
 {
-  "name": "rift",
+  "name": "jslop",
   "version": "0.0.0",
   "private": true,
-  "description": "Rift framework monorepo",
+  "description": "JSlop framework monorepo",
   "type": "module",
   "scripts": {
     "build": "pnpm -r --filter \"./packages/*\" run build",
-    "dev:counter": "pnpm --filter @rift/example-counter run dev",
-    "bench": "pnpm --filter @rift/benchmarks run bench"
+    "dev:counter": "pnpm --filter @jslop/example-counter run dev",
+    "bench": "pnpm --filter @jslop/benchmarks run bench"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

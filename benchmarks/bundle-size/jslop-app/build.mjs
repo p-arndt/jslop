@@ -1,8 +1,8 @@
-// Bundle the Rift counter fixture as if a real production build existed.
-// Strategy: esbuild + a tiny on-the-fly plugin that calls @rift/compiler on
-// every .rift import. Output is minified ESM, treeshaken, single file.
+// Bundle the JSlop counter fixture as if a real production build existed.
+// Strategy: esbuild + a tiny on-the-fly plugin that calls @jslop/compiler on
+// every .jslop import. Output is minified ESM, treeshaken, single file.
 import { build } from "esbuild";
-import { compile } from "@rift/compiler";
+import { compile } from "@jslop/compiler";
 import { readFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve, extname } from "node:path";
@@ -11,19 +11,19 @@ const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, "dist");
 await mkdir(outDir, { recursive: true });
 
-const riftPlugin = {
-  name: "rift",
+const jslopPlugin = {
+  name: "jslop",
   setup(b) {
-    // Resolve .rift imports (with or without extension after compiler rewrite).
-    b.onResolve({ filter: /\.rift$/ }, (args) => ({
+    // Resolve .jslop imports (with or without extension after compiler rewrite).
+    b.onResolve({ filter: /\.jslop$/ }, (args) => ({
       path: resolve(args.resolveDir, args.path),
-      namespace: "rift",
+      namespace: "jslop",
     }));
-    b.onLoad({ filter: /.*/, namespace: "rift" }, async (args) => {
+    b.onLoad({ filter: /.*/, namespace: "jslop" }, async (args) => {
       const src = await readFile(args.path, "utf8");
-      // Tell the codegen to keep .rift in import specifiers so the resolver
+      // Tell the codegen to keep .jslop in import specifiers so the resolver
       // above keeps catching transitive imports.
-      const js = compile(src, { compiledExtension: ".rift" });
+      const js = compile(src, { compiledExtension: ".jslop" });
       return {
         contents: js,
         loader: "js",
@@ -42,7 +42,7 @@ const result = await build({
   minify: true,
   treeShaking: true,
   outfile: resolve(outDir, "main.js"),
-  plugins: [riftPlugin],
+  plugins: [jslopPlugin],
   logLevel: "warning",
   metafile: true,
 });
@@ -50,4 +50,4 @@ const result = await build({
 const sizes = Object.entries(result.metafile.outputs)
   .map(([p, info]) => `  ${p}: ${info.bytes} bytes`)
   .join("\n");
-process.stdout.write(`built rift fixture:\n${sizes}\n`);
+process.stdout.write(`built jslop fixture:\n${sizes}\n`);

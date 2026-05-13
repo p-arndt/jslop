@@ -1,5 +1,5 @@
 {
-  "name": "@rift/vite",
+  "name": "@jslop/vite",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,11 +15,11 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@rift/client": "workspace:*",
-    "@rift/compiler": "workspace:*",
-    "@rift/router": "workspace:*",
-    "@rift/runtime": "workspace:*",
-    "@rift/server": "workspace:*"
+    "@jslop/client": "workspace:*",
+    "@jslop/compiler": "workspace:*",
+    "@jslop/router": "workspace:*",
+    "@jslop/runtime": "workspace:*",
+    "@jslop/server": "workspace:*"
   },
   "peerDependencies": {
     "vite": "^5.0.0 || ^6.0.0 || ^7.0.0",

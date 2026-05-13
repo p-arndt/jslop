@@ -1,6 +1,6 @@
 # Styling
 
-Rift has no opinions about CSS. It ships nothing that rewrites classes, no CSS-in-JS engine, no scoped-styles compiler. You use the browser's CSS, however you like.
+JSlop has no opinions about CSS. It ships nothing that rewrites classes, no CSS-in-JS engine, no scoped-styles compiler. You use the browser's CSS, however you like.
 
 ## The `class` attribute
 
@@ -41,11 +41,11 @@ component Toggle {
 > <button class={cx("btn", active && "btn-active", loading && "is-loading")} />
 > ```
 >
-> If you want, drop in the popular `clsx` package — nothing in Rift gets in its way.
+> If you want, drop in the popular `clsx` package — nothing in JSlop gets in its way.
 
 ## Global CSS
 
-Drop a CSS file in your project, then point `@rift/vite` at it:
+Drop a CSS file in your project, then point `@jslop/vite` at it:
 
 ```css
 /* src/app.css */
@@ -55,11 +55,11 @@ body { font-family: system-ui; margin: 0; }
 
 ```js
 // vite.config.mjs
-import rift from "@rift/vite";
-export default { plugins: [rift({ css: "/src/app.css" })] };
+import jslop from "@jslop/vite";
+export default { plugins: [jslop({ css: "/src/app.css" })] };
 ```
 
-`@rift/vite` injects the stylesheet into every SSR'd page. In production, Vite hashes the file and the SSR entry reads the manifest to emit the correct `<link rel="stylesheet">`.
+`@jslop/vite` injects the stylesheet into every SSR'd page. In production, Vite hashes the file and the SSR entry reads the manifest to emit the correct `<link rel="stylesheet">`.
 
 ## Tailwind v4
 
@@ -67,10 +67,10 @@ Tailwind is one config line away:
 
 ```js
 // vite.config.mjs
-import rift from "@rift/vite";
+import jslop from "@jslop/vite";
 export default {
   plugins: [
-    rift({
+    jslop({
       tailwind: true,
       css: "/src/app.css",
     }),
@@ -82,10 +82,10 @@ export default {
 /* src/app.css */
 @import "tailwindcss";
 
-@source "./**/*.rift";   /* tell tailwind to scan .rift files */
+@source "./**/*.jslop";   /* tell tailwind to scan .jslop files */
 ```
 
-`tailwind: true` auto-wires `@tailwindcss/vite` so you don't have to install/configure it manually. The `@source` directive in your CSS tells Tailwind where to look for class names — point it at `**/*.rift` and it picks up everything.
+`tailwind: true` auto-wires `@tailwindcss/vite` so you don't have to install/configure it manually. The `@source` directive in your CSS tells Tailwind where to look for class names — point it at `**/*.jslop` and it picks up everything.
 
 Then use Tailwind classes anywhere:
 
@@ -97,14 +97,14 @@ Then use Tailwind classes anywhere:
 
 ## Other CSS toolchains
 
-Anything Vite supports works because Rift defers entirely to Vite for CSS:
+Anything Vite supports works because JSlop defers entirely to Vite for CSS:
 
 - **PostCSS** — drop a `postcss.config.js`.
 - **CSS modules** — `import styles from "./Foo.module.css"`, use `class={styles.foo}`.
 - **Sass / Less** — install the preprocessor, Vite handles the rest.
 - **vanilla-extract / pigment-css / panda** — should work; not tested.
 
-There's no special handshake. Whatever Vite does, Rift inherits.
+There's no special handshake. Whatever Vite does, JSlop inherits.
 
 ## Inline styles
 

@@ -1,34 +1,34 @@
 # Architecture
 
-Rift is a pnpm workspace of small, single-purpose packages. Each one does one job and depends only on the runtime and (sometimes) the compiler.
+JSlop is a pnpm workspace of small, single-purpose packages. Each one does one job and depends only on the runtime and (sometimes) the compiler.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                          @rift/vite (plugin)                              │
+│                          @jslop/vite (plugin)                              │
 │                                                                           │
-│   .rift file  ──►  @rift/compiler  ──►  JS module                         │
+│   .jslop file  ──►  @jslop/compiler  ──►  JS module                         │
 │                                                                           │
-│   @rift/router  (scan src/routes)  ──►  routes manifest                   │
+│   @jslop/router  (scan src/routes)  ──►  routes manifest                   │
 │                                                                           │
-│   dev:    request /url  ──►  match  ──►  @rift/server.render → response   │
+│   dev:    request /url  ──►  match  ──►  @jslop/server.render → response   │
 │                                                                           │
 │   build:  vite build         → dist/client/  (hashed JS + CSS + manifest) │
 │           vite build --ssr   → dist/server/entry-server.js  exports       │
-│                                  render(url) using @rift/server, /router  │
+│                                  render(url) using @jslop/server, /router  │
 │                                                                           │
-│   prod:   @rift/node-adapter  ──►  static dist/client/  +  render(url)    │
+│   prod:   @jslop/node-adapter  ──►  static dist/client/  +  render(url)    │
 │                                                                           │
-│   virtual:rift-client  ──►  @rift/client.boot()  in browser               │
+│   virtual:jslop-client  ──►  @jslop/client.boot()  in browser               │
 └──────────────────────────────────────────────────────────────────────────┘
                                    │
                                    ▼
-                           @rift/runtime
+                           @jslop/runtime
                    (cell / derived / effect / batch)
 ```
 
 ## Packages
 
-### `@rift/runtime`
+### `@jslop/runtime`
 
 The reactivity engine. Tiny — about 150 lines.
 
@@ -36,9 +36,9 @@ Exports: `cell`, `derived`, `effect`, `batch`, `untrack`, `isReactive`, types `C
 
 Push-based subscription model: cells track which subscribers read them; on `set`, subscribers re-run unless we're inside a `batch`. See [../reactivity.md](../reactivity.md).
 
-### `@rift/compiler`
+### `@jslop/compiler`
 
-Parses `.rift` files and emits ES modules.
+Parses `.jslop` files and emits ES modules.
 
 Three stages:
 
@@ -48,25 +48,25 @@ Three stages:
 
 Public API: `compile(source, opts?)`, `parseFile(source)`, `parseComponent(source)` (single-component shorthand), `generate(parsed, opts?)`.
 
-### `@rift/router`
+### `@jslop/router`
 
 File-system route scanning and URL matching.
 
 - `scanRoutes(dir)` — async walk, returns `RouteDef[]` sorted most-specific first.
 - `matchRoute(url, routes)` — returns `{ route, params } | null`.
 
-Pure functions, no runtime dependency. Used by `@rift/vite` to build the routes manifest.
+Pure functions, no runtime dependency. Used by `@jslop/vite` to build the routes manifest.
 
-### `@rift/server`
+### `@jslop/server`
 
 SSR. Walks a component instance's `buildView()` tree and emits HTML + a JSON state capsule.
 
 - `renderView(node)` — `ViewNode` → HTML string.
 - `renderPage({ title, component, props, appScriptUrl, stylesheets })` — full page including capsule, `<script type="module" src="...">` for the client bundle, optional `<link rel="stylesheet">` injections.
 
-The state capsule lives in `<script id="__rift_state" type="application/json">`.
+The state capsule lives in `<script id="__jslop_state" type="application/json">`.
 
-### `@rift/client`
+### `@jslop/client`
 
 Browser boot.
 
@@ -77,22 +77,22 @@ Browser boot.
 
 The view tree it walks is the **same shape** the server walked, so DOM and view nodes line up by traversal order — there's no separate "hydration matching" step.
 
-### `@rift/vite`
+### `@jslop/vite`
 
 The bundler integration that ties everything together.
 
-- **Transform plugin** — every `.rift` file goes through `@rift/compiler.compile()`.
+- **Transform plugin** — every `.jslop` file goes through `@jslop/compiler.compile()`.
 - **Virtual modules**:
-  - `virtual:rift-client` — browser entry. Imports `boot` plus every route/layout component, calls `boot({ name: Component, ... })`.
-  - `virtual:rift-entry-server` — production SSR entry. Statically imports every route/layout, exports `render(url, opts?) → { status, html, headers }`.
-  - `virtual:rift-routes` — server-side routes manifest (currently unused by the runtime; kept as a stable surface for adapters).
+  - `virtual:jslop-client` — browser entry. Imports `boot` plus every route/layout component, calls `boot({ name: Component, ... })`.
+  - `virtual:jslop-entry-server` — production SSR entry. Statically imports every route/layout, exports `render(url, opts?) → { status, html, headers }`.
+  - `virtual:jslop-routes` — server-side routes manifest (currently unused by the runtime; kept as a stable surface for adapters).
 - **Build config** — a `config()` hook detects `env.command === "build"` and flips Rollup input/output between two modes:
   - Default (`vite build`): client entry → `dist/client/` with `manifest: true` (hashed JS + CSS in `assets/`, `.vite/manifest.json` index).
-  - `vite build --ssr`: SSR entry → `dist/server/entry-server.js`, with `ssr.noExternal: [/^@rift\//]` so workspace packages bundle into a self-contained server entry.
-- **Dev SSR middleware** — registered ahead of Vite's HTML fallback. On each request: load routes manifest, match URL, `ssrLoadModule` the matched `.rift`, call `renderPage`, run `transformIndexHtml`, send.
+  - `vite build --ssr`: SSR entry → `dist/server/entry-server.js`, with `ssr.noExternal: [/^@jslop\//]` so workspace packages bundle into a self-contained server entry.
+- **Dev SSR middleware** — registered ahead of Vite's HTML fallback. On each request: load routes manifest, match URL, `ssrLoadModule` the matched `.jslop`, call `renderPage`, run `transformIndexHtml`, send.
 - **Optional Tailwind v4** — `tailwind: true` auto-loads `@tailwindcss/vite`.
 
-### `@rift/node-adapter`
+### `@jslop/node-adapter`
 
 A Node HTTP wrapper around a built SSR `render(url)`.
 
@@ -104,23 +104,23 @@ A Node HTTP wrapper around a built SSR `render(url)`.
 
 For `GET /posts/hello-world`:
 
-1. **`@rift/vite` SSR middleware** intercepts the request.
+1. **`@jslop/vite` SSR middleware** intercepts the request.
 2. `loadRoutes()` returns the cached `RouteDef[]` (or scans `src/routes/`).
-3. `matchRoute("/posts/hello-world", routes)` finds `posts/[slug].rift` and extracts `{ slug: "hello-world" }`.
-4. `ssrLoadModule(absPath)` runs the compiled module on the server. Vite's transform pipeline calls `@rift/compiler.compile()` on the source first.
-5. The module's default export is `__rift_component`. We call `component.create({ slug: "hello-world" })`.
+3. `matchRoute("/posts/hello-world", routes)` finds `posts/[slug].jslop` and extracts `{ slug: "hello-world" }`.
+4. `ssrLoadModule(absPath)` runs the compiled module on the server. Vite's transform pipeline calls `@jslop/compiler.compile()` on the source first.
+5. The module's default export is `__jslop_component`. We call `component.create({ slug: "hello-world" })`.
 6. `renderPage({ component, props, ... })`:
    - Calls `component.create(props)` again (one instance for render).
    - Walks `instance.buildView()` and writes HTML.
    - Calls `instance.serializeState()` and inlines the JSON.
-   - Emits `<script type="module" src="/@id/virtual:rift-client">`.
+   - Emits `<script type="module" src="/@id/virtual:jslop-client">`.
 7. `transformIndexHtml` runs Vite's normal pipeline (HMR client, etc.).
 8. Response goes out as `text/html`.
 
 In the browser:
 
-1. Vite serves `virtual:rift-client`. The generated module imports `boot` from `@rift/client` plus every route component, then calls `boot({ ComponentName: ComponentRef, ... })`.
-2. `boot` reads `<script id="__rift_state">`, finds the right component in the registry, calls `create(props)` and `restoreState(capsule)`.
+1. Vite serves `virtual:jslop-client`. The generated module imports `boot` from `@jslop/client` plus every route component, then calls `boot({ ComponentName: ComponentRef, ... })`.
+2. `boot` reads `<script id="__jslop_state">`, finds the right component in the registry, calls `create(props)` and `restoreState(capsule)`.
 3. `boot` walks `instance.buildView()` and the existing DOM in lockstep, attaching event handlers and wrapping each `bind` node in an `effect()`.
 4. From this point on, user interactions trigger `cell.set` → subscribers re-run → DOM nodes update fine-grained.
 
@@ -128,11 +128,11 @@ In the browser:
 
 After `vite build && vite build --ssr`:
 
-1. `@rift/node-adapter`'s handler receives the request.
+1. `@jslop/node-adapter`'s handler receives the request.
 2. If the URL has a file extension and resolves under `dist/client/`, the file is served directly (long-cache for `/assets/*`).
 3. Otherwise: `render(url)` from `dist/server/entry-server.js` runs.
 4. On first call, `render` reads `dist/client/.vite/manifest.json` once and caches it. It finds the entry chunk (`assets/client-<hash>.js`) plus any CSS Vite emitted for that entry.
-5. `matchRoute(url, routes)` against the statically-imported route table; on miss, the bundled `_404.rift` (if any) renders with the layout chain.
+5. `matchRoute(url, routes)` against the statically-imported route table; on miss, the bundled `_404.jslop` (if any) renders with the layout chain.
 6. `renderPage({ component, layouts, props, appScriptUrl, stylesheets })` produces HTML + capsule, exactly the same shape as dev.
 7. Response goes out. No `transformIndexHtml` pass — the HTML is final.
 

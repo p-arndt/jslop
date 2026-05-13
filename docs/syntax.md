@@ -1,12 +1,12 @@
-# `.rift` cheatsheet
+# `.jslop` cheatsheet
 
 One-page reference for every construct currently implemented. Each section links to a focused page with details and gotchas.
 
 ## File shape
 
 ```tsx
-import Default from "./Other.rift"
-import { Helper, OtherHelper as Renamed } from "./widgets.rift"
+import Default from "./Other.jslop"
+import { Helper, OtherHelper as Renamed } from "./widgets.jslop"
 
 component Name {
   // declarations (any order)
@@ -19,7 +19,7 @@ component Sibling {
 ```
 
 - Many components per file. First is the default export, all are named exports. → [Components](./components.md)
-- `.rift` import paths are rewritten to the compiled module by the bundler.
+- `.jslop` import paths are rewritten to the compiled module by the bundler.
 
 ## Declarations
 
@@ -123,7 +123,7 @@ Marks where wrapped content renders. Used by layouts (and, in the future, by any
 When you need to drop down a level (custom helpers, derived values, ad-hoc effects):
 
 ```ts
-import { cell, derived, effect, batch, untrack } from "@rift/runtime";
+import { cell, derived, effect, batch, untrack } from "@jslop/runtime";
 
 const x = cell(0);
 const y = derived(() => x.get() * 2);
