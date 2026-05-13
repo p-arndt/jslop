@@ -1,3 +1,11 @@
+---
+title: "Documentation"
+description: "Welcome to Documentation"
+tags: [docs]
+date: 2026-05-13
+draft: false
+---
+
 # JSlop docs
 
 Welcome. These docs cover the **currently implemented** surface of JSlop. Aspirational features (server functions, schema forms, local-first collections, devtools) are tracked in [`PLAN.md`](https://github.com/p-arndt/jslop/blob/main/PLAN.md) and [`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md) — they aren't documented here yet because they don't exist yet.
@@ -40,3 +48,4 @@ Welcome. These docs cover the **currently implemented** surface of JSlop. Aspira
 ---
 
 > **In a hurry?** The whole DSL fits on one screen — see the [cheatsheet](./syntax.md). For everything else, the FAQ is probably faster than skimming the guide.
+

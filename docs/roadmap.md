@@ -1,6 +1,6 @@
 # Roadmap
 
-This page summarizes where JSlop is going. For the design rationale, read [`PLAN.md`](../PLAN.md). For the current punch list with statuses, read [`TODO.md`](../TODO.md). This file just stitches the two together.
+This page summarizes where JSlop is going. For the design rationale, read [`PLAN.md`](https://github.com/p-arndt/jslop/blob/main/PLAN.md). For the current punch list with statuses, read [`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md). This file just stitches the two together.
 
 ## Where we are
 
@@ -20,7 +20,7 @@ Working today (in `vite dev` **and** in production builds):
 
 ## North star priorities
 
-In order, from [`TODO.md`](../TODO.md):
+In order, from [`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md):
 
 1. ~~**Effect disposers + keyed `<For>` reconciliation.**~~ ✅ Done.
 2. ~~**Two-way binding sugar** (`bind:value={cell}`).~~ ✅ Done.
@@ -59,5 +59,5 @@ In order, from [`TODO.md`](../TODO.md):
 There's no CI, contribution guide, or license yet — those are also on the todo list. If you want to poke at the codebase:
 
 - Read [`docs/internals/architecture.md`](./internals/architecture.md) to learn what each package does.
-- Pick something from [`TODO.md`](../TODO.md) — the early items are scoped to be tractable.
+- Pick something from [`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md) — the early items are scoped to be tractable.
 - Run `pnpm install && pnpm build && pnpm dev:counter` to confirm your environment works.

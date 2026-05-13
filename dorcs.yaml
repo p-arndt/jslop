@@ -1,0 +1,74 @@
+# dorcs Configuration File
+# Place this file in your project root (current working directory) or docs directory
+
+# Server port (default: 8080)
+port: 8080
+
+# Site metadata
+site:
+  # Title shown in the header/brand area (top-left)
+  title: "JSlop"
+
+  # Description for meta tags (optional)
+  description: "JSlop framework documentation"
+
+# Theme and styling configuration
+theme:
+  # Mode: "light", "dark", or "auto" (follows system preference)
+  mode: auto
+
+  # Preset theme: default, ocean, forest, sunset, midnight, lavender, rose
+  preset: default
+
+# Navigation configuration
+nav:
+  # Search trigger configuration key (currently accepted, but the UI always shows search)
+  show_search: true
+
+  # Expand-all configuration key (currently accepted, but not used by the UI)
+  expand_all: false
+
+  # Top section tabs — each tab gets its own sidebar
+  sections:
+    - title: "Guide"
+      items:
+        - Overview: index.md
+        - Introduction: introduction.md
+        - Getting started: getting-started.md
+        - Project structure: project-structure.md
+        - Components: components.md
+        - Template syntax: template-syntax.md
+        - Logic blocks: logic-blocks.md
+        - Events: events.md
+        - Bindings: bindings.md
+        - Styling: styling.md
+    - title: "Apps"
+      items:
+        - Routing: routing.md
+        - SSR & resumability: ssr-and-resumability.md
+        - Building & deploying: building.md
+    - title: "Reference"
+      items:
+        - Reactivity: reactivity.md
+        - Cheatsheet: syntax.md
+        - FAQ: faq.md
+        - Roadmap: roadmap.md
+    - title: "Internals"
+      items:
+        - Overview: internals/README.md
+        - Architecture: internals/architecture.md
+
+  # Header links
+  links:
+    - title: "GitHub"
+      url: "https://github.com/p-arndt/jslop"
+      external: true
+      icon: "github"
+
+# Footer configuration
+footer:
+  # Custom footer text
+  text: "JSlop · MIT licensed"
+
+  # Show "Powered by dorcs" (default: true)
+  show_powered_by: true

@@ -73,7 +73,7 @@ The result: the initial JS work scales with **the number of interactive bindings
 
 ## Security note (the boring wire protocol)
 
-[`PLAN.md`](../PLAN.md) explicitly calls out the RSC RCE disclosed in late 2025 and commits JSlop to a **boring** wire protocol: JSON only, no executable payloads, no arbitrary object revival.
+[`PLAN.md`](https://github.com/p-arndt/jslop/blob/main/PLAN.md) explicitly calls out the RSC RCE disclosed in late 2025 and commits JSlop to a **boring** wire protocol: JSON only, no executable payloads, no arbitrary object revival.
 
 The state capsule today is plain JSON with `JSON.parse` — no class revival, no function deserialization, no `eval`. Server functions (when they land) will follow the same constraint.
 
@@ -86,7 +86,7 @@ The state capsule today is plain JSON with `JSON.parse` — no class revival, no
 > - **No client-side nav.** `<a>` links cause a full document load. SPA-mode navigation is on the roadmap.
 > - **Each-nested component state.** State for components nested inside `{#each}` does not currently round-trip through SSR — they re-create from scratch on hydration. Top-level component state and props do round-trip.
 
-See [`TODO.md`](../TODO.md) for the full list and [roadmap](./roadmap.md) for what's coming.
+See [`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md) for the full list and [roadmap](./roadmap.md) for what's coming.
 
 ## See also
 

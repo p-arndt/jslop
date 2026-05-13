@@ -153,7 +153,7 @@ if (match) {
 ## Not yet supported
 
 > [!NOTE]
-> The following are listed in [`PLAN.md`](../PLAN.md) but **not implemented yet**:
+> The following are listed in [`PLAN.md`](https://github.com/p-arndt/jslop/blob/main/PLAN.md) but **not implemented yet**:
 >
 > - Catch-all routes (`[...slug]`)
 > - Optional segments

@@ -10,8 +10,8 @@ If you're here to build something with JSlop, head back to the [user guide](../R
 
 ## Related (in the repo root, not in this folder)
 
-- **[`PLAN.md`](../../PLAN.md)** — the design vision: what JSlop is aiming to be, why, and the protocol commitments behind it.
-- **[`TODO.md`](../../TODO.md)** — the honest punch list: what works, what's flaky, what's missing.
+- **[`PLAN.md`](https://github.com/p-arndt/jslop/blob/main/PLAN.md)** — the design vision: what JSlop is aiming to be, why, and the protocol commitments behind it.
+- **[`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md)** — the honest punch list: what works, what's flaky, what's missing.
 
 ## Where things live in source
 

@@ -2,7 +2,7 @@
 
 ## Is JSlop production-ready?
 
-No. JSlop is pre-1.0. The compiler, runtime, SSR, client resume, router, layouts, 404 pages, Vite plugin, and production build path all work end-to-end for the example apps, but the surface is small and there is no semver guarantee yet. Track [`TODO.md`](../TODO.md) for the honest status.
+No. JSlop is pre-1.0. The compiler, runtime, SSR, client resume, router, layouts, 404 pages, Vite plugin, and production build path all work end-to-end for the example apps, but the surface is small and there is no semver guarantee yet. Track [`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md) for the honest status.
 
 ## How does JSlop compare to Svelte?
 
@@ -101,7 +101,7 @@ component PostList {
 }
 ```
 
-A clean `server data = await ...` block with auto-wired `loading` / `error` / `refresh()` is the headline feature of the next big release — see [PLAN.md](../PLAN.md) and [roadmap](./roadmap.md).
+A clean `server data = await ...` block with auto-wired `loading` / `error` / `refresh()` is the headline feature of the next big release — see [PLAN.md](https://github.com/p-arndt/jslop/blob/main/PLAN.md) and [roadmap](./roadmap.md).
 
 ## How do I navigate client-side?
 
@@ -130,7 +130,7 @@ The build produces a host-agnostic `render(url) → { status, html, headers }`. 
 
 ## How do I contribute?
 
-There's no CI or contribution guide yet. Read [internals/architecture](./internals/architecture.md) for the big picture, pick something from [`TODO.md`](../TODO.md), and open a PR.
+There's no CI or contribution guide yet. Read [internals/architecture](./internals/architecture.md) for the big picture, pick something from [`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md), and open a PR.
 
 ## Where do I report bugs?
 

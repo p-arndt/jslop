@@ -7,7 +7,7 @@ JSlop is a fullstack TypeScript framework. You write components in `.jslop` file
 No `useEffect`. No dependency arrays. No `use client` / `use server` boundaries to keep in your head. No loader/action files. State is just variables; the compiler turns them into reactive cells.
 
 > [!WARNING]
-> **Status: early.** JSlop is pre-1.0. Everything documented here works end-to-end for the [example apps](https://github.com/p-arndt/jslop/tree/main/examples). Aspirational features (server functions, schema forms, local-first collections) are tracked in [`PLAN.md`](../PLAN.md) / [`TODO.md`](../TODO.md) — they are **not** documented here yet because they don't exist yet.
+> **Status: early.** JSlop is pre-1.0. Everything documented here works end-to-end for the [example apps](https://github.com/p-arndt/jslop/tree/main/examples). Aspirational features (server functions, schema forms, local-first collections) are tracked in [`PLAN.md`](https://github.com/p-arndt/jslop/blob/main/PLAN.md) / [`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md) — they are **not** documented here yet because they don't exist yet.
 
 ## A 60-second tour
 

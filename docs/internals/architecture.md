@@ -143,4 +143,4 @@ After `vite build && vite build --ssr`:
 - No special server/client file split. Today everything is "isomorphic" because there are no server-only constructs yet — when `server function` lands, the compiler will split bodies at compile time.
 - No CSS-in-JS engine. Plain `class="..."` works; Tailwind works because nothing rewrites classes.
 
-See [PLAN.md](../../PLAN.md) for the design intent and [TODO.md](../../TODO.md) for the gap list.
+See [PLAN.md](https://github.com/p-arndt/jslop/blob/main/PLAN.md) for the design intent and [TODO.md](https://github.com/p-arndt/jslop/blob/main/TODO.md) for the gap list.
