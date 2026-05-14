@@ -1,0 +1,89 @@
+component PresetDetail {
+  prop slug = ""
+
+  let presets = [
+    { slug: "miami-1986",   title: "Miami 1986",   hue: 320, size: 240, grid: 70, scan: 35, stars:  60, tag: "tropical",  blurb: "Pastel chrome, palm shadows, the highway never ends." },
+    { slug: "tokyo-rain",   title: "Tokyo Rain",   hue: 200, size: 160, grid: 85, scan: 65, stars: 120, tag: "cyberpunk", blurb: "Wet neon on glass. The vending machine hums in C minor." },
+    { slug: "outrun-101",   title: "Outrun 101",   hue:   0, size: 280, grid: 60, scan: 45, stars:  30, tag: "classic",   blurb: "The sun is bigger than the road. As it should be." },
+    { slug: "violet-haze",  title: "Violet Haze",  hue: 280, size: 200, grid: 40, scan: 25, stars:  90, tag: "ambient",   blurb: "Slow synth pads. A drink with ice. Twenty years from now." },
+    { slug: "acid-wave",    title: "Acid Wave",    hue: 110, size: 180, grid: 90, scan: 70, stars: 150, tag: "rave",      blurb: "303 squelch. The grid eats the floor. You are not tired." },
+    { slug: "ghost-arcade", title: "Ghost Arcade", hue: 240, size: 140, grid: 50, scan: 80, stars: 180, tag: "lofi",      blurb: "Abandoned mall. CRTs still glowing. No high score to beat." },
+  ]
+
+  state preset = presets.find(p => p.slug === slug) || presets[0]
+  state notFound = !presets.find(p => p.slug === slug)
+
+  view {
+    <main class="mx-auto max-w-5xl px-6 py-10 space-y-8">
+      {#if notFound}
+        <section class="space-y-2">
+          <p class="text-[10px] uppercase tracking-[0.4em] text-rose-300/80">signal lost</p>
+          <h1 class="text-3xl font-bold tracking-tight text-rose-300 neon-text">{slug} not in archive</h1>
+          <p class="text-fuchsia-200/70">Showing nearest match below.</p>
+        </section>
+      {/if}
+
+      <section class="space-y-2">
+        <p class="text-[10px] uppercase tracking-[0.4em] text-cyan-300/80">{preset.tag} · preset</p>
+        <h1 class="text-5xl font-bold tracking-tight text-fuchsia-300 neon-text">{preset.title}</h1>
+        <p class="text-fuchsia-200/70 italic max-w-xl">{preset.blurb}</p>
+      </section>
+
+      <section class="relative aspect-[16/9] overflow-hidden rounded-xl neon-box bg-gradient-to-b from-[#1a002a] via-[#0a0018] to-[#000]">
+        <div
+          class="absolute left-1/2 rounded-full"
+          style={`top: 42%; width: ${preset.size}px; height: ${preset.size}px; background: radial-gradient(circle, hsl(${preset.hue}, 100%, 70%) 0%, hsl(${(preset.hue + 30) % 360}, 100%, 55%) 40%, hsl(${(preset.hue + 60) % 360}, 100%, 40%) 70%, transparent 100%); transform: translate(-50%, -50%); box-shadow: 0 0 ${preset.size / 1.5}px hsl(${preset.hue}, 100%, 60%);`}
+        ></div>
+        <div
+          class="absolute inset-x-0 bottom-0 grid-floor"
+          style={`--grid-alpha: ${preset.grid / 100}; height: 60%;`}
+        ></div>
+        <div
+          class="absolute inset-0 scanlines pointer-events-none"
+          style={`opacity: ${preset.scan / 100};`}
+        ></div>
+        <div class="absolute top-4 left-4 text-[10px] tracking-[0.3em] uppercase text-cyan-300/80">
+          ch.01 · {preset.title}
+        </div>
+        <div class="absolute top-4 right-4 text-[10px] tracking-[0.3em] uppercase text-fuchsia-300/80">
+          {preset.hue}° · {preset.size}px
+        </div>
+      </section>
+
+      <section class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <Stat label="hue" value={`${preset.hue}°`} />
+        <Stat label="sun" value={`${preset.size}px`} />
+        <Stat label="grid" value={`${preset.grid}%`} />
+        <Stat label="scan" value={`${preset.scan}%`} />
+        <Stat label="stars" value={`${preset.stars}`} />
+      </section>
+
+      <section class="flex gap-3">
+        <a
+          href="/presets"
+          class="px-5 py-2 rounded-md border border-cyan-400/60 text-cyan-300 tracking-[0.2em] uppercase text-xs hover:bg-cyan-400/10 transition-colors"
+        >
+          ← back to archive
+        </a>
+        <a
+          href="/"
+          class="px-5 py-2 rounded-md bg-fuchsia-500 text-black font-bold tracking-[0.2em] uppercase text-xs hover:bg-fuchsia-400 transition-colors neon-box"
+        >
+          open mixer
+        </a>
+      </section>
+    </main>
+  }
+}
+
+component Stat {
+  prop label = ""
+  prop value = ""
+
+  view {
+    <div class="rounded-lg border border-fuchsia-500/30 bg-black/40 p-3 text-center">
+      <div class="text-[10px] uppercase tracking-[0.3em] text-cyan-300/80">{label}</div>
+      <div class="text-fuchsia-300 text-lg font-bold neon-text">{value}</div>
+    </div>
+  }
+}

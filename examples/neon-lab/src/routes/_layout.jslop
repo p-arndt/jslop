@@ -1,0 +1,22 @@
+component Layout {
+  view {
+    <div class="min-h-screen font-mono text-fuchsia-100 selection:bg-fuchsia-500/40">
+      <header class="sticky top-0 z-20 border-b border-fuchsia-500/30 backdrop-blur-md bg-[#05000d]/60">
+        <nav class="mx-auto max-w-5xl flex items-center justify-between px-6 py-4">
+          <a href="/" class="text-fuchsia-300 neon-text text-xl tracking-[0.3em] font-bold">
+            NEON//LAB
+          </a>
+          <div class="flex gap-6 text-xs uppercase tracking-[0.25em]">
+            <a href="/" class="text-fuchsia-200 hover:text-cyan-300 transition-colors">mixer</a>
+            <a href="/presets" class="text-fuchsia-200 hover:text-cyan-300 transition-colors">presets</a>
+            <a href="/about" class="text-fuchsia-200 hover:text-cyan-300 transition-colors">about</a>
+          </div>
+        </nav>
+      </header>
+      <children/>
+      <footer class="mt-16 border-t border-fuchsia-500/20 px-6 py-6 text-center text-xs text-fuchsia-400/60 tracking-[0.3em] uppercase">
+        built with jslop · {new Date().getFullYear()}
+      </footer>
+    </div>
+  }
+}
