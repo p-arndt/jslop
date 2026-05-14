@@ -88,6 +88,14 @@ function generateComponent(comp: ParsedComponent): string {
 
   const childCtx: ChildCtx = { counter: 0, decls: [], inlineDecls: null };
   const viewExpr = emitNode(comp.view, reactiveNames, 6, childCtx);
+  // Head fragments are server-only metadata; they share the rewrite/emit
+  // pipeline but live in their own child counter so head <Component/> tags
+  // (rare but possible) don't collide with body children.
+  const headCtx: ChildCtx = { counter: 1000, decls: [], inlineDecls: null };
+  const headExprs = (comp.head ?? []).map((n) => emitNode(n, reactiveNames, 6, headCtx));
+  const headFn = comp.head
+    ? `    function buildHead() {\n      return [${headExprs.join(", ")}];\n    }`
+    : `    function buildHead() { return []; }`;
   const childrenArr = childCtx.decls.length
     ? `[${childCtx.decls.map((_, i) => `__child_${i}`).join(", ")}]`
     : "[]";
@@ -116,6 +124,7 @@ ${childCtx.decls.join("\n")}
     function buildView() {
       return ${viewExpr};
     }
+${headFn}
     function serializeState() {
       return { ${stateSerialize} };
     }
@@ -128,7 +137,7 @@ ${stateRestore}
         }
       }
     }
-    return { actions, buildView, serializeState, restoreState, children: __children };
+    return { actions, buildView, buildHead, serializeState, restoreState, children: __children };
   }
 };`;
 }

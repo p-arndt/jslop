@@ -26,6 +26,7 @@ export type RenderNode =
 export interface JSlopInstance {
   actions: Record<string, (...args: unknown[]) => unknown>;
   buildView(): RenderNode;
+  buildHead?(): RenderNode[];
   serializeState(): Record<string, unknown>;
   restoreState(s: Record<string, unknown>): void;
   children?: JSlopInstance[];
@@ -38,6 +39,8 @@ export interface JSlopComponent {
 
 export interface RenderResult {
   html: string;
+  /** Rendered HTML for the page <head>, from each component's `head { … }` block. */
+  head: string;
   capsule: {
     components: Array<{
       cid: string;
@@ -73,12 +76,28 @@ export function renderComponent(
     throw new Error(`component ${component.name}: root view must be an element`);
   }
   const html = renderElement(view, { cid, componentName: component.name });
+  const head = renderHeadNodes(instance.buildHead?.() ?? []);
   return {
     html,
+    head,
     capsule: {
       components: [{ cid, name: component.name, props, state: instance.serializeState() }],
     },
   };
+}
+
+function renderHeadNodes(nodes: RenderNode[]): string {
+  return nodes
+    .map((n) => {
+      // Head fragments are static markup; flatten any wrapper nodes (text/bind)
+      // but disallow components, ifs, and eaches since they'd need their own
+      // mount story in the document head.
+      if (n.kind === "element") return renderElement(n, {});
+      if (n.kind === "text") return escapeHtml(n.value);
+      if (n.kind === "bind") return escapeHtml(n.get());
+      throw new Error(`head fragments only support static elements, text, and {expr} — got '${n.kind}'`);
+    })
+    .join("");
 }
 
 /**
@@ -100,6 +119,10 @@ export function renderRouteChain(opts: {
   const routeResult = renderComponent(opts.route, opts.routeProps ?? {}, nextCid());
   let html = routeResult.html;
   const components = [...routeResult.capsule.components];
+  // Layouts contribute their head first (outermost → innermost), then the
+  // route's head — so the route's <title>/meta ends up last in the document
+  // head and wins for any duplicate tags the browser de-dupes by position.
+  const headParts: string[] = [];
 
   // Wrap innermost-first so each replacement targets the *current* outermost
   // placeholder. The CHILDREN_PLACEHOLDER constant is unique enough that a
@@ -118,9 +141,11 @@ export function renderRouteChain(opts: {
       html +
       layoutResult.html.slice(idx + CHILDREN_PLACEHOLDER.length);
     components.push(...layoutResult.capsule.components);
+    headParts.unshift(layoutResult.head);
   }
+  headParts.push(routeResult.head);
 
-  return { html, capsule: { components } };
+  return { html, head: headParts.join(""), capsule: { components } };
 }
 
 interface ElMarker {
@@ -214,7 +239,7 @@ export function renderPage(opts: {
   stylesheets?: string[];
   head?: string;
 }): string {
-  const { html, capsule } =
+  const { html, head: componentHead, capsule } =
     opts.layouts && opts.layouts.length > 0
       ? renderRouteChain({
           route: opts.component,
@@ -227,13 +252,17 @@ export function renderPage(opts: {
     .map((href) => `<link rel="stylesheet" href="${escapeAttr(href)}">`)
     .join("");
   const extraHead = opts.head ?? "";
+  // If the component emitted its own <title>, use it as the document title and
+  // suppress the fallback (browsers honor the *last* <title>, but emitting two
+  // is sloppy). Search the rendered head for a <title>…</title> tag.
+  const titleMatch = /<title[^>]*>([\s\S]*?)<\/title>/.exec(componentHead);
+  const fallbackTitle = titleMatch ? "" : `<title>${escapeHtml(opts.title)}</title>\n`;
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(opts.title)}</title>
-${linkTags}${extraHead}</head>
+${fallbackTitle}${linkTags}${componentHead}${extraHead}</head>
 <body>
 <div id="app">${html}</div>
 <script type="application/jslop+json" id="__jslop_capsule">${capsuleJson}</script>

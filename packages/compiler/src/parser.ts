@@ -31,6 +31,11 @@ export interface ParsedComponent {
   lets: Array<{ name: string; init: string }>;
   fns: Array<{ name: string; params: string; body: string }>;
   view: ViewNode;
+  /**
+   * Optional document-head fragment. SSR merges these into the page <head>;
+   * the route's head is rendered after layouts so its <title> / meta win.
+   */
+  head: ViewNode[] | null;
 }
 
 export interface ParsedFile {
@@ -259,6 +264,7 @@ function parseComponentBody(c: Cursor): ParsedComponent {
   const fns: ParsedComponent["fns"] = [];
   const props: ParsedProp[] = [];
   let view: ViewNode | null = null;
+  let head: ViewNode[] | null = null;
 
   while (true) {
     inner.skipWs();
@@ -314,13 +320,26 @@ function parseComponentBody(c: Cursor): ParsedComponent {
       inner.skipWs();
       const viewBody = readBalanced(inner, "{", "}");
       view = parseView(viewBody.trim());
+    } else if (inner.consumeKeyword("head")) {
+      inner.skipWs();
+      const headBody = readBalanced(inner, "{", "}");
+      head = parseHeadFragment(headBody.trim());
     } else {
       throw inner.err("unknown declaration; expected 'prop', 'state', 'derived', 'let', 'function', or 'view'");
     }
   }
 
   if (!view) throw new Error(`component ${name} missing view`);
-  return { name, props, states, deriveds, lets, fns, view };
+  return { name, props, states, deriveds, lets, fns, view, head };
+}
+
+function parseHeadFragment(src: string): ViewNode[] {
+  const c = new Cursor(src);
+  const out = parseChildrenUntil(c, () => false, null);
+  // Strip pure-whitespace text nodes — head fragments only care about real
+  // tags / interpolations, and stray " " between <title> and <meta> would
+  // otherwise leak into the rendered <head>.
+  return out.filter((n) => !(n.kind === "text" && /^\s*$/.test(n.value)));
 }
 
 /**
