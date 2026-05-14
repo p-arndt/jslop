@@ -231,6 +231,24 @@ export function rewriteExpr(source: string, reactiveNames: string[], derivedName
   return out.slice(1, out.length - 1);
 }
 
+// Rewrites reactive reads to `.peek()` for initializer contexts (state, let,
+// prop defaults). State init runs once at component create time; tracking
+// would be pointless since we haven't even returned the instance yet. peek
+// also works for derived (peeking a derived returns its current value).
+export function rewriteInitExpr(source: string, reactiveNames: string[], derivedNames: string[] = []): string {
+  const wrap = `(${source})`;
+  const ms = new MagicString(wrap);
+  const ast = parse(wrap, { ecmaVersion: 2022, sourceType: "script" }) as unknown as Node;
+  walkNode(
+    ast,
+    { ms, names: new Set(reactiveNames), readOnly: new Set(derivedNames), readMethod: "peek" },
+    [new Set()],
+    null
+  );
+  const out = ms.toString();
+  return out.slice(1, out.length - 1);
+}
+
 // Rewrites only writes (assignments and ++ / --) to reactive identifiers; leaves
 // bare identifier reads alone so that `value={count}` continues to pass the cell
 // by reference to a child component, while `oninput={e => count = ...}` still

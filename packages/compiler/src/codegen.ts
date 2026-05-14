@@ -1,5 +1,5 @@
 import type { ParsedComponent, ParsedFile, ParsedImport, ViewNode } from "./parser.js";
-import { rewriteFnBody, rewriteExpr, rewritePropExpr } from "./rewrite.js";
+import { rewriteFnBody, rewriteExpr, rewritePropExpr, rewriteInitExpr } from "./rewrite.js";
 
 export interface CodegenOptions {
   runtimeImport?: string;
@@ -30,8 +30,12 @@ export function generate(input: ParsedFile | ParsedComponent, opts: CodegenOptio
   // Route load() lives on the file's default component. We deliberately do
   // not emit load() for trailing components (e.g. a Stat helper alongside
   // PresetDetail) — only the default is exported as the route.
+  // load() is called by the framework with { params, url } — params is the
+  // matched path params object, url is a parsed URL with searchParams etc.
+  // The body destructures both so a route can write `params.slug` and
+  // `url.searchParams.get('q')` without ceremony.
   const loadLine = first.load
-    ? `export async function load(params) {\n${first.load}\n}`
+    ? `export async function load({ params, url }) {\n${first.load}\n}`
     : "";
 
   return `import { cell, derived, isReactive, registerStyles, notFound } from "${runtimeImport}";
@@ -92,8 +96,12 @@ function generateComponent(comp: ParsedComponent, styleRegistrations: string[]):
     })
     .join("\n");
 
+  // State / let initializers read reactive deps with .peek(): they run once at
+  // component create and shouldn't establish subscriptions. Without this,
+  // `state title = task.title` reads `Cell.title` (undefined) since task is
+  // itself a cell at that point.
   const stateDecls = comp.states
-    .map((s) => `    const ${s.name} = cell(${s.init});`)
+    .map((s) => `    const ${s.name} = cell(${rewriteInitExpr(s.init, reactiveNames, derivedNames)});`)
     .join("\n");
 
   // Derived inits must be rewritten so reads of other reactive bindings track
@@ -103,7 +111,7 @@ function generateComponent(comp: ParsedComponent, styleRegistrations: string[]):
     .join("\n");
 
   const letDecls = comp.lets
-    .map((l) => `    let ${l.name} = ${l.init};`)
+    .map((l) => `    let ${l.name} = ${rewriteInitExpr(l.init, reactiveNames, derivedNames)};`)
     .join("\n");
 
   const fnDecls = comp.fns

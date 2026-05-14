@@ -1,0 +1,186 @@
+import { createTask, updateTask, deleteTask } from "../api.js"
+
+component Inbox {
+  prop tasks = []
+  prop activeStatus = "all"
+
+  state newTitle = ""
+  state newPriority = "med"
+  state busy = false
+
+  head {
+    <title>Inbox · Stack</title>
+    <meta name="description" content="A small CRUD task tracker built with JSlop."/>
+  }
+
+  load {
+    const { listTasks } = await import(/* @vite-ignore */ "../store.js")
+    const wantStatus = url.searchParams.get("status") ?? "all"
+    const all = await listTasks()
+    const tasks = wantStatus === "all" ? all : all.filter(t => t.status === wantStatus)
+    return { tasks, activeStatus: wantStatus }
+  }
+
+  function submit(e) {
+    e.preventDefault()
+    if (busy) return
+    const title = newTitle.trim()
+    if (!title) return
+    busy = true
+    createTask(title, newPriority).finally(() => { busy = false })
+    newTitle = ""
+  }
+
+  view {
+    <main class="mx-auto max-w-3xl px-5 py-10 space-y-8">
+      <section class="space-y-2">
+        <h1 class="text-3xl font-bold tracking-tight">Inbox</h1>
+        <p class="text-sm text-[var(--color-ink-soft)]">
+          {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
+          <span>{activeStatus === "all" ? "" : ` · filter: ${activeStatus}`}</span>
+        </p>
+      </section>
+
+      <form onsubmit={submit} class="flex gap-2 items-stretch">
+        <input
+          bind:value={newTitle}
+          placeholder="Add a task and press enter"
+          class="flex-1 px-4 py-2.5 rounded-md bg-white ring-line text-[15px] outline-none focus:shadow-[0_0_0_2px_var(--color-accent)]"
+        />
+        <select bind:value={newPriority} class="px-3 py-2.5 rounded-md bg-white ring-line text-sm">
+          <option value="low">Low</option>
+          <option value="med">Medium</option>
+          <option value="high">High</option>
+        </select>
+        <button
+          type="submit"
+          disabled={busy}
+          class="px-4 py-2.5 rounded-md bg-[var(--color-accent)] text-white text-sm font-medium disabled:opacity-50"
+        >
+          Add
+        </button>
+      </form>
+
+      <Filters active={activeStatus} />
+
+      {#if tasks.length === 0}
+        <div class="rounded-lg ring-line bg-white p-8 text-center text-sm text-[var(--color-ink-muted)]">
+          Nothing here. Add your first task above.
+        </div>
+      {/if}
+
+      <ul class="space-y-2">
+        {#each tasks as t (t.id)}
+          <TaskRow task={t} />
+        {/each}
+      </ul>
+    </main>
+  }
+}
+
+component Filters {
+  prop active = "all"
+
+  style {
+    .row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-ink-soft);
+      background: white;
+      box-shadow: inset 0 0 0 1px var(--color-line);
+    }
+    .chip:hover { color: var(--color-ink); }
+    .chip.is-active {
+      color: white;
+      background: var(--color-ink);
+      box-shadow: none;
+    }
+  }
+
+  view {
+    <nav class="row">
+      <a href="/" class={`chip ${active === "all" ? "is-active" : ""}`}>All</a>
+      <a href="/?status=todo" class={`chip ${active === "todo" ? "is-active" : ""}`}>Todo</a>
+      <a href="/?status=doing" class={`chip ${active === "doing" ? "is-active" : ""}`}>Doing</a>
+      <a href="/?status=done" class={`chip ${active === "done" ? "is-active" : ""}`}>Done</a>
+    </nav>
+  }
+}
+
+component TaskRow {
+  prop task = null
+
+  style {
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: white;
+      box-shadow: inset 0 0 0 1px var(--color-line);
+    }
+    .row:hover { box-shadow: inset 0 0 0 1px var(--color-ink); }
+    .status-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      box-shadow: inset 0 0 0 1.5px var(--color-line);
+      flex-shrink: 0;
+    }
+    .status-btn:hover { box-shadow: inset 0 0 0 1.5px var(--color-ink); }
+    .status-btn.is-doing { background: #fde68a; box-shadow: inset 0 0 0 1.5px #f59e0b; }
+    .status-btn.is-done { background: var(--color-ink); }
+    .title { flex: 1; font-size: 15px; line-height: 1.4; }
+    .title-done { color: var(--color-ink-muted); text-decoration: line-through; }
+    .pri {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .pri-low { background: #e8f1ff; color: #3b62ad; }
+    .pri-med { background: #fef3c7; color: #92580f; }
+    .pri-high { background: #ffe4e6; color: #b1283e; }
+    .del {
+      font-size: 12px;
+      color: var(--color-ink-muted);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .del:hover { color: #b1283e; background: #fee2e2; }
+  }
+
+  function cycle() {
+    const order = ["todo", "doing", "done"]
+    const next = order[(order.indexOf(task.status) + 1) % order.length]
+    updateTask(task.id, { status: next })
+  }
+
+  function remove(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    deleteTask(task.id)
+  }
+
+  view {
+    <li class="row">
+      <button
+        type="button"
+        onclick={cycle}
+        class={`status-btn is-${task.status}`}
+        aria-label={`Cycle status, currently ${task.status}`}
+      ></button>
+      <a href={`/tasks/${task.id}`} class={`title ${task.status === "done" ? "title-done" : ""}`}>
+        {task.title}
+      </a>
+      <span class={`pri pri-${task.priority}`}>{task.priority}</span>
+      <button type="button" onclick={remove} class="del">Delete</button>
+    </li>
+  }
+}

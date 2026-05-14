@@ -2,7 +2,7 @@
   "name": "vscode-jslop",
   "displayName": "JSlop",
   "description": "Syntax highlighting for the JSlop framework (.jslop files)",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "publisher": "jslop",
   "private": true,
   "license": "MIT",

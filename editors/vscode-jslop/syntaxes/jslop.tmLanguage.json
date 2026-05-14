@@ -7,7 +7,10 @@
     { "include": "#comments" },
     { "include": "#import-statement" },
     { "include": "#view-block" },
+    { "include": "#head-block" },
+    { "include": "#load-block" },
     { "include": "#style-block" },
+    { "include": "#style-block-anon" },
     { "include": "#meta-block" },
     { "include": "#schema-block" },
     { "include": "#component-decl" },
@@ -116,6 +119,46 @@
         { "include": "#strings" },
         { "include": "#numbers" },
         { "include": "#operators" }
+      ]
+    },
+
+    "head-block": {
+      "begin": "\\b(head)\\s*(\\{)",
+      "beginCaptures": {
+        "1": { "name": "keyword.control.head.jslop" },
+        "2": { "name": "punctuation.section.block.begin.jslop" }
+      },
+      "end": "\\}",
+      "endCaptures": { "0": { "name": "punctuation.section.block.end.jslop" } },
+      "patterns": [
+        { "include": "#view-contents" }
+      ]
+    },
+
+    "load-block": {
+      "begin": "\\b(load)\\s*(\\{)",
+      "beginCaptures": {
+        "1": { "name": "keyword.control.load.jslop" },
+        "2": { "name": "punctuation.section.block.begin.jslop" }
+      },
+      "end": "\\}",
+      "endCaptures": { "0": { "name": "punctuation.section.block.end.jslop" } },
+      "patterns": [
+        { "include": "#expression" }
+      ]
+    },
+
+    "style-block-anon": {
+      "begin": "\\b(style)\\s*(\\{)",
+      "beginCaptures": {
+        "1": { "name": "storage.type.style.jslop" },
+        "2": { "name": "punctuation.section.block.begin.jslop" }
+      },
+      "end": "\\}",
+      "endCaptures": { "0": { "name": "punctuation.section.block.end.jslop" } },
+      "contentName": "meta.embedded.block.css.jslop",
+      "patterns": [
+        { "include": "source.css" }
       ]
     },
 
@@ -516,7 +559,7 @@
     },
 
     "keywords-control": {
-      "match": "\\b(if|else|for|while|do|return|break|continue|switch|case|default|throw|try|catch|finally|await|yield|new|in|of|typeof|instanceof|delete|void|as|when|changes|mount|cleanup|invalidate|sync|with|conflict|meta|view|route)\\b",
+      "match": "\\b(if|else|for|while|do|return|break|continue|switch|case|default|throw|try|catch|finally|await|yield|new|in|of|typeof|instanceof|delete|void|as|when|changes|mount|cleanup|invalidate|sync|with|conflict|meta|view|head|load|route)\\b",
       "name": "keyword.control.jslop"
     },
 
@@ -571,7 +614,7 @@
     },
 
     "builtin-functions": {
-      "match": "\\b(invalidate|refresh|connect|fetch|requireUser|collection|search|debounce)\\s*(?=\\()",
+      "match": "\\b(invalidate|refresh|connect|fetch|requireUser|collection|search|debounce|notFound|navigate)\\s*(?=\\()",
       "name": "support.function.builtin.jslop"
     },
 

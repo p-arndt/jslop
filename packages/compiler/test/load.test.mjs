@@ -23,7 +23,7 @@ test("load codegen emits exported async function with params", () => {
     view { <p/> }
   }`);
   const out = generate(c);
-  assert.match(out, /export async function load\(params\)/);
+  assert.match(out, /export async function load\(\{ params, url \}\)/);
   assert.match(out, /return \{ hello: "world" \}/);
 });
 

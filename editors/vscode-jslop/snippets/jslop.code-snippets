@@ -86,6 +86,41 @@
     "body": ["view {", "  $0", "}"],
     "description": "View block"
   },
+  "head": {
+    "prefix": "head",
+    "body": [
+      "head {",
+      "  <title>${1:Page title}</title>",
+      "  <meta name=\"description\" content=\"${2:description}\"/>",
+      "  $0",
+      "}"
+    ],
+    "description": "Per-component <head> fragment (SSR)"
+  },
+  "style": {
+    "prefix": "style",
+    "body": [
+      "style {",
+      "  ${1:.row} { $0 }",
+      "}"
+    ],
+    "description": "Scoped style block (per component)"
+  },
+  "load": {
+    "prefix": "load",
+    "body": [
+      "load {",
+      "  ${1:const data = await fetch(params.${2:slug}).then(r => r.json())}",
+      "  return { $0 }",
+      "}"
+    ],
+    "description": "Route/layout load block (server-only, merged into props)"
+  },
+  "notFound": {
+    "prefix": "notfound",
+    "body": ["if (!${1:resource}) notFound()"],
+    "description": "Trigger the 404 chain from inside a load { }"
+  },
   "mount": {
     "prefix": "mount",
     "body": ["mount {", "  $0", "}"],

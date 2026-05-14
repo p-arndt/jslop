@@ -1,0 +1,25 @@
+{
+  "name": "@jslop/example-tasks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && vite build --ssr",
+    "preview": "vite preview",
+    "serve": "node serve.mjs"
+  },
+  "dependencies": {
+    "@jslop/client": "workspace:*",
+    "@jslop/node-adapter": "workspace:*",
+    "@jslop/router": "workspace:*",
+    "@jslop/runtime": "workspace:*",
+    "@jslop/server": "workspace:*"
+  },
+  "devDependencies": {
+    "@jslop/vite": "workspace:*",
+    "@tailwindcss/vite": "^4.0.0",
+    "tailwindcss": "^4.0.0",
+    "vite": "^7.0.0"
+  }
+}

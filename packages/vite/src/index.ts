@@ -235,23 +235,23 @@ export default function jslop(opts: JSlopPluginOptions = {}): PluginOption[] {
             // get treated as no-op (props = match.params verbatim).
             const loadRouteLoader = async (
               rel: string
-            ): Promise<((params: Record<string, string>) => unknown) | undefined> => {
+            ): Promise<((ctx: { params: Record<string, string>; url: URL }) => unknown) | undefined> => {
               const mod = await server.ssrLoadModule(resolve(routesDir, rel));
               const fn = (mod as { load?: unknown }).load;
               return typeof fn === "function"
-                ? (fn as (p: Record<string, string>) => unknown)
+                ? (fn as (c: { params: Record<string, string>; url: URL }) => unknown)
                 : undefined;
             };
 
             const runLayoutLoaders = async (
               relPaths: string[],
-              params: Record<string, string>
+              loadCtx: { params: Record<string, string>; url: URL }
             ): Promise<Record<string, unknown>> => {
               const data: Record<string, unknown> = {};
               for (const rel of relPaths) {
                 const fn = await loadRouteLoader(rel);
                 if (!fn) continue;
-                const result = await fn(params);
+                const result = await fn(loadCtx);
                 if (result && typeof result === "object") {
                   Object.assign(data, result as Record<string, unknown>);
                 }
@@ -268,7 +268,10 @@ export default function jslop(opts: JSlopPluginOptions = {}): PluginOption[] {
                 // 404 layouts may have their own loaders (e.g. global session).
                 // We run them with empty params here; throwing notFound again
                 // would loop, so we let that bubble as a real error.
-                const nfLayoutProps = await runLayoutLoaders(manifest.notFound.layouts, {});
+                const nfLayoutProps = await runLayoutLoaders(manifest.notFound.layouts, {
+                  params: {},
+                  url: new URL(url, "http://localhost"),
+                });
                 let html = renderPage({
                   title: titleFor(url, {}),
                   component: nfComp,
@@ -303,9 +306,15 @@ export default function jslop(opts: JSlopPluginOptions = {}): PluginOption[] {
             let layoutData: Record<string, unknown> = {};
             let extraProps: Record<string, unknown> = {};
             try {
-              layoutData = await runLayoutLoaders(match.route.layouts, match.params);
+              // Pass the request URL alongside path params so a route's load
+              // can read query string filters etc. via url.searchParams.
+              const loadCtx = {
+                params: match.params,
+                url: new URL((req.url ?? url) || "/", "http://localhost"),
+              };
+              layoutData = await runLayoutLoaders(match.route.layouts, loadCtx);
               if (routeLoad) {
-                const result = await routeLoad(match.params);
+                const result = await routeLoad(loadCtx);
                 if (result && typeof result === "object") {
                   extraProps = result as Record<string, unknown>;
                 }
@@ -529,11 +538,11 @@ export async function render(rawUrl, opts = {}) {
     }
   }
 
-  const runLayoutLoaders = async (entries, params) => {
+  const runLayoutLoaders = async (entries, loadCtx) => {
     const data = {};
     for (const e of entries) {
       if (typeof e.load !== "function") continue;
-      const r = await e.load(params);
+      const r = await e.load(loadCtx);
       if (r && typeof r === "object") Object.assign(data, r);
     }
     return data;
@@ -544,7 +553,10 @@ export async function render(rawUrl, opts = {}) {
       // 404 layouts may have their own loaders. We run them with empty params;
       // if one throws notFound again, we let the error bubble — recursive 404
       // would loop.
-      const layoutData = await runLayoutLoaders(notFound.layouts, {});
+      const layoutData = await runLayoutLoaders(notFound.layouts, {
+        params: {},
+        url: new URL(rawUrl || "/", "http://localhost"),
+      });
       const html = renderPage({
         title: titleFn(url, {}),
         component: notFound.component,
@@ -569,9 +581,13 @@ export async function render(rawUrl, opts = {}) {
   let layoutData = {};
   let extraProps = {};
   try {
-    layoutData = await runLayoutLoaders(match.route.layouts, match.params);
+    const loadCtx = {
+      params: match.params,
+      url: new URL(rawUrl || "/", "http://localhost"),
+    };
+    layoutData = await runLayoutLoaders(match.route.layouts, loadCtx);
     if (typeof match.route.load === "function") {
-      const result = await match.route.load(match.params);
+      const result = await match.route.load(loadCtx);
       if (result && typeof result === "object") extraProps = result;
     }
   } catch (err) {

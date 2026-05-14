@@ -1,0 +1,81 @@
+component Layout {
+  prop counts = { all: 0, todo: 0, doing: 0, done: 0 }
+
+  style {
+    .shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .topbar {
+      border-bottom: 1px solid var(--color-line);
+      background: rgba(250, 250, 247, 0.85);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .topbar-inner {
+      max-width: 56rem;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .brand {
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      font-size: 17px;
+    }
+    .brand-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--color-accent);
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .nav { display: flex; gap: 20px; font-size: 13px; color: var(--color-ink-soft); }
+    .nav a:hover { color: var(--color-ink); }
+    .nav-count { color: var(--color-ink-muted); margin-left: 4px; font-variant-numeric: tabular-nums; }
+    .foot {
+      border-top: 1px solid var(--color-line);
+      margin-top: auto;
+      padding: 16px 20px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--color-ink-muted);
+    }
+  }
+
+  load {
+    const { listTasks } = await import(/* @vite-ignore */ "../store.js")
+    const tasks = await listTasks()
+    const counts = { all: tasks.length, todo: 0, doing: 0, done: 0 }
+    for (const t of tasks) counts[t.status] = (counts[t.status] ?? 0) + 1
+    return { counts }
+  }
+
+  view {
+    <div class="shell">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <a href="/" class="brand"><span class="brand-dot"></span>Stack</a>
+          <nav class="nav">
+            <a href="/">Inbox<span class="nav-count">{counts.all}</span></a>
+            <a href="/?status=doing">Doing<span class="nav-count">{counts.doing}</span></a>
+            <a href="/?status=done">Done<span class="nav-count">{counts.done}</span></a>
+            <a href="/about">About</a>
+          </nav>
+        </div>
+      </header>
+      <children/>
+      <footer class="foot">
+        Stack — a JSlop CRUD demo · {counts.all} task<span>{counts.all === 1 ? "" : "s"}</span>
+      </footer>
+    </div>
+  }
+}

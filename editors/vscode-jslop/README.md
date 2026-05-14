@@ -7,7 +7,17 @@ used by the JSlop framework.
 
 - Highlighting for JSlop declarations: `component`, `route`, `schema`, `style`,
   `prop`, `state`, `let`, `const`, `derived`, `local`, `function`, `view`,
-  `meta`, `mount`, `cleanup`, `when ... changes`, `sync ... with`.
+  `head`, `load`, `meta`, `mount`, `cleanup`, `when ... changes`,
+  `sync ... with`.
+- Anonymous `style { ... }` block treated as embedded CSS, so VS Code's CSS
+  grammar (and themes) highlight selectors / properties / values inside.
+  Named `style Name { variants: ... }` blocks still get the variant-specific
+  property highlighting.
+- `head { ... }` block highlights its contents as view markup — tags,
+  `{expr}` interpolations, and attribute directives all work the same as
+  inside `view { ... }`.
+- `load { ... }` block highlights its body as a JS expression context;
+  `notFound()` and `navigate()` are recognized as built-in functions.
 - The reactive `state` keyword gets its own scope (`storage.type.reactive.jslop`)
   so themes can color it distinctly from plain `let`/`const`.
 - The `<children/>` placeholder gets its own scope
@@ -22,8 +32,9 @@ used by the JSlop framework.
   `<Error>`, `<Form>`, `<Field>`, `<Submit>`, `<Show>`, `<Match>`,
   `<Switch>`, `<Slot>`, `<Portal>`, `<Suspense>`, `<Page>`, `<Layout>`.
 - Auto-closing pairs, comment toggling, bracket folding.
-- Snippets: `component`, `componentprop`, `route`, `schema`, `fn`,
-  `serverfn`, `view`, `mount`, `when`, `for`, `await`, `form`.
+- Snippets: `component`, `componentprop`, `route`, `schema`, `function`,
+  `serverfunction`, `state`, `let`, `prop`, `derived`, `view`, `head`,
+  `style`, `load`, `notfound`, `mount`, `when`, `for`, `await`, `form`.
 
 ## Install (development)
 

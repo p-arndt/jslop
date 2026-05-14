@@ -8,6 +8,7 @@
     "build": "pnpm -r --filter \"./packages/*\" run build",
     "dev:counter": "pnpm --filter @jslop/example-counter run dev",
     "dev:neon": "pnpm --filter @jslop/example-neon-lab run dev",
+    "dev:tasks": "pnpm --filter @jslop/example-tasks run dev",
     "bench": "pnpm --filter @jslop/benchmarks run bench"
   },
   "devDependencies": {

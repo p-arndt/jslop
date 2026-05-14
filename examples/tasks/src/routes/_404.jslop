@@ -1,0 +1,16 @@
+component NotFound {
+  head {
+    <title>Not found · Stack</title>
+  }
+
+  view {
+    <main class="mx-auto max-w-2xl px-5 py-24 text-center space-y-3">
+      <p class="text-xs uppercase tracking-widest text-[var(--color-ink-muted)]">404</p>
+      <h1 class="text-3xl font-bold tracking-tight">Nothing here</h1>
+      <p class="text-sm text-[var(--color-ink-soft)]">The page you’re looking for doesn’t exist (or the task was deleted).</p>
+      <div class="pt-2">
+        <a href="/" class="inline-block px-4 py-2 rounded-md bg-[var(--color-ink)] text-white text-sm">Back to Inbox</a>
+      </div>
+    </main>
+  }
+}
