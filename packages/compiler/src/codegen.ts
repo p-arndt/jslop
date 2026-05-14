@@ -27,14 +27,21 @@ export function generate(input: ParsedFile | ParsedComponent, opts: CodegenOptio
   // unchanged when a consumer does `import Comp from "./File.jslop"`.
   const first = file.components[0]!;
   const defaultLine = `export default ${first.name};`;
+  // Route load() lives on the file's default component. We deliberately do
+  // not emit load() for trailing components (e.g. a Stat helper alongside
+  // PresetDetail) — only the default is exported as the route.
+  const loadLine = first.load
+    ? `export async function load(params) {\n${first.load}\n}`
+    : "";
 
-  return `import { cell, derived, isReactive, registerStyles } from "${runtimeImport}";
+  return `import { cell, derived, isReactive, registerStyles, notFound } from "${runtimeImport}";
 ${importLines}
 
 ${styleRegistrations.join("\n")}
 ${blocks}
 
 ${defaultLine}
+${loadLine}
 `;
 }
 

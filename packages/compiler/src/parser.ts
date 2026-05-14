@@ -42,6 +42,13 @@ export interface ParsedComponent {
    * element.
    */
   style: string | null;
+  /**
+   * Optional `load { body }` block. The codegen emits this as an exported
+   * async function `load(params)` alongside the component. The server-side
+   * router calls it before rendering and merges its return value into props.
+   * Throwing `notFound()` from within bubbles up to the 404 chain.
+   */
+  load: string | null;
 }
 
 export interface ParsedFile {
@@ -272,6 +279,7 @@ function parseComponentBody(c: Cursor): ParsedComponent {
   let view: ViewNode | null = null;
   let head: ViewNode[] | null = null;
   let style: string | null = null;
+  let load: string | null = null;
 
   while (true) {
     inner.skipWs();
@@ -334,13 +342,16 @@ function parseComponentBody(c: Cursor): ParsedComponent {
     } else if (inner.consumeKeyword("style")) {
       inner.skipWs();
       style = readBalanced(inner, "{", "}");
+    } else if (inner.consumeKeyword("load")) {
+      inner.skipWs();
+      load = readBalanced(inner, "{", "}");
     } else {
-      throw inner.err("unknown declaration; expected 'prop', 'state', 'derived', 'let', 'function', 'view', 'head', or 'style'");
+      throw inner.err("unknown declaration; expected 'prop', 'state', 'derived', 'let', 'function', 'view', 'head', 'style', or 'load'");
     }
   }
 
   if (!view) throw new Error(`component ${name} missing view`);
-  return { name, props, states, deriveds, lets, fns, view, head, style };
+  return { name, props, states, deriveds, lets, fns, view, head, style, load };
 }
 
 function parseHeadFragment(src: string): ViewNode[] {

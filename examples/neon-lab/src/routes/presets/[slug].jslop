@@ -1,26 +1,22 @@
-import { presets, findPreset } from "../../data.js"
+import { findPreset } from "../../data.js"
 
 component PresetDetail {
   prop slug = ""
-
-  derived preset = findPreset(slug) || presets[0]
-  derived missing = !findPreset(slug)
+  prop preset = null
 
   head {
     <title>{preset.title} · Neon Lab</title>
     <meta name="description" content={preset.blurb}/>
   }
 
+  load {
+    const preset = findPreset(params.slug)
+    if (!preset) notFound()
+    return { preset }
+  }
+
   view {
     <main class="mx-auto max-w-5xl px-6 py-10 space-y-8">
-      {#if missing}
-        <section class="space-y-2">
-          <p class="text-[10px] uppercase tracking-[0.4em] text-rose-300/80">signal lost</p>
-          <h1 class="text-3xl font-bold tracking-tight text-rose-300 neon-text">{slug} not in archive</h1>
-          <p class="text-fuchsia-200/70">Showing nearest match below.</p>
-        </section>
-      {/if}
-
       <section class="space-y-2">
         <p class="text-[10px] uppercase tracking-[0.4em] text-cyan-300/80">{preset.tag} · preset</p>
         <h1 class="text-5xl font-bold tracking-tight text-fuchsia-300 neon-text">{preset.title}</h1>

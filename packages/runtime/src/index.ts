@@ -226,6 +226,31 @@ export function getRegisteredStyle(componentName: string): RegisteredStyle | und
   return styleRegistry.get(componentName);
 }
 
+/* ------------------------------------------------------------------ *
+ * Route load() helpers — thrown by a route's `load { … }` block when
+ * the requested resource doesn't exist. The server-side runner catches
+ * this and renders the configured _404 page with a 404 status.
+ * ------------------------------------------------------------------ */
+
+export class NotFoundError extends Error {
+  readonly __jslop_not_found = true;
+  constructor(message = "not found") {
+    super(message);
+    this.name = "NotFoundError";
+  }
+}
+
+export function notFound(message?: string): never {
+  throw new NotFoundError(message);
+}
+
+export function isNotFoundError(err: unknown): err is NotFoundError {
+  return (
+    err instanceof NotFoundError ||
+    (typeof err === "object" && err !== null && (err as { __jslop_not_found?: unknown }).__jslop_not_found === true)
+  );
+}
+
 export function isReactive(v: unknown): v is Reactive<unknown> {
   return (
     typeof v === "object" &&

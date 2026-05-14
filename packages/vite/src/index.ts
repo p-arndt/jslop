@@ -2,6 +2,7 @@ import type { Plugin, PluginOption, UserConfig } from "vite";
 import { compile } from "@jslop/compiler";
 import { scanRoutes, matchRoute, type RouteManifest } from "@jslop/router";
 import { renderPage, type JSlopComponent } from "@jslop/server";
+import { isNotFoundError } from "@jslop/runtime";
 import { resolve, posix, isAbsolute } from "node:path";
 
 export interface JSlopPluginOptions {
@@ -230,8 +231,19 @@ export default function jslop(opts: JSlopPluginOptions = {}): PluginOption[] {
               if (!c) throw new Error(`${rel} has no default export`);
               return c as JSlopComponent;
             };
+            // Parallel: routes that don't declare load() return `undefined` and
+            // get treated as no-op (props = match.params verbatim).
+            const loadRouteLoader = async (
+              rel: string
+            ): Promise<((params: Record<string, string>) => unknown) | undefined> => {
+              const mod = await server.ssrLoadModule(resolve(routesDir, rel));
+              const fn = (mod as { load?: unknown }).load;
+              return typeof fn === "function"
+                ? (fn as (p: Record<string, string>) => unknown)
+                : undefined;
+            };
 
-            if (!match) {
+            const renderNotFound = async (status: number): Promise<void> => {
               if (manifest.notFound) {
                 const nfComp = await loadComponent(manifest.notFound.relPath);
                 const nfLayouts = await Promise.all(
@@ -246,14 +258,18 @@ export default function jslop(opts: JSlopPluginOptions = {}): PluginOption[] {
                   stylesheets,
                 });
                 html = await server.transformIndexHtml(url, html);
-                res.statusCode = 404;
+                res.statusCode = status;
                 res.setHeader("content-type", "text/html; charset=utf-8");
                 res.end(html);
                 return;
               }
-              res.statusCode = 404;
+              res.statusCode = status;
               res.setHeader("content-type", "text/plain");
               res.end("not found");
+            };
+
+            if (!match) {
+              await renderNotFound(404);
               return;
             }
 
@@ -261,13 +277,30 @@ export default function jslop(opts: JSlopPluginOptions = {}): PluginOption[] {
             const layoutComps = await Promise.all(
               match.route.layouts.map((rel) => loadComponent(rel))
             );
+            const routeLoad = await loadRouteLoader(match.route.relPath);
+
+            let extraProps: Record<string, unknown> = {};
+            if (routeLoad) {
+              try {
+                const result = await routeLoad(match.params);
+                if (result && typeof result === "object") {
+                  extraProps = result as Record<string, unknown>;
+                }
+              } catch (err) {
+                if (isNotFoundError(err)) {
+                  await renderNotFound(404);
+                  return;
+                }
+                throw err;
+              }
+            }
 
             let html = renderPage({
               title: titleFor(url, match.params),
               component: routeComp,
               layouts: layoutComps,
               appScriptUrl: "/@id/" + VIRTUAL_CLIENT,
-              props: match.params,
+              props: { ...match.params, ...extraProps },
               stylesheets,
             });
             html = await server.transformIndexHtml(url, html);
@@ -343,29 +376,33 @@ function generateServerEntry(
 ): string {
   const allFiles = collectAllJSlopFiles(m);
   const indexOf = (rel: string): number => allFiles.indexOf(rel);
+  // Namespace imports so we can pick up both the default component and the
+  // optional `load` export without separate import lines per route.
   const componentImports = allFiles
-    .map((f, i) => `import C${i} from ${JSON.stringify(toImportPath(routesDir, f))};`)
+    .map((f, i) => `import * as M${i} from ${JSON.stringify(toImportPath(routesDir, f))};`)
     .join("\n");
 
   const routeEntries = m.routes
     .map((r) => {
-      const layoutVars = r.layouts.map((l) => `C${indexOf(l)}`).join(", ");
+      const layoutVars = r.layouts.map((l) => `M${indexOf(l)}.default`).join(", ");
+      const idx = indexOf(r.relPath);
       return `  { pattern: ${JSON.stringify(r.pattern)}, paramNames: ${JSON.stringify(
         r.paramNames
-      )}, component: C${indexOf(r.relPath)}, layouts: [${layoutVars}] }`;
+      )}, component: M${idx}.default, load: M${idx}.load, layouts: [${layoutVars}] }`;
     })
     .join(",\n");
 
   let notFoundLiteral = "null";
   if (m.notFound) {
-    const layoutVars = m.notFound.layouts.map((l) => `C${indexOf(l)}`).join(", ");
-    notFoundLiteral = `{ component: C${indexOf(m.notFound.relPath)}, layouts: [${layoutVars}] }`;
+    const layoutVars = m.notFound.layouts.map((l) => `M${indexOf(l)}.default`).join(", ");
+    notFoundLiteral = `{ component: M${indexOf(m.notFound.relPath)}.default, layouts: [${layoutVars}] }`;
   }
 
   const staticCss = JSON.stringify(staticStylesheets);
 
   return `import { renderPage } from "@jslop/server";
 import { matchRoute } from "@jslop/router";
+import { isNotFoundError } from "@jslop/runtime";
 import { readFile } from "node:fs/promises";
 import { dirname, join, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -462,8 +499,7 @@ export async function render(rawUrl, opts = {}) {
     }
   }
 
-  const match = matchRoute(url, routes);
-  if (!match) {
+  const renderNotFound = (status) => {
     if (notFound) {
       const html = renderPage({
         title: titleFn(url, {}),
@@ -473,13 +509,27 @@ export async function render(rawUrl, opts = {}) {
         props: {},
         stylesheets,
       });
-      return { status: 404, html, headers: { "content-type": "text/html; charset=utf-8" } };
+      return { status, html, headers: { "content-type": "text/html; charset=utf-8" } };
     }
     return {
-      status: 404,
+      status,
       html: "not found",
       headers: { "content-type": "text/plain; charset=utf-8" },
     };
+  };
+
+  const match = matchRoute(url, routes);
+  if (!match) return renderNotFound(404);
+
+  let extraProps = {};
+  if (typeof match.route.load === "function") {
+    try {
+      const result = await match.route.load(match.params);
+      if (result && typeof result === "object") extraProps = result;
+    } catch (err) {
+      if (isNotFoundError(err)) return renderNotFound(404);
+      throw err;
+    }
   }
 
   const html = renderPage({
@@ -487,7 +537,7 @@ export async function render(rawUrl, opts = {}) {
     component: match.route.component,
     layouts: match.route.layouts,
     appScriptUrl,
-    props: match.params,
+    props: { ...match.params, ...extraProps },
     stylesheets,
   });
   return { status: 200, html, headers: { "content-type": "text/html; charset=utf-8" } };
