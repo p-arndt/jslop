@@ -54,12 +54,28 @@ interface Capsule {
   }>;
 }
 
-const ROOT_SCOPES = new WeakMap<Element, Scope>();
+let ROOT_SCOPES = new WeakMap<Element, Scope>();
+// Track every root we've attached during the current page so SPA navigation
+// can dispose them all at once before swapping #app's contents. WeakMap alone
+// can't be iterated, and we need explicit teardown when leaving a page.
+let attachedRoots: Element[] = [];
+let bootedModules: Record<string, JSlopModule> | null = null;
 
 export function boot(modules: Record<string, JSlopModule>): void {
+  // First boot also wires up the SPA navigation layer (link interception +
+  // popstate). Re-booting after a navigate() reuses the same modules without
+  // re-installing those listeners.
+  if (!bootedModules) installNavigationHandlers();
+  bootedModules = modules;
+  bootCurrentPage(modules);
+}
+
+function bootCurrentPage(modules: Record<string, JSlopModule>): void {
   const capsuleEl = document.getElementById("__jslop_capsule");
   if (!capsuleEl || !capsuleEl.textContent) return;
   const capsule = JSON.parse(capsuleEl.textContent) as Capsule;
+
+  attachedRoots = [];
 
   for (const entry of capsule.components) {
     const mod = modules[entry.name];
@@ -74,6 +90,7 @@ export function boot(modules: Record<string, JSlopModule>): void {
     if (previous) disposeScope(previous);
     const scope = createScope(null);
     ROOT_SCOPES.set(root, scope);
+    attachedRoots.push(root);
 
     runInScope(scope, () => {
       const inst = mod.create(entry.props ?? {});
@@ -82,6 +99,132 @@ export function boot(modules: Record<string, JSlopModule>): void {
       attach(root, view, inst.actions);
     });
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * SPA navigation — intercept same-origin link clicks, fetch the new
+ * page's HTML, swap #app's contents, merge missing <style> tags into
+ * <head>, update <title>, and re-boot. Full-page reload behaviour is
+ * preserved for external links, modified clicks, target=_blank, etc.
+ * ------------------------------------------------------------------ */
+
+function installNavigationHandlers(): void {
+  if (typeof window === "undefined") return;
+  document.addEventListener("click", onLinkClick);
+  window.addEventListener("popstate", () => {
+    void navigate(window.location.pathname + window.location.search, { push: false });
+  });
+}
+
+function onLinkClick(e: MouseEvent): void {
+  if (e.defaultPrevented) return;
+  if (e.button !== 0) return;
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const target = (e.target as Element | null)?.closest("a");
+  if (!target) return;
+  // Honor explicit opt-outs.
+  if (target.hasAttribute("download")) return;
+  if (target.target && target.target !== "_self") return;
+  if (target.hasAttribute("data-jslop-reload")) return;
+  const href = target.getAttribute("href");
+  if (!href) return;
+  // Cross-origin / protocol links → let the browser handle them.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//")) {
+    try {
+      const u = new URL(target.href);
+      if (u.origin !== window.location.origin) return;
+    } catch {
+      return;
+    }
+  }
+  if (href.startsWith("#")) return;
+  e.preventDefault();
+  const url = new URL(target.href, window.location.href);
+  void navigate(url.pathname + url.search + url.hash, { push: true });
+}
+
+export async function navigate(
+  url: string,
+  { push = true }: { push?: boolean } = {}
+): Promise<void> {
+  const modules = bootedModules;
+  if (!modules) {
+    window.location.href = url;
+    return;
+  }
+  let res: Response;
+  try {
+    res = await fetch(url, { headers: { Accept: "text/html" } });
+  } catch (err) {
+    console.error("[jslop] navigate failed:", err);
+    window.location.href = url;
+    return;
+  }
+  // Don't try to swap on non-HTML responses (e.g. a redirect to an asset);
+  // fall back to a full reload so the browser handles it correctly.
+  const ct = res.headers.get("content-type") ?? "";
+  if (!ct.includes("text/html")) {
+    window.location.href = url;
+    return;
+  }
+  const html = await res.text();
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const newApp = doc.getElementById("app");
+  const newCapsule = doc.getElementById("__jslop_capsule");
+  if (!newApp || !newCapsule) {
+    window.location.href = url;
+    return;
+  }
+
+  // Tear down the previous page's reactive scopes so their effects stop
+  // firing before we throw away their DOM. Without this, an unrelated cell
+  // update could try to write into a node that no longer exists.
+  for (const root of attachedRoots) {
+    const scope = ROOT_SCOPES.get(root);
+    if (scope) disposeScope(scope);
+  }
+  ROOT_SCOPES = new WeakMap();
+  attachedRoots = [];
+
+  if (push) {
+    history.pushState(null, "", url);
+  }
+
+  // Update document.title from the new page.
+  const newTitle = doc.querySelector("title")?.textContent;
+  if (newTitle != null) document.title = newTitle;
+
+  // Merge per-component scoped <style> tags. Each has a stable
+  // data-jslop-style scope id; skip ones already present so the head doesn't
+  // grow unbounded across navigations.
+  for (const styleEl of doc.querySelectorAll("style[data-jslop-style]")) {
+    const scope = styleEl.getAttribute("data-jslop-style");
+    if (!scope) continue;
+    if (!document.head.querySelector(`style[data-jslop-style="${cssEscape(scope)}"]`)) {
+      document.head.appendChild(styleEl.cloneNode(true));
+    }
+  }
+
+  // Swap content and capsule.
+  const app = document.getElementById("app");
+  const oldCapsule = document.getElementById("__jslop_capsule");
+  if (!app || !oldCapsule) {
+    window.location.href = url;
+    return;
+  }
+  app.innerHTML = newApp.innerHTML;
+  oldCapsule.textContent = newCapsule.textContent;
+
+  // Scroll to top on forward navigations; back/forward keep their position.
+  if (push) window.scrollTo(0, 0);
+
+  bootCurrentPage(modules);
+}
+
+function cssEscape(s: string): string {
+  // Minimal escape for the attribute-selector context we use it in. The scope
+  // ids we generate are always `[a-z0-9-]+` so this is mostly belt-and-braces.
+  return s.replace(/["\\]/g, "\\$&");
 }
 
 function attachElement(el: Element, node: ElNode, actions: Actions): void {
