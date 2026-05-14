@@ -15,8 +15,9 @@ component Hello {
 A component block has:
 
 - A **name** in PascalCase (`Hello`, `UserCard`, `PostList`).
-- An optional body of declarations: `prop`, `state`, `let`, `function`, in any order.
+- An optional body of declarations: `prop`, `state`, `derived`, `let`, `function`, in any order.
 - Exactly one `view { ... }` block, with exactly one root element.
+- Optional `head { ... }` and `style { ... }` blocks (covered below).
 
 You can declare **as many components as you like in a single file**. The first one is the default export, and every component becomes a named export.
 
@@ -44,16 +45,17 @@ import Default, { Card } from "./widgets.jslop"     // both
 
 Sibling components in the same file can reference each other directly — `<Card/>` inside `Button`'s view just works.
 
-## The four declarations
+## The five declarations
 
 | Keyword       | Reactive | Survives SSR | Use it for                                                              |
 |---------------|----------|--------------|-------------------------------------------------------------------------|
 | `prop x`      | yes      | parent decides | input from a parent component                                         |
 | `state x`     | yes      | yes            | anything the view reads — counters, drafts, lists, toggles            |
+| `derived x`   | yes (read-only) | recomputed | memoized value derived from `state` / `prop` / other `derived`     |
 | `let x`       | no       | no             | per-instance bookkeeping the view never reads (caches, IDs, timers)   |
 | `function f`  | —        | —              | event handlers, actions, derived helpers                              |
 
-The next four sections cover each.
+The next sections cover each, plus the optional `head` and `style` blocks.
 
 ## `prop` — input from a parent
 
@@ -110,6 +112,34 @@ Anywhere in the component that reads `count` — a `view` interpolation, a `func
 
 > [!WARNING]
 > Reactivity tracks **assignments**, not deep property changes. `user.name = "x"` updates `user.name`, but the cell `user` itself didn't get a new value — so subscribers to `user` won't re-run. If a view reads `user.name`, replace the whole object: `user = { ...user, name: "x" }`. Same rule for arrays: use `arr = [...arr, x]`, not `arr.push(x)`.
+
+## `derived` — memoized reactive value
+
+```tsx
+component Cart {
+  state items = []
+
+  derived count = items.length
+  derived subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0)
+  derived tax = subtotal * 0.19
+  derived total = subtotal + tax
+
+  view {
+    <section>
+      <p>{count} items · {total.toFixed(2)} €</p>
+    </section>
+  }
+}
+```
+
+The right-hand side may reference any `state`, `prop`, or other `derived`. The compiler rewrites those identifiers to `.get()` calls so the expression re-runs only when an input it actually read changes — and the result is cached between reads.
+
+- `derived` values are **read-only**. You can't assign to them; they're a function of their inputs.
+- They are **not serialized** into the SSR capsule. After hydration, the client recomputes them on first read — same inputs, same output.
+- Reach for `derived` whenever a value is a pure function of other reactives. Inline expressions in the view work too (`{items.length}`), but a `derived` is named, cached, and reusable across the view and any `function`.
+
+> [!NOTE]
+> For ad-hoc derived values outside a component (helpers, library code), use the `derived(() => ...)` function from `@jslop/runtime` — see [Reactivity](./reactivity.md).
 
 ## `let` — plain mutable variable
 
@@ -186,6 +216,53 @@ view {
 ```
 
 What goes inside is covered in detail in [Template syntax](./template-syntax.md), [Logic blocks](./logic-blocks.md), [Events](./events.md), and [Bindings](./bindings.md).
+
+## `head` — per-component `<head>` fragment
+
+```tsx
+component PostPage {
+  prop post = { title: "", excerpt: "" }
+
+  head {
+    <title>{post.title} · Site</title>
+    <meta name="description" content={post.excerpt}/>
+    <link rel="canonical" href={"/posts/" + post.slug}/>
+  }
+
+  view {
+    <article>…</article>
+  }
+}
+```
+
+`head` contains a fragment of elements destined for the document `<head>` — `<title>`, `<meta>`, `<link>`, and similar. Reactive interpolations work like anywhere else: `<title>{post.title}</title>` updates when `post` changes.
+
+During SSR, every component on the page contributes its head fragment, in render order. The route's fragment renders **after** any layouts, so a route-level `<title>` wins over a layout default. Pure-whitespace text nodes between tags are stripped (they'd otherwise leak into the rendered head).
+
+You can keep using the Vite plugin's `title: url => "..."` for a global default; per-component `head { ... }` takes precedence when present.
+
+## `style` — scoped CSS
+
+```tsx
+component Card {
+  style {
+    .row    { display: flex; gap: 0.5rem; }
+    .title  { font-weight: 600; }
+    p       { color: #888; }
+  }
+
+  view {
+    <article class="row">
+      <h2 class="title">title</h2>
+      <p>body</p>
+    </article>
+  }
+}
+```
+
+Each component with a `style` block gets a unique scope class (e.g. `jslop-card-1a2b3c`), appended to the root element's `class` attribute. Every selector in the block is prefixed with that class, so rules only match elements inside this component's view.
+
+See [Styling](./styling.md#scoped-styles) for the full mechanics and a discussion of how scoped styles compose with global CSS, Tailwind, and CSS modules.
 
 ## Putting it together
 

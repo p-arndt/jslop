@@ -117,10 +117,41 @@ The `style` attribute is a normal attribute:
 
 There's no object-form `style={{...}}` like in React. Build the string yourself.
 
-## Scoped styles?
+## Scoped styles
+
+A component can declare a `style { ... }` block whose selectors are rewritten to a unique scope class. Selectors only match elements inside that component's view.
+
+```tsx
+component Card {
+  prop title = ""
+
+  style {
+    .row    { display: flex; gap: 0.5rem; }
+    .title  { font-weight: 600; }
+    p       { color: #888; }
+  }
+
+  view {
+    <article class="row">
+      <h2 class="title">{title}</h2>
+      <p>body copy</p>
+    </article>
+  }
+}
+```
+
+What the compiler does:
+
+- Generates a scope class like `jslop-card-1a2b3c` (component name + content hash) and appends it to the **root element's** `class` attribute.
+- Prefixes every selector in the block with `.jslop-card-1a2b3c`, so `.row` becomes `.jslop-card-1a2b3c .row` and bare `p` becomes `.jslop-card-1a2b3c p`. Styles only match inside this component.
+- Registers the resulting CSS once at module load. During SSR, the server emits a single `<style data-jslop-style="...">` per unique component in the page `<head>`. The client injects the same registry on boot if it isn't already present.
 
 > [!NOTE]
-> Component-scoped styles (like Svelte's `<style>` block or Vue's `<style scoped>`) are **not implemented**. Plan today: keep styling open and let users pick. CSS modules + Tailwind together cover most needs.
+> The scope class lives on the **root element only**. Nested components have their own scope; their roots get their own class. Descendant selectors (`.row p`) match across that boundary because the scope-prefixed selector still applies to any descendant — including children of nested components — but element-only selectors like `p` will not target a nested component's root (its root carries its own scope class, not this one).
+
+Use `style { ... }` for component-local rules, and global CSS / Tailwind / CSS modules for everything cross-cutting. They compose: scoped rules sit alongside utility classes without any handshake.
+
+First-class variants (`style Button { base, variants: ... }` from `PLAN.md`) are still on the [roadmap](./roadmap.md).
 
 ## See also
 

@@ -71,6 +71,15 @@ JSlop:
 
 The result: the initial JS work scales with **the number of interactive bindings**, not with the size of the component tree.
 
+## `head` and `style` collection
+
+While rendering, the server walks the view tree and collects two side channels:
+
+- **Head fragments.** Each component on the page may declare a `head { ... }` block. Render order matches the page render order, so the route's `head` is emitted **after** any layout `head` — a route-level `<title>` wins over a layout's default. Reactive `{expr}` inside a head fragment is resolved at render time; the raw text inside `<title>` is preserved verbatim (no `<jslop-b>` wrapper).
+- **Scoped styles.** Each component with a `style { ... }` block registers its hashed-scoped CSS once at module load via `registerStyles(name, scope, css)`. During SSR, the server emits a single `<style data-jslop-style="...">` tag per unique component used on the page, regardless of how many instances there are. Nested components contribute their styles too — collection walks the render tree, not just the route component.
+
+The client doesn't need to do anything special on boot: the registry is already populated by module evaluation, and the `<style>` tags the server emitted are already in the document. If a component is mounted later (e.g. through a future SPA-mode swap), its tag will be injected on first use.
+
 ## Security note (the boring wire protocol)
 
 [`PLAN.md`](https://github.com/p-arndt/jslop/blob/main/PLAN.md) explicitly calls out the RSC RCE disclosed in late 2025 and commits JSlop to a **boring** wire protocol: JSON only, no executable payloads, no arbitrary object revival.

@@ -25,8 +25,9 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 - ✅ View parser: elements, `{expr}`, `on<event>` handlers, capitalized tags as components, `{#if}…{:else}…{/if}`, `{#each list as item, i}…{/each}`
 - ❌ Source maps — codegen outputs no maps, so stack traces point at compiled coords
 - ❌ Compile-time validation: today an unbalanced `{/if}` or unknown tag throws a generic parser error with offset only; needs a friendlier diagnostic with source location
-- ❌ `derived`, `when`, `mount`, `cleanup` block syntax from PLAN.md
-- ❌ `style { ... }` / `style Name { variants: ... }` block from PLAN.md
+- 🟡 `derived`, `when`, `mount`, `cleanup` block syntax from PLAN.md — `derived name = expr` keyword shipped (parser + codegen + tests in `derived.test.mjs`; RHS identifiers rewritten to `.get()`, emitted as `derived(() => …)`). `when` / `mount` / `cleanup` blocks still pending.
+- 🟡 `style { ... }` / `style Name { variants: ... }` block from PLAN.md — scoped `style { ... }` shipped (hashed `jslop-<name>-<hash>` class on the component root, selectors prefixed, single `<style>` per component registered at module load; SSR emits the registry into `<head>`, client injects on boot; covered by `style.test.mjs`). First-class `style Name { variants: … }` declarations still pending.
+- ✅ Per-component `head { ... }` block — parser + codegen + SSR injection (route head rendered after layouts so its `<title>`/meta win; reactive `{expr}` works inside, raw text in `<title>` preserved). Covered by `head.test.mjs` (compiler) + `head.test.mjs` (server).
 - ❌ `schema Name { ... }` block (form schemas) from PLAN.md
 
 ## SSR (`@jslop/server`)
@@ -101,7 +102,7 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 ## Styling
 
 - ✅ Plain `class="..."` works (Tailwind works because we don't touch class attrs)
-- ❌ Scoped `<style>` blocks
+- ✅ Scoped `style { ... }` blocks — hashed scope class on component root, selectors prefixed at compile time, single `<style>` per component registered at module load. SSR emits the full registry into `<head>`; client injects on boot. Nested-component styles collected through the render tree.
 - ❌ `style Button { base, variants }` first-class variant declaration
 
 ## Devtools (PLAN.md differentiator)

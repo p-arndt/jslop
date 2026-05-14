@@ -8,8 +8,11 @@ Working today (in `vite dev` **and** in production builds):
 
 - `.jslop` parsing + AST-aware identifier rewriting
 - `cell` / `derived` / `effect` / `batch` / `untrack`
+- DSL keywords: `state`, `prop`, `derived`, `let`, `function`
 - Reactive scopes: `createScope` / `runInScope` / `disposeScope` / `onCleanup`. `{#if}` swaps and `{#each}` removals dispose the prior subtree's effects, no leaks.
 - View constructs: elements, components, `{expr}`, `on<event>` handlers, `bind:value` / `bind:checked`, `{#if}`/`{:else}`/`{/if}`, `{#each list as item, i (key)}`
+- Per-component `head { ... }` fragments (SSR-merged, route wins over layout)
+- Per-component `style { ... }` blocks — scoped via a hashed class on the component root
 - Keyed `{#each}` reconciliation: DOM identity preserved per key across reorders / inserts / removes; per-item child component instances reused for matching keys.
 - SSR with serialized state capsule
 - Client boot that **resumes** rather than hydrates
@@ -36,8 +39,8 @@ In order, from [`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md):
 
 - `server data = await db.x.find()` — async server values with auto-wired `loading` / `error` / `refresh()`.
 - `server function name(...) { ... }` — typed RPC with CSRF, validation, auth context.
-- `derived`, `when`, `mount`, `cleanup` block syntax.
-- `style Name { variants: ... }` — first-class variant declarations.
+- `when`, `mount`, `cleanup` block syntax.
+- `style Name { variants: ... }` — first-class variant declarations on top of the existing scoped `style { ... }` block.
 - `schema Form { ... }` + `<Form schema={Form} action={save}>` with no-JS fallback.
 - `local todos = collection<Todo>("todos")` + `sync todos with server.todos { ... }` — local-first data.
 - `<Await value={x}><Pending/><Error/><Resolved/></Await>`.

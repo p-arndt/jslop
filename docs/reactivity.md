@@ -49,8 +49,8 @@ doubled.get();   // 10
 
 `derived` is just `cell` + `effect` under the hood — the inner function re-runs whenever its dependencies change, and the result is cached.
 
-> [!NOTE]
-> There's no `derived x = ...` keyword in the `.jslop` DSL yet. Use `derived(() => ...)` from `@jslop/runtime` directly inside a component body or in a JS helper. A DSL form is on the [roadmap](./roadmap.md).
+> [!TIP]
+> The DSL has a `derived name = expr` keyword for use inside components — see [Components → `derived`](./components.md#derived--memoized-reactive-value). Identifiers on the right-hand side that match a `state`/`prop`/`derived` are rewritten to `.get()` calls, so the result re-runs only when its inputs change. Reach for the runtime `derived(() => ...)` form when you're outside a component body (JS helpers, ad-hoc effects).
 
 ## `effect(fn): () => void`
 

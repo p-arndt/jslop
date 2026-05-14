@@ -23,14 +23,55 @@ component Sibling {
 
 ## Declarations
 
-| Keyword           | Reactive | Serialized | Use for                                                |
-|-------------------|----------|------------|--------------------------------------------------------|
-| `prop x = d`      | yes      | parent     | input from a parent                                    |
-| `state x = d`     | yes      | yes        | anything the view reads                                |
-| `let x = d`       | no       | no         | per-instance bookkeeping the view never reads          |
-| `function f() {}` | —        | —          | actions / event handlers                               |
+| Keyword            | Reactive   | Serialized | Use for                                                |
+|--------------------|------------|------------|--------------------------------------------------------|
+| `prop x = d`       | yes        | parent     | input from a parent                                    |
+| `state x = d`      | yes        | yes        | anything the view reads                                |
+| `derived x = expr` | yes (read) | no (recomputed) | memoized value computed from other reactives     |
+| `let x = d`        | no         | no         | per-instance bookkeeping the view never reads          |
+| `function f() {}`  | —          | —          | actions / event handlers                               |
+| `head { ... }`     | —          | —          | per-component `<head>` fragment (`<title>`, meta, …)   |
+| `style { ... }`    | —          | —          | scoped CSS for this component                          |
 
 → [Components](./components.md)
+
+## `derived` — memoized reactive value
+
+```tsx
+state n = 1
+derived doubled = n * 2
+derived quad = doubled * 2
+```
+
+Recomputes only when an input it read actually changes; cached otherwise. RHS identifiers that match `state`/`prop`/`derived` are rewritten to `.get()`. → [Components](./components.md), [Reactivity](./reactivity.md)
+
+## `head { ... }` — per-component `<head>` fragment
+
+```tsx
+component About {
+  head {
+    <title>About · Site</title>
+    <meta name="description" content="…"/>
+  }
+  view { <main>…</main> }
+}
+```
+
+Reactive interpolations work (`<title>{post.title}</title>`). When multiple components on a page declare `head`, the route's fragment is rendered after layouts, so its `<title>` wins. → [SSR & resumability](./ssr-and-resumability.md)
+
+## `style { ... }` — scoped CSS
+
+```tsx
+component Card {
+  style {
+    .row { color: red; }
+    p { font-size: 0.875rem; }
+  }
+  view { <div class="row"><p>…</p></div> }
+}
+```
+
+The compiler adds a `jslop-<name>-<hash>` class on the root element and rewrites every selector to be prefixed by `.jslop-…-…`, so styles don't leak. Use it alongside global CSS or Tailwind — they don't conflict. → [Styling](./styling.md)
 
 ## View — elements & attributes
 
@@ -143,6 +184,6 @@ The view is emitted as a tree of node descriptors (`element`, `text`, `bind`, `i
 
 ## Not in the DSL yet
 
-`derived` keyword · `server function` · `mount`/`cleanup` blocks · `{#await}` · `{#snippet}` · `{:else if}` · catch-all routes · fragments · spread props (parsed, partial impl) · component-scoped styles · client-side `<a>` navigation.
+`server function` · `mount`/`cleanup` blocks · `{#await}` · `{#snippet}` · `{:else if}` · catch-all routes · fragments · spread props (parsed, partial impl) · client-side `<a>` navigation · `style Name { variants: ... }` first-class variants.
 
 → [Roadmap](./roadmap.md)

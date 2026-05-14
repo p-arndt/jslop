@@ -208,7 +208,6 @@ component Inbox {
 >
 > - **Fragments / multiple roots.** One root element per view.
 > - **`{@html ...}`-style raw HTML interpolation.** Always escaped.
-> - **`<svelte:head>` equivalent.** Per-route titles are configured on the Vite plugin (`title: url => "..."`); finer control is on the [roadmap](./roadmap.md).
 > - **Spread props.** `<Foo {...attrs}/>` is parsed but not yet supported across all sites.
 > - **`{#await}`/`{#snippet}`/`{#key}` blocks.** Only `{#if}` and `{#each}` are implemented today.
 
