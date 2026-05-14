@@ -216,7 +216,15 @@ interface RegisteredStyle {
   scope: string;
   css: string;
 }
-const styleRegistry = new Map<string, RegisteredStyle>();
+// Backed by globalThis so that the Vite dev server, which loads the runtime
+// twice (once via Node for the plugin's `renderPage` import, once via Vite's
+// SSR transform for route modules), still shares a single registry. Without
+// this, `registerStyles` and `getRegisteredStyle` would write/read to two
+// independent maps and component <style> tags would silently vanish from SSR.
+const STYLE_REGISTRY_KEY = "__jslop_style_registry__";
+const styleRegistry: Map<string, RegisteredStyle> =
+  ((globalThis as Record<string, unknown>)[STYLE_REGISTRY_KEY] as Map<string, RegisteredStyle>) ??
+  ((globalThis as Record<string, unknown>)[STYLE_REGISTRY_KEY] = new Map<string, RegisteredStyle>());
 
 export function registerStyles(componentName: string, scope: string, css: string): void {
   styleRegistry.set(componentName, { scope, css });

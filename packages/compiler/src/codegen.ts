@@ -1,6 +1,15 @@
 import type { ParsedComponent, ParsedFile, ParsedImport, ViewNode } from "./parser.js";
 import { rewriteFnBody, rewriteExpr, rewritePropExpr, rewriteInitExpr } from "./rewrite.js";
 
+// HTML boolean attributes — kept in sync with the same list in
+// @jslop/server. Their value semantics are presence-based, so a bound
+// boolean attribute must render via the "prop" kind, not stringified.
+const HTML_BOOLEAN_ATTRS = new Set([
+  "checked", "disabled", "readonly", "required", "selected", "multiple",
+  "hidden", "autofocus", "autoplay", "controls", "loop", "muted",
+  "open", "reversed", "default",
+]);
+
 export interface CodegenOptions {
   runtimeImport?: string;
   /** Rewrite imports of `./Foo.jslop` into the compiled file extension. Defaults to `.compiled.mjs`. */
@@ -285,6 +294,14 @@ function emitNode(
   const attrEntries = Object.entries(node.attrs).map(([k, v]) => {
     if (v.startsWith("__expr:")) {
       const e = rewriteExpr(v.slice("__expr:".length), reactiveNames, derivedNames);
+      // Boolean HTML attributes (disabled, checked, hidden, …) are
+      // presence-based: writing `disabled="false"` still disables the element.
+      // Route them through the "prop" kind so the runtime renders them via
+      // truthiness (server omits the attr when falsy; client sets the IDL
+      // property directly) instead of stringifying into a literal attribute.
+      if (HTML_BOOLEAN_ATTRS.has(k)) {
+        return `${JSON.stringify(k)}: { kind: "prop", get: () => (${e}) }`;
+      }
       return `${JSON.stringify(k)}: { kind: "bind", get: () => String(${e}) }`;
     }
     if (v.startsWith("__prop:")) {
