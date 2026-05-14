@@ -264,6 +264,7 @@ function reconcileKeyed(
     if (!entry) {
       const itemEl = document.createElement("jslop-each-item");
       itemEl.setAttribute("data-jslop-key", k);
+      itemEl.style.display = "contents";
       const scope = createScope();
       runInScope(scope, () => {
         const itemView = node.build(item, i);
@@ -298,6 +299,7 @@ function reconcileUnkeyed(
   ordered.length = 0;
   for (let i = 0; i < list.length; i++) {
     const itemEl = document.createElement("jslop-each-item");
+    itemEl.style.display = "contents";
     const scope = createScope();
     runInScope(scope, () => {
       const itemView = node.build(list[i], i);
@@ -381,6 +383,7 @@ function buildNode(node: ViewNode, actions: Actions): Node | null {
   }
   if (node.kind === "each") {
     const w = document.createElement("jslop-each");
+    w.style.display = "contents";
     if (typeof node.key === "function") w.setAttribute("data-jslop-keyed", "t");
     mountEach(w, node, actions);
     return w;

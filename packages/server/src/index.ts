@@ -151,12 +151,12 @@ function renderNode(node: RenderNode): string {
         ? ` data-jslop-key="${escapeAttr(String(node.key!(item, i)))}"`
         : "";
       itemsHtml.push(
-        `<jslop-each-item${keyAttr}>${itemChildren.map(renderNode).join("")}</jslop-each-item>`
+        `<jslop-each-item${keyAttr} style="display:contents">${itemChildren.map(renderNode).join("")}</jslop-each-item>`
       );
       i++;
     }
     const keyedAttr = keyed ? ` data-jslop-keyed="t"` : "";
-    return `<jslop-each data-jslop-count="${i}"${keyedAttr}>${itemsHtml.join("")}</jslop-each>`;
+    return `<jslop-each data-jslop-count="${i}"${keyedAttr} style="display:contents">${itemsHtml.join("")}</jslop-each>`;
   }
   if (node.kind === "component") {
     if (node.view.kind !== "element") {

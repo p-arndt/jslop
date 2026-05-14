@@ -1,5 +1,5 @@
 import type { ParsedComponent, ParsedFile, ParsedImport, ViewNode } from "./parser.js";
-import { rewriteFnBody, rewriteExpr } from "./rewrite.js";
+import { rewriteFnBody, rewriteExpr, rewritePropExpr } from "./rewrite.js";
 
 export interface CodegenOptions {
   runtimeImport?: string;
@@ -94,8 +94,8 @@ function generateComponent(comp: ParsedComponent): string {
   name: ${JSON.stringify(comp.name)},
   create(props = {}) {
 ${propDecls}
-${stateDecls}
 ${letDecls}
+${stateDecls}
 ${fnDecls}
     const actions = {
 ${actionEntries}
@@ -202,10 +202,11 @@ function emitNode(
     const idx = childCtx.counter++;
     const propEntries = Object.entries(node.props).map(([k, v]) => {
       if (v.startsWith("__expr:")) {
-        // Pass props through unchanged: parent cells are passed by reference
-        // (so the child reacts to changes), and item bindings inside an each
-        // are plain values from the build callback's params.
-        return `${JSON.stringify(k)}: (${v.slice("__expr:".length)})`;
+        // Pass bare reactive identifiers through by reference (so the child
+        // gets the cell and re-renders on change). But still rewrite assignments
+        // inside nested arrows / functions, otherwise `oninput={e => count = ...}`
+        // would emit a literal `count = ...` against a const cell binding.
+        return `${JSON.stringify(k)}: (${rewritePropExpr(v.slice("__expr:".length), reactiveNames)})`;
       }
       return `${JSON.stringify(k)}: ${v}`;
     });

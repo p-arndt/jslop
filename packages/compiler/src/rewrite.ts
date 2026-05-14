@@ -12,7 +12,7 @@ type Node = {
 interface Ctx {
   ms: MagicString;
   names: Set<string>;
-  readMethod: "peek" | "get";
+  readMethod: "peek" | "get" | null;
 }
 
 function collectBindingsFromPattern(node: Node | null | undefined, out: Set<string>): void {
@@ -147,6 +147,7 @@ function walkNode(node: Node | null | undefined, ctx: Ctx, scopes: Set<string>[]
   }
 
   if (
+    ctx.readMethod !== null &&
     node.type === "Property" &&
     node.shorthand &&
     node.key?.type === "Identifier" &&
@@ -157,7 +158,7 @@ function walkNode(node: Node | null | undefined, ctx: Ctx, scopes: Set<string>[]
     return;
   }
 
-  if (node.type === "Identifier" && shouldRewrite(node.name, ctx, scopes) && !isNonReferencePosition(node, parent)) {
+  if (ctx.readMethod !== null && node.type === "Identifier" && shouldRewrite(node.name, ctx, scopes) && !isNonReferencePosition(node, parent)) {
     ctx.ms.overwrite(node.start, node.end, `${node.name}.${ctx.readMethod}()`);
     return;
   }
@@ -198,6 +199,19 @@ export function rewriteExpr(source: string, reactiveNames: string[]): string {
   const ms = new MagicString(wrap);
   const ast = parse(wrap, { ecmaVersion: 2022, sourceType: "script" }) as unknown as Node;
   walkNode(ast, { ms, names: new Set(reactiveNames), readMethod: "get" }, [new Set()], null);
+  const out = ms.toString();
+  return out.slice(1, out.length - 1);
+}
+
+// Rewrites only writes (assignments and ++ / --) to reactive identifiers; leaves
+// bare identifier reads alone so that `value={count}` continues to pass the cell
+// by reference to a child component, while `oninput={e => count = ...}` still
+// turns the assignment inside the nested arrow into `count.set(...)`.
+export function rewritePropExpr(source: string, reactiveNames: string[]): string {
+  const wrap = `(${source})`;
+  const ms = new MagicString(wrap);
+  const ast = parse(wrap, { ecmaVersion: 2022, sourceType: "script" }) as unknown as Node;
+  walkNode(ast, { ms, names: new Set(reactiveNames), readMethod: null }, [new Set()], null);
   const out = ms.toString();
   return out.slice(1, out.length - 1);
 }
