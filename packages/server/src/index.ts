@@ -43,6 +43,8 @@ export interface RenderResult {
   html: string;
   /** Rendered HTML for the page <head>, from each component's `head { … }` block. */
   head: string;
+  /** Every component name rendered in this tree (used to inject scoped styles). */
+  nestedComponents: Set<string>;
   capsule: {
     components: Array<{
       cid: string;
@@ -77,11 +79,16 @@ export function renderComponent(
   if (view.kind !== "element") {
     throw new Error(`component ${component.name}: root view must be an element`);
   }
-  const html = renderElement(view, { cid, componentName: component.name });
+  // Track every nested component name encountered while rendering this tree
+  // so renderPage can emit a <style> tag for each unique name. Without this,
+  // a route's <PresetCard/>s in an each block would inherit no styles.
+  const nestedComponents = new Set<string>([component.name]);
+  const html = renderElement(view, { cid, componentName: component.name }, nestedComponents);
   const head = renderHeadNodes(instance.buildHead?.() ?? []);
   return {
     html,
     head,
+    nestedComponents,
     capsule: {
       components: [{ cid, name: component.name, props, state: instance.serializeState() }],
     },
@@ -89,17 +96,31 @@ export function renderComponent(
 }
 
 function renderHeadNodes(nodes: RenderNode[]): string {
-  return nodes
-    .map((n) => {
-      // Head fragments are static markup; flatten any wrapper nodes (text/bind)
-      // but disallow components, ifs, and eaches since they'd need their own
-      // mount story in the document head.
-      if (n.kind === "element") return renderElement(n, {});
-      if (n.kind === "text") return escapeHtml(n.value);
-      if (n.kind === "bind") return escapeHtml(n.get());
-      throw new Error(`head fragments only support static elements, text, and {expr} — got '${n.kind}'`);
-    })
-    .join("");
+  return nodes.map((n) => renderHeadNode(n)).join("");
+}
+
+/**
+ * Render a head fragment node WITHOUT the <jslop-b> bind wrapper that the body
+ * renderer emits — head text bindings (e.g. inside <title>) must produce raw
+ * text so the browser sees a clean tag. Head is server-only anyway; there is
+ * no client-side reactivity to hydrate against.
+ */
+function renderHeadNode(node: RenderNode): string {
+  if (node.kind === "text") return escapeHtml(node.value);
+  if (node.kind === "bind") return escapeHtml(node.get());
+  if (node.kind === "element") {
+    const attrParts: string[] = [];
+    for (const [k, v] of Object.entries(node.attrs)) {
+      if (typeof v === "string") attrParts.push(`${k}="${escapeAttr(v)}"`);
+      else if (v.kind === "bind") attrParts.push(`${k}="${escapeAttr(v.get())}"`);
+      else if (v.kind === "prop") attrParts.push(`${k}="${escapeAttr(String(v.get() ?? ""))}"`);
+    }
+    const open = `<${node.tag}${attrParts.length ? " " + attrParts.join(" ") : ""}>`;
+    if (VOID_ELEMENTS.has(node.tag)) return open;
+    const inner = node.children.map(renderHeadNode).join("");
+    return `${open}${inner}</${node.tag}>`;
+  }
+  throw new Error(`head fragments only support static elements, text, and {expr} — got '${node.kind}'`);
 }
 
 /**
@@ -121,6 +142,7 @@ export function renderRouteChain(opts: {
   const routeResult = renderComponent(opts.route, opts.routeProps ?? {}, nextCid());
   let html = routeResult.html;
   const components = [...routeResult.capsule.components];
+  const nestedComponents = new Set(routeResult.nestedComponents);
   // Layouts contribute their head first (outermost → innermost), then the
   // route's head — so the route's <title>/meta ends up last in the document
   // head and wins for any duplicate tags the browser de-dupes by position.
@@ -143,11 +165,12 @@ export function renderRouteChain(opts: {
       html +
       layoutResult.html.slice(idx + CHILDREN_PLACEHOLDER.length);
     components.push(...layoutResult.capsule.components);
+    for (const n of layoutResult.nestedComponents) nestedComponents.add(n);
     headParts.unshift(layoutResult.head);
   }
   headParts.push(routeResult.head);
 
-  return { html, head: headParts.join(""), capsule: { components } };
+  return { html, head: headParts.join(""), nestedComponents, capsule: { components } };
 }
 
 interface ElMarker {
@@ -155,7 +178,7 @@ interface ElMarker {
   componentName?: string;
 }
 
-function renderNode(node: RenderNode): string {
+function renderNode(node: RenderNode, registry: Set<string>): string {
   if (node.kind === "text") return escapeHtml(node.value);
   if (node.kind === "children") return CHILDREN_PLACEHOLDER;
   if (node.kind === "bind") {
@@ -164,7 +187,7 @@ function renderNode(node: RenderNode): string {
   if (node.kind === "if") {
     const active = !!node.test();
     const branch = active ? node.consequent : node.alternate;
-    const inner = branch.map(renderNode).join("");
+    const inner = branch.map((c) => renderNode(c, registry)).join("");
     return `<jslop-if data-jslop-active="${active ? "t" : "f"}">${inner}</jslop-if>`;
   }
   if (node.kind === "each") {
@@ -178,7 +201,7 @@ function renderNode(node: RenderNode): string {
         ? ` data-jslop-key="${escapeAttr(String(node.key!(item, i)))}"`
         : "";
       itemsHtml.push(
-        `<jslop-each-item${keyAttr} style="display:contents">${itemChildren.map(renderNode).join("")}</jslop-each-item>`
+        `<jslop-each-item${keyAttr} style="display:contents">${itemChildren.map((c) => renderNode(c, registry)).join("")}</jslop-each-item>`
       );
       i++;
     }
@@ -189,14 +212,16 @@ function renderNode(node: RenderNode): string {
     if (node.view.kind !== "element") {
       throw new Error(`component ${node.name}: root view must be an element`);
     }
-    return renderElement(node.view, { componentName: node.name });
+    registry.add(node.name);
+    return renderElement(node.view, { componentName: node.name }, registry);
   }
-  return renderElement(node, {});
+  return renderElement(node, {}, registry);
 }
 
 function renderElement(
   node: Extract<RenderNode, { kind: "element" }>,
-  marker: ElMarker
+  marker: ElMarker,
+  registry: Set<string>
 ): string {
   const attrParts: string[] = [];
   for (const [k, v] of Object.entries(node.attrs)) {
@@ -227,7 +252,7 @@ function renderElement(
   }
   const open = `<${node.tag}${attrParts.length ? " " + attrParts.join(" ") : ""}>`;
   if (VOID_ELEMENTS.has(node.tag)) return open;
-  const inner = node.children.map(renderNode).join("");
+  const inner = node.children.map((c) => renderNode(c, registry)).join("");
   return `${open}${inner}</${node.tag}>`;
 }
 
@@ -241,7 +266,7 @@ export function renderPage(opts: {
   stylesheets?: string[];
   head?: string;
 }): string {
-  const { html, head: componentHead, capsule } =
+  const { html, head: componentHead, nestedComponents, capsule } =
     opts.layouts && opts.layouts.length > 0
       ? renderRouteChain({
           route: opts.component,
@@ -264,8 +289,8 @@ export function renderPage(opts: {
   // 100 <Card/>s only emits the Card style once.
   const styleTags: string[] = [];
   const emittedStyleScopes = new Set<string>();
-  for (const entry of capsule.components) {
-    const reg = getRegisteredStyle(entry.name);
+  for (const name of nestedComponents) {
+    const reg = getRegisteredStyle(name);
     if (!reg || emittedStyleScopes.has(reg.scope)) continue;
     emittedStyleScopes.add(reg.scope);
     styleTags.push(`<style data-jslop-style="${escapeAttr(reg.scope)}">${reg.css}</style>`);

@@ -1,21 +1,19 @@
+import { presets, findPreset } from "../../data.js"
+
 component PresetDetail {
   prop slug = ""
 
-  let presets = [
-    { slug: "miami-1986",   title: "Miami 1986",   hue: 320, size: 240, grid: 70, scan: 35, stars:  60, tag: "tropical",  blurb: "Pastel chrome, palm shadows, the highway never ends." },
-    { slug: "tokyo-rain",   title: "Tokyo Rain",   hue: 200, size: 160, grid: 85, scan: 65, stars: 120, tag: "cyberpunk", blurb: "Wet neon on glass. The vending machine hums in C minor." },
-    { slug: "outrun-101",   title: "Outrun 101",   hue:   0, size: 280, grid: 60, scan: 45, stars:  30, tag: "classic",   blurb: "The sun is bigger than the road. As it should be." },
-    { slug: "violet-haze",  title: "Violet Haze",  hue: 280, size: 200, grid: 40, scan: 25, stars:  90, tag: "ambient",   blurb: "Slow synth pads. A drink with ice. Twenty years from now." },
-    { slug: "acid-wave",    title: "Acid Wave",    hue: 110, size: 180, grid: 90, scan: 70, stars: 150, tag: "rave",      blurb: "303 squelch. The grid eats the floor. You are not tired." },
-    { slug: "ghost-arcade", title: "Ghost Arcade", hue: 240, size: 140, grid: 50, scan: 80, stars: 180, tag: "lofi",      blurb: "Abandoned mall. CRTs still glowing. No high score to beat." },
-  ]
+  derived preset = findPreset(slug) || presets[0]
+  derived missing = !findPreset(slug)
 
-  state preset = presets.find(p => p.slug === slug) || presets[0]
-  state notFound = !presets.find(p => p.slug === slug)
+  head {
+    <title>{preset.title} · Neon Lab</title>
+    <meta name="description" content={preset.blurb}/>
+  }
 
   view {
     <main class="mx-auto max-w-5xl px-6 py-10 space-y-8">
-      {#if notFound}
+      {#if missing}
         <section class="space-y-2">
           <p class="text-[10px] uppercase tracking-[0.4em] text-rose-300/80">signal lost</p>
           <h1 class="text-3xl font-bold tracking-tight text-rose-300 neon-text">{slug} not in archive</h1>
@@ -80,10 +78,31 @@ component Stat {
   prop label = ""
   prop value = ""
 
+  style {
+    .stat {
+      border: 1px solid rgb(217 70 239 / 0.3);
+      background: rgb(0 0 0 / 0.4);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3em;
+      color: rgb(103 232 249 / 0.8);
+    }
+    .stat-value {
+      color: rgb(240 171 252);
+      font-size: 1.125rem;
+      font-weight: 700;
+    }
+  }
+
   view {
-    <div class="rounded-lg border border-fuchsia-500/30 bg-black/40 p-3 text-center">
-      <div class="text-[10px] uppercase tracking-[0.3em] text-cyan-300/80">{label}</div>
-      <div class="text-fuchsia-300 text-lg font-bold neon-text">{value}</div>
+    <div class="stat">
+      <div class="stat-label">{label}</div>
+      <div class="stat-value neon-text">{value}</div>
     </div>
   }
 }

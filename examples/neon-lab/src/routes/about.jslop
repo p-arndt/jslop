@@ -1,4 +1,9 @@
 component About {
+  head {
+    <title>About · Neon Lab</title>
+    <meta name="description" content="What this demo is and which JSlop primitives each route exercises."/>
+  }
+
   view {
     <main class="mx-auto max-w-2xl px-6 py-16 space-y-8">
       <section class="space-y-2">

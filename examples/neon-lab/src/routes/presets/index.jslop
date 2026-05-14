@@ -1,12 +1,10 @@
+import { presets } from "../../data.js"
+
 component Presets {
-  let presets = [
-    { slug: "miami-1986",   title: "Miami 1986",   hue: 320, size: 240, grid: 70, scan: 35, stars:  60, tag: "tropical"  },
-    { slug: "tokyo-rain",   title: "Tokyo Rain",   hue: 200, size: 160, grid: 85, scan: 65, stars: 120, tag: "cyberpunk" },
-    { slug: "outrun-101",   title: "Outrun 101",   hue:   0, size: 280, grid: 60, scan: 45, stars:  30, tag: "classic"   },
-    { slug: "violet-haze",  title: "Violet Haze",  hue: 280, size: 200, grid: 40, scan: 25, stars:  90, tag: "ambient"   },
-    { slug: "acid-wave",    title: "Acid Wave",    hue: 110, size: 180, grid: 90, scan: 70, stars: 150, tag: "rave"      },
-    { slug: "ghost-arcade", title: "Ghost Arcade", hue: 240, size: 140, grid: 50, scan: 80, stars: 180, tag: "lofi"      },
-  ]
+  head {
+    <title>Presets · Neon Lab</title>
+    <meta name="description" content="Six preset vibes for the synthwave mixer."/>
+  }
 
   view {
     <main class="mx-auto max-w-5xl px-6 py-10 space-y-8">
@@ -18,36 +16,81 @@ component Presets {
 
       <section class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {#each presets as p (p.slug)}
-          <a
-            href={`/presets/${p.slug}`}
-            class="group relative aspect-[4/3] overflow-hidden rounded-lg neon-box bg-gradient-to-b from-[#1a002a] via-[#0a0018] to-[#000] transition-transform hover:scale-[1.02]"
-          >
-            <div
-              class="absolute left-1/2 rounded-full"
-              style={`top: 55%; width: ${p.size * 0.5}px; height: ${p.size * 0.5}px; background: radial-gradient(circle, hsl(${p.hue}, 100%, 70%) 0%, hsl(${(p.hue + 40) % 360}, 100%, 50%) 60%, transparent 100%); transform: translate(-50%, -50%); box-shadow: 0 0 60px hsl(${p.hue}, 100%, 60%);`}
-            ></div>
-            <div
-              class="absolute inset-x-0 bottom-0 grid-floor"
-              style={`--grid-alpha: ${p.grid / 100}; height: 55%;`}
-            ></div>
-            <div
-              class="absolute inset-0 scanlines"
-              style={`opacity: ${p.scan / 100};`}
-            ></div>
-            <div class="absolute top-3 left-3 text-[10px] uppercase tracking-[0.3em] text-cyan-300/80">
-              {p.tag}
-            </div>
-            <div class="absolute bottom-3 left-3 right-3">
-              <div class="text-fuchsia-200 text-lg font-bold tracking-tight group-hover:text-fuchsia-300 neon-text">
-                {p.title}
-              </div>
-              <div class="text-[10px] text-fuchsia-400/60 tracking-[0.2em] uppercase">
-                {p.hue}° · {p.size}px · {p.stars} *
-              </div>
-            </div>
-          </a>
+          <PresetCard
+            slug={p.slug}
+            title={p.title}
+            hue={p.hue}
+            size={p.size}
+            grid={p.grid}
+            scan={p.scan}
+            stars={p.stars}
+            tag={p.tag}
+          />
         {/each}
       </section>
     </main>
+  }
+}
+
+component PresetCard {
+  prop slug = ""
+  prop title = ""
+  prop hue = 0
+  prop size = 200
+  prop grid = 50
+  prop scan = 50
+  prop stars = 100
+  prop tag = ""
+
+  style {
+    .card {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      border-radius: 0.5rem;
+      transition: transform 0.2s;
+    }
+    .card:hover { transform: scale(1.02); }
+    .sun {
+      position: absolute;
+      left: 50%;
+      top: 55%;
+      border-radius: 9999px;
+      transform: translate(-50%, -50%);
+    }
+    .floor {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 55%;
+    }
+    .scan { position: absolute; inset: 0; }
+    .tag, .label {
+      position: absolute;
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+    }
+    .tag { top: 0.75rem; left: 0.75rem; }
+    .label { bottom: 0.75rem; left: 0.75rem; right: 0.75rem; }
+  }
+
+  view {
+    <a href={`/presets/${slug}`} class="card neon-box bg-gradient-to-b from-[#1a002a] via-[#0a0018] to-[#000]">
+      <div
+        class="sun"
+        style={`width: ${size * 0.5}px; height: ${size * 0.5}px; background: radial-gradient(circle, hsl(${hue}, 100%, 70%) 0%, hsl(${(hue + 40) % 360}, 100%, 50%) 60%, transparent 100%); box-shadow: 0 0 60px hsl(${hue}, 100%, 60%);`}
+      ></div>
+      <div class="floor grid-floor" style={`--grid-alpha: ${grid / 100};`}></div>
+      <div class="scan scanlines" style={`opacity: ${scan / 100};`}></div>
+      <div class="tag text-cyan-300/80">{tag}</div>
+      <div class="label">
+        <div class="text-fuchsia-200 text-lg font-bold tracking-tight neon-text">{title}</div>
+        <div class="text-fuchsia-400/60 tracking-[0.2em] uppercase">
+          {hue}° · {size}px · {stars} *
+        </div>
+      </div>
+    </a>
   }
 }

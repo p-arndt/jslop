@@ -1,4 +1,9 @@
 component Mixer {
+  head {
+    <title>Mixer · Neon Lab</title>
+    <meta name="description" content="Live synthwave mixer — every dial is a JSlop state variable."/>
+  }
+
   state sunHue = 320
   state sunSize = 220
   state gridAlpha = 60
