@@ -43,6 +43,14 @@ pnpm --filter @jslop/example-site run dev
 
 This one uses Tailwind v4 via `@tailwindcss/vite`, layouts, dynamic routes, and a 404 page. It's a small but complete demo.
 
+## Run the tasks CRUD example
+
+```bash
+pnpm dev:tasks
+```
+
+A real, persistent task tracker (~400 LOC). Exercises every primitive end-to-end: `state` / `derived` / `bind:value`, per-route `load { params, url }` + `notFound()`, layout-level `load` (the topbar's per-status counts), per-component `head { ... }` and scoped `style { ... }`, SPA navigation, and full CRUD against a file-backed REST API. Build & serve for production with `pnpm --filter @jslop/example-tasks run build && pnpm --filter @jslop/example-tasks run serve`.
+
 ## Build for production
 
 JSlop apps build in two passes. The first emits the hashed client bundle (and CSS, if any) plus a Vite manifest. The second emits a self-contained Node SSR entry that reads that manifest to know which asset URLs to inject.

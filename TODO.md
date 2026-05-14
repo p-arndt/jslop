@@ -26,6 +26,7 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 - ❌ Source maps — codegen outputs no maps, so stack traces point at compiled coords
 - ❌ Compile-time validation: today an unbalanced `{/if}` or unknown tag throws a generic parser error with offset only; needs a friendlier diagnostic with source location
 - 🟡 `derived`, `when`, `mount`, `cleanup` block syntax from PLAN.md — `derived name = expr` keyword shipped (parser + codegen + tests in `derived.test.mjs`; RHS identifiers rewritten to `.get()`, emitted as `derived(() => …)`). Compile-time write guard rejects `derived = …`, compound-assign, and `++`/`--` (`derived_write_guard.test.mjs`). `when` / `mount` / `cleanup` blocks still pending.
+- ✅ State / let initializers go through a `.peek()` rewrite so `state title = task.title` reads the loaded prop's current value instead of the cell wrapper. Without it, every form prefilled from a loaded prop required `task.peek().title` boilerplate. Covered by `rewriteInitExpr` in `rewrite.ts`.
 - 🟡 `style { ... }` / `style Name { variants: ... }` block from PLAN.md — scoped `style { ... }` shipped (hashed `jslop-<name>-<hash>` class on the component root, selectors prefixed, single `<style>` per component registered at module load; SSR emits the registry into `<head>`, client injects on boot; covered by `style.test.mjs`). First-class `style Name { variants: … }` declarations still pending.
 - ✅ Per-component `head { ... }` block — parser + codegen + SSR injection (route head rendered after layouts so its `<title>`/meta win; reactive `{expr}` works inside, raw text in `<title>` preserved). Covered by `head.test.mjs` (compiler) + `head.test.mjs` (server).
 - ❌ `schema Name { ... }` block (form schemas) from PLAN.md
@@ -69,7 +70,7 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 - ✅ Static segments rank higher than dynamic (specificity sort)
 - ✅ Layouts via `_layout.jslop` convention. A `_layout.jslop` in any directory wraps every route at or below that directory; chains compose outermost-first. Layouts use `<children/>` as the placeholder (chosen over Svelte-style `<slot/>` so the same primitive can later cover generic component children — one mental model, not two). Per-route effect serialization for layout state is the same as any other component (each gets its own cid + capsule entry, boots independently).
 - ✅ 404 pages via `_404.jslop` at the routes root. Served with status 404; goes through the layout chain so the not-found page wears the same chrome as the rest of the site.
-- ✅ Per-route and per-layout `load { ... }` block. Compiled into an exported async `load(params)` alongside the component; the server runs layout loaders outer-first, then the route loader, merging results into props (URL params → layout loads → route load, route wins on key conflicts). `notFound()` from `@jslop/runtime` throws a `NotFoundError` that bubbles to the 404 chain (status 404). Covered by `layout_load.test.mjs`.
+- ✅ Per-route and per-layout `load { ... }` block. Compiled into an exported async `load({ params, url })` alongside the component; `params` is the matched path-param object, `url` is the parsed request URL so loaders can read `url.searchParams` for filters etc. The server runs layout loaders outer-first, then the route loader, merging results into props (URL params → layout loads → route load, route wins on key conflicts). `notFound()` from `@jslop/runtime` throws a `NotFoundError` that bubbles to the 404 chain (status 404). Covered by `layout_load.test.mjs`.
 - ❌ Catch-all routes (`[...slug]`)
 - ❌ Optional segments
 - ❌ Per-route error pages (`routes/_error.jslop`)
@@ -91,6 +92,32 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 - ❌ Transport: explicit action IDs, JSON-only, no executable payload (per PLAN's "boring protocol" stance after RSC RCE)
 - ❌ Built-in `requireUser()`, auth context plumbing
 - ❌ `invalidate(server_value)` for reactive refetch
+
+### Interim: server-side mutation primitive
+
+The tasks demo (`examples/tasks/`) surfaced an obvious smaller gap on the way
+to server functions. Today, mutations live in `serve.mjs` as hand-written
+`/api/*` HTTP handlers plus a parallel dev middleware in `vite.config.mjs`,
+and the client calls them via a hand-written `src/api.js`. That's a lot of
+plumbing for the most common reason to have a server.
+
+- ❌ `action { create(input) { … } }` block declared inside a `.jslop` route
+  alongside `load`. Compiled into named POST endpoints, callable from the
+  client by name (`actions.create({...})`) without writing `/api/*` glue.
+- ❌ On success, auto re-runs the route's `load` so the page reflects the
+  mutation. (Today the tasks demo accomplishes this by calling
+  `navigate(window.location.pathname + window.location.search)` after each
+  mutation — workable but expensive: a full HTML round-trip per click.)
+- ❌ Optimistic-update story: a way to apply a local diff before the round
+  trip resolves and reconcile on response. Without it every mutation has a
+  visible latency.
+- ❌ `?ssr` (or similar) module convention for server-only code, so
+  `src/store.js` doesn't need the current dance of dynamic imports inside
+  function bodies + `@vite-ignore` to stay out of the client bundle.
+
+This is meant as a stepping stone, not a replacement: it can ship without
+the split-bundling / typed-RPC / auth-context machinery the full "server
+functions" item demands.
 
 ## Local-first / data primitives
 
@@ -149,5 +176,6 @@ If I had to pick a north star, in order:
 3. ~~**Two-way binding sugar** (`bind:value={cell}` / `bind:checked={cell}`)~~ — done. Counter example migrated.
 4. ~~**Layouts + 404 routes**~~ — done. `_layout.jslop` chains compose outermost-first via `<children/>`; `_404.jslop` at routes root serves with status 404 and wears the same layout chrome. `examples/site` demonstrates both.
 5. ~~**Production build path** (`vite build` → SSR bundle + Node adapter)~~ — done. Two-pass build (client + ssr), `@jslop/node-adapter` for serving, manifest-driven asset URL discovery. Static prerender and Bun/edge adapters still TODO.
-6. **Server functions** — the PLAN.md "killer protocol." Big scope but the most distinctive feature. Needs split bundling, RPC transport, security defaults.
-7. **Schema-native forms** — second killer feature from PLAN.md. Depends on server functions being landed first.
+6. **Interim server-action block** (`action { … }` inside `.jslop`, plus a server-only module convention). Surfaced by the `examples/tasks/` CRUD demo: today every mutation needs hand-written `/api/*` handlers in `serve.mjs` AND a parallel dev middleware in `vite.config.mjs` AND a client-side `src/api.js`. An action block + auto-refetch on success would delete all three. Scoped to be tractable; stepping stone to (7), not a replacement.
+7. **Server functions** — the PLAN.md "killer protocol." Big scope but the most distinctive feature. Needs split bundling, RPC transport, security defaults.
+8. **Schema-native forms** — second killer feature from PLAN.md. Depends on server functions being landed first.

@@ -8,7 +8,7 @@ Working today (in `vite dev` **and** in production builds):
 
 - `.jslop` parsing + AST-aware identifier rewriting
 - `cell` / `derived` / `effect` / `batch` / `untrack`
-- DSL keywords: `state`, `prop`, `derived`, `let`, `function`
+- DSL keywords: `state`, `prop`, `derived`, `let`, `function`, `view`, `head`, `style`, `load`
 - Reactive scopes: `createScope` / `runInScope` / `disposeScope` / `onCleanup`. `{#if}` swaps and `{#each}` removals dispose the prior subtree's effects, no leaks.
 - View constructs: elements, components, `{expr}`, `on<event>` handlers, `bind:value` / `bind:checked`, `{#if}`/`{:else}`/`{/if}`, `{#each list as item, i (key)}`
 - Per-component `head { ... }` fragments (SSR-merged, route wins over layout)
@@ -31,8 +31,9 @@ In order, from [`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md):
 2. ~~**Two-way binding sugar** (`bind:value={cell}`).~~ ✅ Done.
 3. ~~**Layouts + 404 routes.**~~ ✅ Done.
 4. ~~**Production build path.**~~ ✅ Done — two-pass build + `@jslop/node-adapter`. Static prerender and Bun/edge adapters still to come.
-5. **Server functions.** The killer protocol from PLAN.md. Split bundling + JSON-only RPC + security defaults.
-6. **Schema-native forms.** Built on top of server functions.
+5. **Interim server-action block.** `action { … }` inside a `.jslop` route, callable from the client by name, auto-refetches `load` on success. Surfaced by `examples/tasks/`, where today every mutation goes through hand-written `/api/*` handlers in `serve.mjs` + a parallel dev middleware + a client-side `src/api.js`. Stepping stone to (6), not a replacement.
+6. **Server functions.** The killer protocol from PLAN.md. Split bundling + JSON-only RPC + security defaults.
+7. **Schema-native forms.** Built on top of server functions.
 
 ## Big features still on the design board
 
