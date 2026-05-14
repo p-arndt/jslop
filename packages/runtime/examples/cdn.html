@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>@jslop/runtime — CDN smoke test</title>
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; max-width: 40em; margin: 2em auto; padding: 0 1em; }
+      button { font: inherit; padding: 0.3em 0.8em; }
+      .out { font-variant-numeric: tabular-nums; }
+    </style>
+  </head>
+  <body>
+    <h1>@jslop/runtime via &lt;script&gt; tag</h1>
+    <p>This page loads the IIFE bundle directly from disk — no bundler, no module loader.</p>
+
+    <button id="inc">clicked <span class="out" id="count">0</span> times</button>
+    <p>doubled: <span class="out" id="doubled">0</span></p>
+
+    <!-- In production you'd load this from a CDN, e.g.
+         <script src="https://cdn.jsdelivr.net/npm/@jslop/runtime/dist/jslop-runtime.global.min.js"></script>
+    -->
+    <script src="../dist/jslop-runtime.global.min.js"></script>
+    <script>
+      const { cell, derived, effect } = JSlop;
+
+      const count = cell(0);
+      const doubled = derived(() => count.get() * 2);
+
+      const countEl = document.getElementById("count");
+      const doubledEl = document.getElementById("doubled");
+      effect(() => { countEl.textContent = count.get(); });
+      effect(() => { doubledEl.textContent = doubled.get(); });
+
+      document.getElementById("inc").addEventListener("click", () => count.update(n => n + 1));
+    </script>
+  </body>
+</html>

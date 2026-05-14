@@ -180,6 +180,25 @@ Today, starting a new JSlop app means: clone this repo, run `pnpm install`, `pnp
 - ❌ First-run experience inside a fresh scaffold: a `routes/index.jslop` that's actually useful as a starting point (not a Hello World), plus inline comments pointing at each primitive (`state`, `load`, `head`, `style`).
 - ❌ Error-on-first-mistake quality: today an unbalanced `{/if}` or unknown DSL keyword gives a parser-offset error. A novice needs file:line + a hint, especially in the first 10 minutes when they're learning the syntax. (See also the Compiler section: friendlier diagnostics is already tracked there; surfacing it through the scaffold is what makes it land.)
 
+## Distribution / CDN usage
+
+Today the only way to use JSlop is to clone the monorepo (or, once the create-jslop scaffold lands, run a Node-based scaffold + Vite dev server). There is no path to "drop a `<script>` tag into an HTML file and write a component." That cuts off three groups of users: people who want to sprinkle reactivity into an existing static site, REPL/playground/embed-in-a-blog-post use cases, and anyone who wants to try the framework without installing Node.
+
+Three flavors, roughly in order of cost:
+
+- ✅ **Runtime-only CDN bundle.** `@jslop/runtime` now builds four browser-ready bundles into `dist/` via an esbuild step (`build-cdn.mjs`): `jslop-runtime.esm.js[.min]` and `jslop-runtime.global.js[.min]` (IIFE → `globalThis.JSlop`). `package.json` exposes `unpkg` / `jsdelivr` fields plus a `./global` subpath export. Minified IIFE is ~2.7 KB raw / ~1 KB gzip. Verified end-to-end via [`packages/runtime/examples/cdn.html`](./packages/runtime/examples/cdn.html), documented in [`docs/cdn.md`](./docs/cdn.md). Not yet published to npm — see prereq below.
+
+  *Original entry:* Ship `@jslop/runtime` as an ESM + UMD bundle on jsdelivr/unpkg (`<script type="module" src="https://cdn.jsdelivr.net/npm/@jslop/runtime/dist/jslop-runtime.esm.js">`). Users write plain JS against `cell` / `derived` / `effect` / `batch` / `untrack` — no `.jslop` syntax, no view DSL. Closest analog: Solid's `createSignal` from a CDN. Small surface, forces the runtime to be genuinely standalone (good hygiene regardless). Stepping stone, not the real CDN story.
+- ❌ **`@jslop/standalone` — in-browser compiler.** Bundle the compiler (parser + AST rewriter + codegen) for the browser, plus a bootstrapper that finds `<script type="jslop">` blocks (or fetches `.jslop` URLs), pipes them through `compile()`, and evaluates the result via `new Function(...)`. This is the genuinely "drop a script tag and go" story (cf. Vue's "full build", Svelte's REPL). Costs: bundle gets big (parser + codegen + runtime in one), no SSR, no resumability, slower TTI. Most of the work is bundling the compiler without Node-only deps (acorn is browser-safe; check magic-string and the file-reading paths) and writing the `<script type="jslop">` discovery / sandboxed eval shim.
+- ❌ **Precompiled component CDN (via esm.sh-style transform).** A CLI or hosted endpoint that takes a `.jslop` file and emits a self-contained ESM module users can `<script type="module" src="...">` directly. Falls out almost for free once the runtime-only CDN exists (the compiler already targets ESM; this just needs a hosted wrapper or a `jslop compile <file>` command). No browser compiler weight, no build tool on the user's side. Useful for "share a single component" workflows.
+
+Cross-cutting prerequisites:
+
+- ❌ Published npm packages for `@jslop/{runtime,compiler}` (also a prerequisite for the scaffold — tracked in **Onboarding**).
+- ❌ A "standalone" build target in `packages/runtime` and `packages/compiler` that produces browser-ready ESM + UMD with no Node built-ins. Today both are authored as Node ESM and consumed via workspace deps.
+- ❌ A docs page (`docs/cdn.md`) with copy-pasteable HTML for each flavor, plus a CodePen/StackBlitz embed.
+- ❌ A REPL page (probably part of the eventual `jslop.dev` site) that uses the in-browser compiler — doubles as the canonical try-it-in-30-seconds entry point and the smoke test for flavor 2.
+
 ---
 
 ## Suggested next priorities

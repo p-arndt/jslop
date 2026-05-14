@@ -4,17 +4,22 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "unpkg": "./dist/jslop-runtime.global.min.js",
+  "jsdelivr": "./dist/jslop-runtime.global.min.js",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "browser": "./dist/jslop-runtime.esm.min.js",
       "import": "./dist/index.js"
-    }
+    },
+    "./global": "./dist/jslop-runtime.global.min.js"
   },
   "files": ["dist", "src"],
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json && node build-cdn.mjs"
   },
   "devDependencies": {
+    "esbuild": "^0.24.0",
     "typescript": "^5.6.3"
   }
 }

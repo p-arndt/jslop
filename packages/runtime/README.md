@@ -6,6 +6,20 @@ The reactivity engine that the JSlop compiler targets. Tiny — about 150 lines.
 pnpm add @jslop/runtime
 ```
 
+Or, from a CDN — no install, no bundler:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@jslop/runtime/dist/jslop-runtime.global.min.js"></script>
+<script>
+  const { cell, effect } = JSlop;
+  const count = cell(0);
+  effect(() => console.log(count.get()));
+  count.set(1);
+</script>
+```
+
+See [`docs/cdn.md`](../../docs/cdn.md) and the [`examples/cdn.html`](./examples/cdn.html) smoke test.
+
 ## API
 
 ```ts
