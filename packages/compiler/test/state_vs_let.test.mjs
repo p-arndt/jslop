@@ -87,6 +87,6 @@ test("serializeState covers state but not let", () => {
 test("unknown declaration mentions state and let", () => {
   assert.throws(
     () => parseComponent(`component X { bogus foo = 1; view { <p/> } }`),
-    /'prop', 'state', 'let'/
+    /'prop', 'state', 'derived', 'let'/
   );
 });

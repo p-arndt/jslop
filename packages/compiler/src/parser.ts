@@ -25,6 +25,8 @@ export interface ParsedComponent {
   props: ParsedProp[];
   /** Reactive cells, declared with `state`. */
   states: Array<{ name: string; init: string }>;
+  /** Derived (memoized, read-only) cells, declared with `derived`. */
+  deriveds: Array<{ name: string; init: string }>;
   /** Plain non-reactive bindings, declared with `let`. */
   lets: Array<{ name: string; init: string }>;
   fns: Array<{ name: string; params: string; body: string }>;
@@ -252,6 +254,7 @@ function parseComponentBody(c: Cursor): ParsedComponent {
 
   const inner = new Cursor(body);
   const states: ParsedComponent["states"] = [];
+  const deriveds: ParsedComponent["deriveds"] = [];
   const lets: ParsedComponent["lets"] = [];
   const fns: ParsedComponent["fns"] = [];
   const props: ParsedProp[] = [];
@@ -280,6 +283,15 @@ function parseComponentBody(c: Cursor): ParsedComponent {
       const init = readInitializer(inner);
       inner.consume(";");
       states.push({ name: sname, init });
+    } else if (inner.consumeKeyword("derived")) {
+      inner.skipWs();
+      const dname = inner.matchIdent();
+      if (!dname) throw inner.err("expected derived name");
+      inner.skipWs();
+      inner.expect("=");
+      const init = readInitializer(inner);
+      inner.consume(";");
+      deriveds.push({ name: dname, init });
     } else if (inner.consumeKeyword("let")) {
       inner.skipWs();
       const lname = inner.matchIdent();
@@ -303,12 +315,12 @@ function parseComponentBody(c: Cursor): ParsedComponent {
       const viewBody = readBalanced(inner, "{", "}");
       view = parseView(viewBody.trim());
     } else {
-      throw inner.err("unknown declaration; expected 'prop', 'state', 'let', 'function', or 'view'");
+      throw inner.err("unknown declaration; expected 'prop', 'state', 'derived', 'let', 'function', or 'view'");
     }
   }
 
   if (!view) throw new Error(`component ${name} missing view`);
-  return { name, props, states, lets, fns, view };
+  return { name, props, states, deriveds, lets, fns, view };
 }
 
 /**

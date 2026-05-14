@@ -25,7 +25,7 @@ export function generate(input: ParsedFile | ParsedComponent, opts: CodegenOptio
   const first = file.components[0]!;
   const defaultLine = `export default ${first.name};`;
 
-  return `import { cell, isReactive } from "${runtimeImport}";
+  return `import { cell, derived, isReactive } from "${runtimeImport}";
 ${importLines}
 
 ${blocks}
@@ -50,7 +50,11 @@ function emitImport(imp: ParsedImport, compiledExt: string): string {
 }
 
 function generateComponent(comp: ParsedComponent): string {
-  const reactiveNames = [...comp.props.map((p) => p.name), ...comp.states.map((s) => s.name)];
+  const reactiveNames = [
+    ...comp.props.map((p) => p.name),
+    ...comp.states.map((s) => s.name),
+    ...comp.deriveds.map((d) => d.name),
+  ];
 
   const propDecls = comp.props
     .map((p) => {
@@ -61,6 +65,12 @@ function generateComponent(comp: ParsedComponent): string {
 
   const stateDecls = comp.states
     .map((s) => `    const ${s.name} = cell(${s.init});`)
+    .join("\n");
+
+  // Derived inits must be rewritten so reads of other reactive bindings track
+  // as deps; otherwise the derived would never re-run when its inputs change.
+  const derivedDecls = comp.deriveds
+    .map((d) => `    const ${d.name} = derived(() => (${rewriteExpr(d.init, reactiveNames)}));`)
     .join("\n");
 
   const letDecls = comp.lets
@@ -96,6 +106,7 @@ function generateComponent(comp: ParsedComponent): string {
 ${propDecls}
 ${letDecls}
 ${stateDecls}
+${derivedDecls}
 ${fnDecls}
     const actions = {
 ${actionEntries}
