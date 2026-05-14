@@ -165,6 +165,21 @@ functions" item demands.
 - ❌ `pnpm test` script at root that runs all package tests
 - ❌ Pruning: the `examples/counter/smoke.mjs` hand-rolled DOM stub is fragile and now redundant with Vite; replace with happy-dom-backed tests
 
+## Onboarding / startup experience
+
+Today, starting a new JSlop app means: clone this repo, run `pnpm install`, `pnpm build`, then either edit one of the examples in place or hand-copy `package.json` + `vite.config.mjs` + `src/app.css` + a routes folder and rewire the workspace dep paths into a new project. That's enough friction to lose every drive-by visitor.
+
+- ❌ `npm create jslop@latest` (and `pnpm create jslop` / `bun create jslop`) scaffolding CLI. One prompt for project name, one prompt for "minimal | with Tailwind | with CRUD example" template, then `cd app && pnpm dev` works. Published as `create-jslop` on npm.
+- ❌ Published npm packages for `@jslop/{client,compiler,node-adapter,router,runtime,server,vite}` so the scaffold's `package.json` can reference real semver ranges instead of `workspace:*`. Without this, the scaffold can only be used by people who clone the monorepo.
+- ❌ A "Try it in StackBlitz / CodeSandbox" badge in the README pointing at a runnable fork of `examples/tasks` (or a hosted preview at e.g. `jslop.dev`). Removes even the "do I have Node installed?" step for the first 30 seconds.
+- ❌ One-line install for the scaffold target. Today's quickstart in `docs/getting-started.md` is 3 commands; ideally:
+  ```bash
+  pnpm create jslop my-app && cd my-app && pnpm dev
+  ```
+  ... and they're staring at a working SSR'd page on `localhost:5173`.
+- ❌ First-run experience inside a fresh scaffold: a `routes/index.jslop` that's actually useful as a starting point (not a Hello World), plus inline comments pointing at each primitive (`state`, `load`, `head`, `style`).
+- ❌ Error-on-first-mistake quality: today an unbalanced `{/if}` or unknown DSL keyword gives a parser-offset error. A novice needs file:line + a hint, especially in the first 10 minutes when they're learning the syntax. (See also the Compiler section: friendlier diagnostics is already tracked there; surfacing it through the scaffold is what makes it land.)
+
 ---
 
 ## Suggested next priorities
@@ -177,5 +192,6 @@ If I had to pick a north star, in order:
 4. ~~**Layouts + 404 routes**~~ — done. `_layout.jslop` chains compose outermost-first via `<children/>`; `_404.jslop` at routes root serves with status 404 and wears the same layout chrome. `examples/site` demonstrates both.
 5. ~~**Production build path** (`vite build` → SSR bundle + Node adapter)~~ — done. Two-pass build (client + ssr), `@jslop/node-adapter` for serving, manifest-driven asset URL discovery. Static prerender and Bun/edge adapters still TODO.
 6. **Interim server-action block** (`action { … }` inside `.jslop`, plus a server-only module convention). Surfaced by the `examples/tasks/` CRUD demo: today every mutation needs hand-written `/api/*` handlers in `serve.mjs` AND a parallel dev middleware in `vite.config.mjs` AND a client-side `src/api.js`. An action block + auto-refetch on success would delete all three. Scoped to be tractable; stepping stone to (7), not a replacement.
-7. **Server functions** — the PLAN.md "killer protocol." Big scope but the most distinctive feature. Needs split bundling, RPC transport, security defaults.
-8. **Schema-native forms** — second killer feature from PLAN.md. Depends on server functions being landed first.
+7. **`pnpm create jslop` scaffolding CLI** + published `@jslop/*` packages. Right now the only path to a working app is "clone the monorepo and edit an example." Every framework that's been adopted in the last decade has a 30-second quickstart; without one, the value of (5)/(6) is invisible to anyone who hasn't already decided to try JSlop. See the **Onboarding / startup experience** section for the full punch list.
+8. **Server functions** — the PLAN.md "killer protocol." Big scope but the most distinctive feature. Needs split bundling, RPC transport, security defaults.
+9. **Schema-native forms** — second killer feature from PLAN.md. Depends on server functions being landed first.

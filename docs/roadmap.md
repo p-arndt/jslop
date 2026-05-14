@@ -31,9 +31,10 @@ In order, from [`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md):
 2. ~~**Two-way binding sugar** (`bind:value={cell}`).~~ ✅ Done.
 3. ~~**Layouts + 404 routes.**~~ ✅ Done.
 4. ~~**Production build path.**~~ ✅ Done — two-pass build + `@jslop/node-adapter`. Static prerender and Bun/edge adapters still to come.
-5. **Interim server-action block.** `action { … }` inside a `.jslop` route, callable from the client by name, auto-refetches `load` on success. Surfaced by `examples/tasks/`, where today every mutation goes through hand-written `/api/*` handlers in `serve.mjs` + a parallel dev middleware + a client-side `src/api.js`. Stepping stone to (6), not a replacement.
-6. **Server functions.** The killer protocol from PLAN.md. Split bundling + JSON-only RPC + security defaults.
-7. **Schema-native forms.** Built on top of server functions.
+5. **Interim server-action block.** `action { … }` inside a `.jslop` route, callable from the client by name, auto-refetches `load` on success. Surfaced by `examples/tasks/`, where today every mutation goes through hand-written `/api/*` handlers in `serve.mjs` + a parallel dev middleware + a client-side `src/api.js`. Stepping stone to (7), not a replacement.
+6. **`pnpm create jslop` + published packages.** Today the only path to a working app is "clone the monorepo and edit an example." Until there's a 30-second quickstart and real `@jslop/*` versions on npm, the framework is invisible to drive-by visitors. See [`TODO.md` → Onboarding / startup experience](https://github.com/p-arndt/jslop/blob/main/TODO.md#onboarding--startup-experience) for the punch list.
+7. **Server functions.** The killer protocol from PLAN.md. Split bundling + JSON-only RPC + security defaults.
+8. **Schema-native forms.** Built on top of server functions.
 
 ## Big features still on the design board
 
