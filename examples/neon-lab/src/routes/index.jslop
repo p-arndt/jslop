@@ -1,0 +1,132 @@
+component Mixer {
+  state sunHue = 320
+  state sunSize = 220
+  state gridAlpha = 60
+  state scanline = 40
+  state stars = 80
+  state title = "midnight drive"
+
+  function randomize() {
+    sunHue = Math.floor(Math.random() * 360)
+    sunSize = 120 + Math.floor(Math.random() * 220)
+    gridAlpha = 20 + Math.floor(Math.random() * 70)
+    scanline = Math.floor(Math.random() * 80)
+    stars = Math.floor(Math.random() * 200)
+  }
+
+  function reset() {
+    sunHue = 320
+    sunSize = 220
+    gridAlpha = 60
+    scanline = 40
+    stars = 80
+    title = "midnight drive"
+  }
+
+  view {
+    <main class="mx-auto max-w-5xl px-6 py-10 space-y-10">
+      <section class="space-y-2">
+        <p class="text-[10px] uppercase tracking-[0.4em] text-cyan-300/80">live mixer · v0.1</p>
+        <h1 class="text-5xl font-bold tracking-tight text-fuchsia-300 neon-text">{title}</h1>
+        <p class="text-fuchsia-200/70 max-w-xl">
+          Twist the dials. Every variable below is just a <code class="text-cyan-300">state</code> in
+          a <code class="text-cyan-300">.jslop</code> file — fine-grained reactivity, no setters,
+          no effects.
+        </p>
+      </section>
+
+      <section class="relative aspect-[16/9] overflow-hidden rounded-xl neon-box bg-gradient-to-b from-[#1a002a] via-[#0a0018] to-[#000]">
+        <div
+          class="absolute inset-0"
+          style={`background-image: radial-gradient(circle at ${10 + (stars % 30)}% 20%, white 1px, transparent 1.5px), radial-gradient(circle at 80% 30%, white 1px, transparent 1.5px), radial-gradient(circle at 60% 10%, white 1px, transparent 1.5px), radial-gradient(circle at 25% 40%, white 1px, transparent 1.5px); background-size: ${400 - stars}px ${400 - stars}px; opacity: ${stars / 250 + 0.1};`}
+        ></div>
+
+        <div
+          class="absolute left-1/2 -translate-x-1/2 rounded-full"
+          style={`top: 38%; width: ${sunSize}px; height: ${sunSize}px; background: radial-gradient(circle at 50% 50%, hsl(${sunHue}, 100%, 70%) 0%, hsl(${(sunHue + 30) % 360}, 100%, 55%) 40%, hsl(${(sunHue + 60) % 360}, 100%, 40%) 70%, transparent 100%); box-shadow: 0 0 ${sunSize / 2}px hsl(${sunHue}, 100%, 60%); transform: translate(-50%, -50%);`}
+        ></div>
+
+        <div
+          class="absolute inset-x-0 bottom-0 grid-floor"
+          style={`--grid-alpha: ${gridAlpha / 100}; height: 60%;`}
+        ></div>
+
+        <div
+          class="absolute inset-0 scanlines pointer-events-none"
+          style={`opacity: ${scanline / 100};`}
+        ></div>
+
+        <div class="absolute top-4 left-4 text-[10px] tracking-[0.3em] uppercase text-cyan-300/80">
+          ch.01 · {title}
+        </div>
+        <div class="absolute top-4 right-4 text-[10px] tracking-[0.3em] uppercase text-fuchsia-300/80">
+          {sunHue}° · {sunSize}px
+        </div>
+      </section>
+
+      <section class="grid md:grid-cols-2 gap-5">
+        <Slider label="sun hue" value={sunHue} min="0" max="360" unit="°" oninput={e => sunHue = Number(e.target.value)} />
+        <Slider label="sun size" value={sunSize} min="40" max="360" unit="px" oninput={e => sunSize = Number(e.target.value)} />
+        <Slider label="grid glow" value={gridAlpha} min="0" max="100" unit="%" oninput={e => gridAlpha = Number(e.target.value)} />
+        <Slider label="scanlines" value={scanline} min="0" max="100" unit="%" oninput={e => scanline = Number(e.target.value)} />
+        <Slider label="starfield" value={stars} min="0" max="200" unit="*" oninput={e => stars = Number(e.target.value)} />
+
+        <div class="rounded-lg border border-fuchsia-500/30 bg-black/40 p-4 space-y-2">
+          <label class="block text-[10px] uppercase tracking-[0.3em] text-cyan-300/80">scene title</label>
+          <input
+            bind:value={title}
+            class="w-full bg-transparent border-b border-fuchsia-500/50 focus:border-cyan-400 outline-none py-1 text-fuchsia-100 placeholder:text-fuchsia-400/40"
+            placeholder="name this vibe"
+          />
+        </div>
+      </section>
+
+      <section class="flex flex-wrap gap-3">
+        <button
+          onclick={randomize}
+          class="px-5 py-2 rounded-md bg-fuchsia-500 text-black font-bold tracking-[0.2em] uppercase text-xs hover:bg-fuchsia-400 transition-colors neon-box"
+        >
+          randomize
+        </button>
+        <button
+          onclick={reset}
+          class="px-5 py-2 rounded-md border border-cyan-400/60 text-cyan-300 tracking-[0.2em] uppercase text-xs hover:bg-cyan-400/10 transition-colors"
+        >
+          reset
+        </button>
+        <a
+          href="/presets"
+          class="px-5 py-2 rounded-md border border-fuchsia-400/60 text-fuchsia-300 tracking-[0.2em] uppercase text-xs hover:bg-fuchsia-400/10 transition-colors"
+        >
+          load preset →
+        </a>
+      </section>
+    </main>
+  }
+}
+
+component Slider {
+  prop label = ""
+  prop value = 0
+  prop min = "0"
+  prop max = "100"
+  prop unit = ""
+  prop oninput = () => {}
+
+  view {
+    <div class="rounded-lg border border-fuchsia-500/30 bg-black/40 p-4 space-y-2">
+      <div class="flex justify-between items-baseline">
+        <label class="text-[10px] uppercase tracking-[0.3em] text-cyan-300/80">{label}</label>
+        <span class="text-fuchsia-300 text-sm font-bold">{value}{unit}</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        oninput={oninput}
+        class="w-full accent-fuchsia-500"
+      />
+    </div>
+  }
+}

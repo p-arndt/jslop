@@ -1,0 +1,35 @@
+component About {
+  view {
+    <main class="mx-auto max-w-2xl px-6 py-16 space-y-8">
+      <section class="space-y-2">
+        <p class="text-[10px] uppercase tracking-[0.4em] text-cyan-300/80">about · v0.1</p>
+        <h1 class="text-4xl font-bold tracking-tight text-fuchsia-300 neon-text">Neon Lab</h1>
+      </section>
+
+      <section class="space-y-4 text-fuchsia-200/80 leading-relaxed">
+        <p>
+          A small interactive demo for <a href="https://github.com/p-arndt/jslop" class="text-cyan-300 hover:text-cyan-200 underline decoration-dotted">JSlop</a>.
+          The mixer page renders a generative synthwave scene from six reactive
+          <code class="text-cyan-300">state</code> variables. The presets page reads a list and renders
+          it with <code class="text-cyan-300">&#123;#each&#125;</code>. The detail page is a dynamic
+          route — <code class="text-cyan-300">/presets/[slug]</code> — that finds its data by the prop the
+          router injects.
+        </p>
+        <p>
+          No setters. No <code class="text-cyan-300">useEffect</code>. No <code class="text-cyan-300">use client</code>.
+          Each slider just assigns to a variable; the compiler does the rest.
+        </p>
+      </section>
+
+      <section class="rounded-lg border border-fuchsia-500/30 bg-black/40 p-4 space-y-3 text-sm">
+        <p class="text-[10px] uppercase tracking-[0.3em] text-cyan-300/80">routes in this app</p>
+        <ul class="space-y-1 font-mono text-fuchsia-200/80">
+          <li>/ <span class="text-fuchsia-400/50">— mixer (state + bindings)</span></li>
+          <li>/presets <span class="text-fuchsia-400/50">— grid (&#123;#each&#125;)</span></li>
+          <li>/presets/[slug] <span class="text-fuchsia-400/50">— dynamic param</span></li>
+          <li>/about <span class="text-fuchsia-400/50">— this page</span></li>
+        </ul>
+      </section>
+    </main>
+  }
+}

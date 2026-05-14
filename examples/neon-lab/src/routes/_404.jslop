@@ -1,0 +1,17 @@
+component NotFound {
+  view {
+    <main class="mx-auto max-w-2xl px-6 py-24 text-center space-y-4">
+      <p class="text-[10px] uppercase tracking-[0.4em] text-rose-300/80">signal · 404</p>
+      <h1 class="text-7xl font-bold tracking-tight text-rose-300 neon-text">lost in the grid</h1>
+      <p class="text-fuchsia-200/70">No route matches this URL. The neon does not go that way.</p>
+      <div class="pt-4">
+        <a
+          href="/"
+          class="inline-block px-5 py-2 rounded-md bg-fuchsia-500 text-black font-bold tracking-[0.2em] uppercase text-xs hover:bg-fuchsia-400 transition-colors neon-box"
+        >
+          back to mixer
+        </a>
+      </div>
+    </main>
+  }
+}

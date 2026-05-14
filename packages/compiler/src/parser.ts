@@ -78,6 +78,62 @@ class Cursor {
   }
 }
 
+// Read a declaration initializer that ends at a top-level newline or ';'. Tracks
+// (), [], {}, strings, and template literals so that multi-line object / array
+// literals, parenthesized expressions, etc. survive intact.
+function readInitializer(c: Cursor): string {
+  const start = c.i;
+  let parens = 0, brackets = 0, braces = 0;
+  while (!c.eof()) {
+    const ch = c.peek();
+    if (parens === 0 && brackets === 0 && braces === 0 && (ch === "\n" || ch === ";")) break;
+    if (ch === '"' || ch === "'") {
+      const q = ch;
+      c.i++;
+      while (!c.eof() && c.peek() !== q) {
+        if (c.peek() === "\\") c.i++;
+        c.i++;
+      }
+      if (!c.eof()) c.i++;
+      continue;
+    }
+    if (ch === "`") {
+      c.i++;
+      while (!c.eof() && c.peek() !== "`") {
+        if (c.peek() === "\\") { c.i += 2; continue; }
+        if (c.peek() === "$" && c.peek(1) === "{") {
+          c.i += 2;
+          let d = 1;
+          while (!c.eof() && d > 0) {
+            const x = c.peek();
+            if (x === "{") d++;
+            else if (x === "}") d--;
+            if (d > 0) c.i++;
+          }
+        }
+        if (!c.eof() && c.peek() !== "`") c.i++;
+      }
+      if (!c.eof()) c.i++;
+      continue;
+    }
+    if (ch === "/" && c.peek(1) === "/") {
+      while (!c.eof() && c.peek() !== "\n") c.i++;
+      continue;
+    }
+    if (ch === "(") parens++;
+    else if (ch === ")") parens--;
+    else if (ch === "[") brackets++;
+    else if (ch === "]") brackets--;
+    else if (ch === "{") braces++;
+    else if (ch === "}") {
+      if (braces === 0) break; // closing the enclosing component body
+      braces--;
+    }
+    c.i++;
+  }
+  return c.src.slice(start, c.i).trim();
+}
+
 function readBalanced(c: Cursor, open: string, close: string): string {
   c.expect(open);
   const start = c.i;
@@ -211,9 +267,7 @@ function parseComponentBody(c: Cursor): ParsedComponent {
       inner.skipWs();
       let defaultExpr: string | null = null;
       if (inner.consume("=")) {
-        const startD = inner.i;
-        while (!inner.eof() && inner.peek() !== "\n" && inner.peek() !== ";") inner.i++;
-        defaultExpr = inner.src.slice(startD, inner.i).trim();
+        defaultExpr = readInitializer(inner);
       }
       inner.consume(";");
       props.push({ name: pname, defaultExpr });
@@ -223,9 +277,7 @@ function parseComponentBody(c: Cursor): ParsedComponent {
       if (!sname) throw inner.err("expected state name");
       inner.skipWs();
       inner.expect("=");
-      const initStart = inner.i;
-      while (!inner.eof() && inner.peek() !== "\n" && inner.peek() !== ";") inner.i++;
-      const init = inner.src.slice(initStart, inner.i).trim();
+      const init = readInitializer(inner);
       inner.consume(";");
       states.push({ name: sname, init });
     } else if (inner.consumeKeyword("let")) {
@@ -234,9 +286,7 @@ function parseComponentBody(c: Cursor): ParsedComponent {
       if (!lname) throw inner.err("expected let name");
       inner.skipWs();
       inner.expect("=");
-      const initStart = inner.i;
-      while (!inner.eof() && inner.peek() !== "\n" && inner.peek() !== ";") inner.i++;
-      const init = inner.src.slice(initStart, inner.i).trim();
+      const init = readInitializer(inner);
       inner.consume(";");
       lets.push({ name: lname, init });
     } else if (inner.consumeKeyword("function")) {
