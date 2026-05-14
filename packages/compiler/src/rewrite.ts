@@ -12,6 +12,12 @@ type Node = {
 interface Ctx {
   ms: MagicString;
   names: Set<string>;
+  /**
+   * Names that are read-only at the language level — derived cells. Writing
+   * to one of these is a programmer error (Derived has no .set()), so we
+   * raise a compile-time exception instead of letting it blow up at runtime.
+   */
+  readOnly: Set<string>;
   readMethod: "peek" | "get" | null;
 }
 
@@ -123,6 +129,12 @@ function walkNode(node: Node | null | undefined, ctx: Ctx, scopes: Set<string>[]
   if (node.type === "UpdateExpression" && node.argument?.type === "Identifier") {
     const name: string = node.argument.name;
     if (shouldRewrite(name, ctx, scopes)) {
+      if (ctx.readOnly.has(name)) {
+        throw new Error(
+          `cannot ${node.operator} a derived: '${name}' is computed from other reactives. ` +
+            `Update its inputs instead, or convert it to 'state'.`
+        );
+      }
       const op = node.operator === "++" ? "+" : "-";
       ctx.ms.overwrite(node.start, node.end, `${name}.set(${name}.peek() ${op} 1)`);
       return;
@@ -132,6 +144,12 @@ function walkNode(node: Node | null | undefined, ctx: Ctx, scopes: Set<string>[]
   if (node.type === "AssignmentExpression" && node.left?.type === "Identifier") {
     const name: string = node.left.name;
     if (shouldRewrite(name, ctx, scopes)) {
+      if (ctx.readOnly.has(name)) {
+        throw new Error(
+          `cannot assign to derived '${name}': it is computed from other reactives. ` +
+            `Update its inputs instead, or convert it to 'state'.`
+        );
+      }
       const right: Node = node.right;
       const operator: string = node.operator;
       walkNode(right, ctx, scopes, node);
@@ -183,22 +201,32 @@ function walkNode(node: Node | null | undefined, ctx: Ctx, scopes: Set<string>[]
   }
 }
 
-export function rewriteFnBody(source: string, reactiveNames: string[]): string {
+export function rewriteFnBody(source: string, reactiveNames: string[], derivedNames: string[] = []): string {
   const wrap = `(function(){\n${source}\n})`;
   const prefix = `(function(){\n`.length;
   const suffix = `\n})`.length;
   const ms = new MagicString(wrap);
   const ast = parse(wrap, { ecmaVersion: 2022, sourceType: "script" }) as unknown as Node;
-  walkNode(ast, { ms, names: new Set(reactiveNames), readMethod: "peek" }, [new Set()], null);
+  walkNode(
+    ast,
+    { ms, names: new Set(reactiveNames), readOnly: new Set(derivedNames), readMethod: "peek" },
+    [new Set()],
+    null
+  );
   const out = ms.toString();
   return out.slice(prefix, out.length - suffix);
 }
 
-export function rewriteExpr(source: string, reactiveNames: string[]): string {
+export function rewriteExpr(source: string, reactiveNames: string[], derivedNames: string[] = []): string {
   const wrap = `(${source})`;
   const ms = new MagicString(wrap);
   const ast = parse(wrap, { ecmaVersion: 2022, sourceType: "script" }) as unknown as Node;
-  walkNode(ast, { ms, names: new Set(reactiveNames), readMethod: "get" }, [new Set()], null);
+  walkNode(
+    ast,
+    { ms, names: new Set(reactiveNames), readOnly: new Set(derivedNames), readMethod: "get" },
+    [new Set()],
+    null
+  );
   const out = ms.toString();
   return out.slice(1, out.length - 1);
 }
@@ -207,11 +235,16 @@ export function rewriteExpr(source: string, reactiveNames: string[]): string {
 // bare identifier reads alone so that `value={count}` continues to pass the cell
 // by reference to a child component, while `oninput={e => count = ...}` still
 // turns the assignment inside the nested arrow into `count.set(...)`.
-export function rewritePropExpr(source: string, reactiveNames: string[]): string {
+export function rewritePropExpr(source: string, reactiveNames: string[], derivedNames: string[] = []): string {
   const wrap = `(${source})`;
   const ms = new MagicString(wrap);
   const ast = parse(wrap, { ecmaVersion: 2022, sourceType: "script" }) as unknown as Node;
-  walkNode(ast, { ms, names: new Set(reactiveNames), readMethod: null }, [new Set()], null);
+  walkNode(
+    ast,
+    { ms, names: new Set(reactiveNames), readOnly: new Set(derivedNames), readMethod: null },
+    [new Set()],
+    null
+  );
   const out = ms.toString();
   return out.slice(1, out.length - 1);
 }

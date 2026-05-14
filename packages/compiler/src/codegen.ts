@@ -80,6 +80,10 @@ function generateComponent(comp: ParsedComponent, styleRegistrations: string[]):
     ...comp.states.map((s) => s.name),
     ...comp.deriveds.map((d) => d.name),
   ];
+  // Derived names are reactive (so reads go through .get()) but read-only at
+  // the language level — assigning to one is a compile error, not a runtime
+  // surprise.
+  const derivedNames = comp.deriveds.map((d) => d.name);
 
   const propDecls = comp.props
     .map((p) => {
@@ -95,7 +99,7 @@ function generateComponent(comp: ParsedComponent, styleRegistrations: string[]):
   // Derived inits must be rewritten so reads of other reactive bindings track
   // as deps; otherwise the derived would never re-run when its inputs change.
   const derivedDecls = comp.deriveds
-    .map((d) => `    const ${d.name} = derived(() => (${rewriteExpr(d.init, reactiveNames)}));`)
+    .map((d) => `    const ${d.name} = derived(() => (${rewriteExpr(d.init, reactiveNames, derivedNames)}));`)
     .join("\n");
 
   const letDecls = comp.lets
@@ -105,7 +109,7 @@ function generateComponent(comp: ParsedComponent, styleRegistrations: string[]):
   const fnDecls = comp.fns
     .map(
       (f) =>
-        `    function ${f.name}(${f.params}) {\n${indent(rewriteFnBody(f.body, reactiveNames), 6)}\n    }`
+        `    function ${f.name}(${f.params}) {\n${indent(rewriteFnBody(f.body, reactiveNames, derivedNames), 6)}\n    }`
     )
     .join("\n");
 
@@ -113,12 +117,12 @@ function generateComponent(comp: ParsedComponent, styleRegistrations: string[]):
 
   const childCtx: ChildCtx = { counter: 0, decls: [], inlineDecls: null };
   const rootView = scopeClass ? injectScopeClass(comp.view, scopeClass) : comp.view;
-  const viewExpr = emitNode(rootView, reactiveNames, 6, childCtx);
+  const viewExpr = emitNode(rootView, reactiveNames, 6, childCtx, derivedNames);
   // Head fragments are server-only metadata; they share the rewrite/emit
   // pipeline but live in their own child counter so head <Component/> tags
   // (rare but possible) don't collide with body children.
   const headCtx: ChildCtx = { counter: 1000, decls: [], inlineDecls: null };
-  const headExprs = (comp.head ?? []).map((n) => emitNode(n, reactiveNames, 6, headCtx));
+  const headExprs = (comp.head ?? []).map((n) => emitNode(n, reactiveNames, 6, headCtx, derivedNames));
   const headFn = comp.head
     ? `    function buildHead() {\n      return [${headExprs.join(", ")}];\n    }`
     : `    function buildHead() { return []; }`;
@@ -193,7 +197,8 @@ function emitNode(
   node: ViewNode,
   reactiveNames: string[],
   depth: number,
-  childCtx: ChildCtx
+  childCtx: ChildCtx,
+  derivedNames: string[] = []
 ): string {
   const pad = " ".repeat(depth);
   if (node.kind === "text") {
@@ -203,13 +208,13 @@ function emitNode(
     return `{ kind: "children" }`;
   }
   if (node.kind === "expr") {
-    const e = rewriteExpr(node.expr, reactiveNames);
+    const e = rewriteExpr(node.expr, reactiveNames, derivedNames);
     return `{ kind: "bind", get: () => String(${e}) }`;
   }
   if (node.kind === "if") {
-    const test = rewriteExpr(node.test, reactiveNames);
-    const cons = node.consequent.map((ch) => emitNode(ch, reactiveNames, depth + 2, childCtx));
-    const alt = node.alternate.map((ch) => emitNode(ch, reactiveNames, depth + 2, childCtx));
+    const test = rewriteExpr(node.test, reactiveNames, derivedNames);
+    const cons = node.consequent.map((ch) => emitNode(ch, reactiveNames, depth + 2, childCtx, derivedNames));
+    const alt = node.alternate.map((ch) => emitNode(ch, reactiveNames, depth + 2, childCtx, derivedNames));
     const consStr =
       cons.length === 0 ? "[]" : `[\n${pad}  ${cons.join(`,\n${pad}  `)}\n${pad}]`;
     const altStr =
@@ -217,7 +222,7 @@ function emitNode(
     return `{ kind: "if", test: () => (${test}), consequent: ${consStr}, alternate: ${altStr} }`;
   }
   if (node.kind === "each") {
-    const eachExpr = rewriteExpr(node.each, reactiveNames);
+    const eachExpr = rewriteExpr(node.each, reactiveNames, derivedNames);
     // Shadow `as` and optional `index` names so they're not rewritten as cells.
     const innerReactive = reactiveNames.filter(
       (n) => n !== node.as && n !== node.index
@@ -230,7 +235,10 @@ function emitNode(
       decls: childCtx.decls,
       inlineDecls: buildLocals,
     };
-    const childStrs = node.children.map((ch) => emitNode(ch, innerReactive, depth + 2, subCtx));
+    // Shadowing extends to derivedNames too (an item binding can shadow a
+    // derived of the same name within the each scope).
+    const innerDerived = derivedNames.filter((n) => n !== node.as && n !== node.index);
+    const childStrs = node.children.map((ch) => emitNode(ch, innerReactive, depth + 2, subCtx, innerDerived));
     childCtx.counter = subCtx.counter;
     const childrenLit =
       childStrs.length === 0 ? "[]" : `[\n${pad}    ${childStrs.join(`,\n${pad}    `)}\n${pad}  ]`;
@@ -240,7 +248,7 @@ function emitNode(
         ? `(${childrenLit})`
         : `{\n${pad}    ${buildLocals.join(`\n${pad}    `)}\n${pad}    return ${childrenLit};\n${pad}  }`;
     const keyPart = node.key
-      ? `, key: ${paramList} => (${rewriteExpr(node.key, innerReactive)})`
+      ? `, key: ${paramList} => (${rewriteExpr(node.key, innerReactive, innerDerived)})`
       : "";
     return `{ kind: "each", each: () => (${eachExpr}), build: ${paramList} => ${buildBody}${keyPart} }`;
   }
@@ -252,7 +260,7 @@ function emitNode(
         // gets the cell and re-renders on change). But still rewrite assignments
         // inside nested arrows / functions, otherwise `oninput={e => count = ...}`
         // would emit a literal `count = ...` against a const cell binding.
-        return `${JSON.stringify(k)}: (${rewritePropExpr(v.slice("__expr:".length), reactiveNames)})`;
+        return `${JSON.stringify(k)}: (${rewritePropExpr(v.slice("__expr:".length), reactiveNames, derivedNames)})`;
       }
       return `${JSON.stringify(k)}: ${v}`;
     });
@@ -268,21 +276,21 @@ function emitNode(
   }
   const attrEntries = Object.entries(node.attrs).map(([k, v]) => {
     if (v.startsWith("__expr:")) {
-      const e = rewriteExpr(v.slice("__expr:".length), reactiveNames);
+      const e = rewriteExpr(v.slice("__expr:".length), reactiveNames, derivedNames);
       return `${JSON.stringify(k)}: { kind: "bind", get: () => String(${e}) }`;
     }
     if (v.startsWith("__prop:")) {
       // Property bind: forward the value directly to the IDL property; no
       // String() coercion (so booleans stay booleans for `checked`).
-      const e = rewriteExpr(v.slice("__prop:".length), reactiveNames);
+      const e = rewriteExpr(v.slice("__prop:".length), reactiveNames, derivedNames);
       return `${JSON.stringify(k)}: { kind: "prop", get: () => (${e}) }`;
     }
     return `${JSON.stringify(k)}: ${v}`;
   });
   const eventEntries = Object.entries(node.events).map(
-    ([evt, handler]) => `${JSON.stringify(evt)}: (${rewriteFnBody(handler, reactiveNames)})`
+    ([evt, handler]) => `${JSON.stringify(evt)}: (${rewriteFnBody(handler, reactiveNames, derivedNames)})`
   );
-  const children = node.children.map((ch) => emitNode(ch, reactiveNames, depth + 2, childCtx));
+  const children = node.children.map((ch) => emitNode(ch, reactiveNames, depth + 2, childCtx, derivedNames));
 
   const attrsStr = attrEntries.length > 0 ? `{ ${attrEntries.join(", ")} }` : "{}";
   const eventsStr = eventEntries.length > 0 ? `{ ${eventEntries.join(", ")} }` : "{}";
