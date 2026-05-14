@@ -92,8 +92,8 @@ The state capsule today is plain JSON with `JSON.parse` — no class revival, no
 > - **Buffered SSR.** The server renders the whole page to a string before responding. Streaming SSR isn't implemented.
 > - **No static prerender mode.** Static site generation (render every route at build time) is on the roadmap but not built. You can hack it with a script today.
 > - **HMR.** `.jslop` edits trigger a full page reload, not partial component reload.
-> - **No client-side nav.** `<a>` links cause a full document load. SPA-mode navigation is on the roadmap.
 > - **Each-nested component state.** State for components nested inside `{#each}` does not currently round-trip through SSR — they re-create from scratch on hydration. Top-level component state and props do round-trip.
+> - **SPA navigation fetches HTML.** Same-origin `<a>` clicks are now intercepted and swap `#app` in place (see [Routing → Client-side navigation](./routing.md#client-side-navigation)), but each navigation still fetches the next page as fully-rendered HTML and re-runs its `load { ... }` server-side. There's no client-side data layer yet.
 
 See [`TODO.md`](https://github.com/p-arndt/jslop/blob/main/TODO.md) for the full list and [roadmap](./roadmap.md) for what's coming.
 

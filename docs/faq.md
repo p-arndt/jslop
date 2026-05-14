@@ -80,7 +80,26 @@ A real "context" API is on the [roadmap](./roadmap.md).
 
 ## How do I do async data fetching?
 
-Today: roll it yourself with `state` + a `function` + an `effect`:
+For data that should be ready **before the page renders**, declare a route- or layout-level `load { ... }` block. It runs on the server, may be `async`, and merges its return value into the component's props:
+
+```tsx
+component PostPage {
+  prop slug = ""
+  prop post = null
+
+  load {
+    const post = await findPost(params.slug)
+    if (!post) notFound()
+    return { post }
+  }
+
+  view { <article><h1>{post.title}</h1></article> }
+}
+```
+
+See [Routing → `load { ... }`](./routing.md#load-----running-code-before-render). Throwing `notFound()` (from `@jslop/runtime`) triggers the 404 chain.
+
+For data fetched **after** the page is interactive (in response to a click, on mount, etc.), roll it yourself with `state` + a `function` + an `effect`:
 
 ```tsx
 import { effect } from "@jslop/runtime"
@@ -105,7 +124,7 @@ A clean `server data = await ...` block with auto-wired `loading` / `error` / `r
 
 ## How do I navigate client-side?
 
-You don't, yet. Every `<a href="...">` does a full page load. Because JSlop resumes rather than hydrates, full loads are cheaper than in a hydration-heavy framework — but a real SPA-mode `<a>` interceptor is on the [roadmap](./roadmap.md).
+Just write `<a href="/somewhere">`. The client intercepts same-origin link clicks, fetches the new page, swaps `#app` in place, merges any new scoped `<style>` tags into `<head>`, and re-boots — `pushState` keeps the URL in sync, `popstate` handles back/forward. Per-link opt-out via `data-jslop-reload`, plus the usual escapes (modifier-click, `target`, `download`, cross-origin). For programmatic navigation: `import { navigate } from "@jslop/client"`. See [Routing → Client-side navigation](./routing.md#client-side-navigation).
 
 ## Why does `user.name = "x"` not update the view?
 

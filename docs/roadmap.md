@@ -17,6 +17,8 @@ Working today (in `vite dev` **and** in production builds):
 - SSR with serialized state capsule
 - Client boot that **resumes** rather than hydrates
 - File-system routing with dynamic `[param]` segments, `_layout.jslop` chains, `_404.jslop`
+- Per-route and per-layout `load { ... }` blocks (server-only, async, merged into props) and `notFound()` to trigger the 404 chain from inside a loader
+- Client-side SPA navigation: `<a>` interception + `pushState`/`popstate`, programmatic `navigate()`, scoped-style merge across page swaps
 - Vite plugin: transform + virtual modules + dev SSR middleware + dual-pass production build (`vite build` → `dist/client/`, `vite build --ssr` → `dist/server/entry-server.js`)
 - `@jslop/node-adapter` for serving the production build (static assets + `render(url)`)
 - Optional Tailwind v4

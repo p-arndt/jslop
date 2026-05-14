@@ -32,6 +32,7 @@ component Sibling {
 | `function f() {}`  | —          | —          | actions / event handlers                               |
 | `head { ... }`     | —          | —          | per-component `<head>` fragment (`<title>`, meta, …)   |
 | `style { ... }`    | —          | —          | scoped CSS for this component                          |
+| `load { ... }`     | —          | —          | server-side data fetching for routes/layouts           |
 
 → [Components](./components.md)
 
@@ -58,6 +59,27 @@ component About {
 ```
 
 Reactive interpolations work (`<title>{post.title}</title>`). When multiple components on a page declare `head`, the route's fragment is rendered after layouts, so its `<title>` wins. → [SSR & resumability](./ssr-and-resumability.md)
+
+## `load { ... }` — server-side data fetching (routes & layouts)
+
+```tsx
+import { findPost } from "../lib/posts.js"
+
+component PostPage {
+  prop slug = ""
+  prop post = null
+
+  load {
+    const post = await findPost(params.slug)
+    if (!post) notFound()
+    return { post }
+  }
+
+  view { <article><h1>{post.title}</h1></article> }
+}
+```
+
+Runs on the server before render; returned object merges into props (URL params → layout loads → route load). May be `async`. Call `notFound()` from `@jslop/runtime` to trigger the 404 chain. → [Routing → `load`](./routing.md#load-----running-code-before-render)
 
 ## `style { ... }` — scoped CSS
 
@@ -184,6 +206,6 @@ The view is emitted as a tree of node descriptors (`element`, `text`, `bind`, `i
 
 ## Not in the DSL yet
 
-`server function` · `mount`/`cleanup` blocks · `{#await}` · `{#snippet}` · `{:else if}` · catch-all routes · fragments · spread props (parsed, partial impl) · client-side `<a>` navigation · `style Name { variants: ... }` first-class variants.
+`server function` · `mount`/`cleanup` blocks · `{#await}` · `{#snippet}` · `{:else if}` · catch-all routes · fragments · spread props (parsed, partial impl) · `style Name { variants: ... }` first-class variants.
 
 → [Roadmap](./roadmap.md)

@@ -93,6 +93,84 @@ routes/_layout.jslop                ── outer shell
     routes/dashboard/settings.jslop ── the actual page
 ```
 
+## `load { ... }` — running code before render
+
+Any route or layout component can declare a `load { ... }` block. It runs on the server before the component renders, receives the URL params as `params`, and returns an object whose keys are merged into the component's props:
+
+```tsx
+// routes/posts/[slug].jslop
+import { findPost } from "../../lib/posts.js"
+
+component PostPage {
+  prop slug = ""
+  prop post = null
+
+  load {
+    const post = await findPost(params.slug)
+    if (!post) notFound()
+    return { post }
+  }
+
+  view {
+    <article>
+      <h1>{post.title}</h1>
+      <p>{post.body}</p>
+    </article>
+  }
+}
+```
+
+How merging works (most → least specific wins on key conflicts):
+
+1. URL params (e.g. `slug` from `[slug]`).
+2. Layout `load()` results, outer-first then inner.
+3. The route's own `load()` result.
+
+So a route loader can override a layout-provided key if it really wants to; layout loaders can fill in props the route declares but doesn't compute itself.
+
+`load` may be `async` — the server `await`s it before rendering. It runs **only on the server**: the body is bundled into the SSR entry, not the client.
+
+### Layout loaders
+
+The same block works on `_layout.jslop`. Layouts further out run first, so a root layout can populate (say) a `user` prop that every inner layout and route can `prop user` into:
+
+```tsx
+// routes/_layout.jslop
+component Layout {
+  prop buildId = ""
+
+  load {
+    return { buildId: String(Date.now()).slice(-6) }
+  }
+
+  view {
+    <div>
+      <children/>
+      <footer>build {buildId}</footer>
+    </div>
+  }
+}
+```
+
+### Throwing `notFound()`
+
+Importing `notFound` from `@jslop/runtime` and calling it inside a `load` block throws a `NotFoundError` that the server catches and turns into the 404 chain (`_404.jslop` + layouts, with HTTP status 404):
+
+```tsx
+import { notFound } from "@jslop/runtime"
+
+component PostPage {
+  load {
+    const post = await findPost(params.slug)
+    if (!post) notFound()
+    return { post }
+  }
+  /* ... */
+}
+```
+
+`notFound()` is the way to render the 404 page from a matched route — useful when the URL is structurally valid but the resource it points at doesn't exist (a missing slug, a deleted record).
+
 ## 404 pages
 
 A `_404.jslop` is rendered when no route matches:
@@ -147,8 +225,36 @@ if (match) {
 
 ## Client-side navigation
 
-> [!WARNING]
-> Today, **every `<a href>` is a full document load.** SPA-mode client navigation (intercepting clicks, fetching the next page, swapping the DOM in place) is not implemented yet. Because JSlop resumes rather than hydrates, full loads are cheap — but a client router is on the [roadmap](./roadmap.md).
+Same-origin `<a href="...">` clicks are intercepted on the client: the page's reactive scopes are torn down, the new page's HTML is fetched, `#app` is swapped in place, `<title>` and any new scoped `<style>` tags are merged into `<head>`, and the new root is booted with its state capsule. The browser's history is updated via `history.pushState`, and `popstate` (back/forward) navigates the same way.
+
+```tsx
+<a href="/posts/hello">Read the post</a>     {/* SPA-style swap */}
+<a href="/big.pdf" download>Download</a>      {/* download attribute → full nav */}
+<a href="https://example.com">External</a>    {/* cross-origin → full nav */}
+<a href="/legacy" data-jslop-reload>Legacy</a>{/* opt out per-link */}
+```
+
+Opt-outs the interceptor honors (all fall back to a full document load):
+
+- Cross-origin or non-`http(s)` `href` values.
+- `target` attribute set to anything other than `_self`.
+- `download` attribute present.
+- `data-jslop-reload` attribute present (escape hatch).
+- Modified clicks: middle-click, ⌘/Ctrl/Shift/Alt+click.
+- Fragment-only `href="#..."` (browser scrolls).
+- Server responses that aren't `text/html` (e.g. a redirect to an asset).
+
+You can also navigate programmatically:
+
+```ts
+import { navigate } from "@jslop/client";
+
+navigate("/posts/hello");                   // pushState + swap
+navigate("/posts/hello", { push: false });  // replace current entry instead
+```
+
+> [!NOTE]
+> Each navigation re-runs the server's `load { ... }` block for the new route (and any layouts it doesn't already share) because the new page is fetched as fully-rendered HTML. There's no client-side data layer yet — every navigation is one HTML fetch.
 
 ## Not yet supported
 
@@ -157,9 +263,8 @@ if (match) {
 >
 > - Catch-all routes (`[...slug]`)
 > - Optional segments
-> - Per-route `meta { title, description }` blocks (today, `title` is a single function on the Vite plugin)
 > - Route groups (`(group)/`)
-> - Loaders / actions (server functions, with `server function name(...) { }` syntax)
+> - `server function name(...) { }` actions (typed RPC) — separate from the `load { }` block above, which is server-only data fetching for the initial render
 
 ## See also
 

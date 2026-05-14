@@ -17,7 +17,7 @@ A component block has:
 - A **name** in PascalCase (`Hello`, `UserCard`, `PostList`).
 - An optional body of declarations: `prop`, `state`, `derived`, `let`, `function`, in any order.
 - Exactly one `view { ... }` block, with exactly one root element.
-- Optional `head { ... }` and `style { ... }` blocks (covered below).
+- Optional `head { ... }`, `style { ... }`, and (for routes/layouts) `load { ... }` blocks. `head` and `style` are covered below; `load` is server-side data fetching, documented in [Routing → `load { ... }`](./routing.md#load-----running-code-before-render).
 
 You can declare **as many components as you like in a single file**. The first one is the default export, and every component becomes a named export.
 
@@ -134,7 +134,7 @@ component Cart {
 
 The right-hand side may reference any `state`, `prop`, or other `derived`. The compiler rewrites those identifiers to `.get()` calls so the expression re-runs only when an input it actually read changes — and the result is cached between reads.
 
-- `derived` values are **read-only**. You can't assign to them; they're a function of their inputs.
+- `derived` values are **read-only**. The compiler rejects any assignment, compound-assign, or `++`/`--` on a `derived` at compile time (`error: cannot assign to derived 'name'`). They're a function of their inputs — change an input instead.
 - They are **not serialized** into the SSR capsule. After hydration, the client recomputes them on first read — same inputs, same output.
 - Reach for `derived` whenever a value is a pure function of other reactives. Inline expressions in the view work too (`{items.length}`), but a `derived` is named, cached, and reusable across the view and any `function`.
 
