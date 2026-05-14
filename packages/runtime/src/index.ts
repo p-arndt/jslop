@@ -205,6 +205,27 @@ export function untrack<T>(fn: () => T): T {
 
 export type Reactive<T> = Cell<T> | Derived<T>;
 
+/* ------------------------------------------------------------------ *
+ * Style registry — components with a `style { … }` block register their
+ * scoped CSS here at module-evaluation time. Both SSR (which emits a
+ * single <style> per unique component in the document head) and the
+ * client (which injects them into <head> on hydration) read from here.
+ * ------------------------------------------------------------------ */
+
+interface RegisteredStyle {
+  scope: string;
+  css: string;
+}
+const styleRegistry = new Map<string, RegisteredStyle>();
+
+export function registerStyles(componentName: string, scope: string, css: string): void {
+  styleRegistry.set(componentName, { scope, css });
+}
+
+export function getRegisteredStyle(componentName: string): RegisteredStyle | undefined {
+  return styleRegistry.get(componentName);
+}
+
 export function isReactive(v: unknown): v is Reactive<unknown> {
   return (
     typeof v === "object" &&

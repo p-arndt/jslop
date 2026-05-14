@@ -36,6 +36,12 @@ export interface ParsedComponent {
    * the route's head is rendered after layouts so its <title> / meta win.
    */
   head: ViewNode[] | null;
+  /**
+   * Optional raw CSS body from a `style { … }` block. The codegen scopes
+   * selectors to a per-component class and adds that class to the root
+   * element.
+   */
+  style: string | null;
 }
 
 export interface ParsedFile {
@@ -265,6 +271,7 @@ function parseComponentBody(c: Cursor): ParsedComponent {
   const props: ParsedProp[] = [];
   let view: ViewNode | null = null;
   let head: ViewNode[] | null = null;
+  let style: string | null = null;
 
   while (true) {
     inner.skipWs();
@@ -324,13 +331,16 @@ function parseComponentBody(c: Cursor): ParsedComponent {
       inner.skipWs();
       const headBody = readBalanced(inner, "{", "}");
       head = parseHeadFragment(headBody.trim());
+    } else if (inner.consumeKeyword("style")) {
+      inner.skipWs();
+      style = readBalanced(inner, "{", "}");
     } else {
-      throw inner.err("unknown declaration; expected 'prop', 'state', 'derived', 'let', 'function', or 'view'");
+      throw inner.err("unknown declaration; expected 'prop', 'state', 'derived', 'let', 'function', 'view', 'head', or 'style'");
     }
   }
 
   if (!view) throw new Error(`component ${name} missing view`);
-  return { name, props, states, deriveds, lets, fns, view, head };
+  return { name, props, states, deriveds, lets, fns, view, head, style };
 }
 
 function parseHeadFragment(src: string): ViewNode[] {

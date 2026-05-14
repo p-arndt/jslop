@@ -1,3 +1,5 @@
+import { getRegisteredStyle } from "@jslop/runtime";
+
 export type RenderAttr =
   | string
   | { kind: "bind"; get: () => string }
@@ -257,12 +259,24 @@ export function renderPage(opts: {
   // is sloppy). Search the rendered head for a <title>…</title> tag.
   const titleMatch = /<title[^>]*>([\s\S]*?)<\/title>/.exec(componentHead);
   const fallbackTitle = titleMatch ? "" : `<title>${escapeHtml(opts.title)}</title>\n`;
+  // Collect one <style> per unique component name rendered on this page. The
+  // capsule lists every mounted component in order; dedup by name so a list of
+  // 100 <Card/>s only emits the Card style once.
+  const styleTags: string[] = [];
+  const emittedStyleScopes = new Set<string>();
+  for (const entry of capsule.components) {
+    const reg = getRegisteredStyle(entry.name);
+    if (!reg || emittedStyleScopes.has(reg.scope)) continue;
+    emittedStyleScopes.add(reg.scope);
+    styleTags.push(`<style data-jslop-style="${escapeAttr(reg.scope)}">${reg.css}</style>`);
+  }
+  const componentStyles = styleTags.join("");
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-${fallbackTitle}${linkTags}${componentHead}${extraHead}</head>
+${fallbackTitle}${linkTags}${componentStyles}${componentHead}${extraHead}</head>
 <body>
 <div id="app">${html}</div>
 <script type="application/jslop+json" id="__jslop_capsule">${capsuleJson}</script>
