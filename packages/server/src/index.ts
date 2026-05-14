@@ -134,6 +134,12 @@ export function renderRouteChain(opts: {
   routeProps?: Record<string, unknown>;
   /** Outermost layout first. Each layout must have a `<children/>`. */
   layouts?: JSlopComponent[];
+  /**
+   * Props passed to every layout in the chain. Typically the merged result
+   * of each layout's `load()`, so a layout can declare `prop user = null`
+   * and have it injected by its own loader.
+   */
+  layoutProps?: Record<string, unknown>;
 }): RenderResult {
   const layouts = opts.layouts ?? [];
   let cidCounter = 0;
@@ -153,7 +159,7 @@ export function renderRouteChain(opts: {
   // literal string replace is safe here (we never emit it for user content).
   for (let i = layouts.length - 1; i >= 0; i--) {
     const layout = layouts[i]!;
-    const layoutResult = renderComponent(layout, {}, nextCid());
+    const layoutResult = renderComponent(layout, opts.layoutProps ?? {}, nextCid());
     const idx = layoutResult.html.indexOf(CHILDREN_PLACEHOLDER);
     if (idx === -1) {
       throw new Error(
@@ -263,6 +269,8 @@ export function renderPage(opts: {
   layouts?: JSlopComponent[];
   appScriptUrl: string;
   props?: Record<string, unknown>;
+  /** Props passed to every layout (typically a merged layout-load result). */
+  layoutProps?: Record<string, unknown>;
   stylesheets?: string[];
   head?: string;
 }): string {
@@ -272,6 +280,7 @@ export function renderPage(opts: {
           route: opts.component,
           routeProps: opts.props ?? {},
           layouts: opts.layouts,
+          layoutProps: opts.layoutProps ?? {},
         })
       : renderComponent(opts.component, opts.props ?? {});
   const capsuleJson = JSON.stringify(capsule).replace(/</g, "\\u003c");

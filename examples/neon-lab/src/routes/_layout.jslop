@@ -1,4 +1,10 @@
 component Layout {
+  prop buildId = ""
+
+  load {
+    return { buildId: String(Date.now()).slice(-6) }
+  }
+
   view {
     <div class="min-h-screen font-mono text-fuchsia-100 selection:bg-fuchsia-500/40">
       <header class="sticky top-0 z-20 border-b border-fuchsia-500/30 backdrop-blur-md bg-[#05000d]/60">
@@ -15,7 +21,7 @@ component Layout {
       </header>
       <children/>
       <footer class="mt-16 border-t border-fuchsia-500/20 px-6 py-6 text-center text-xs text-fuchsia-400/60 tracking-[0.3em] uppercase">
-        built with jslop · {new Date().getFullYear()}
+        built with jslop · {new Date().getFullYear()} · build {buildId}
       </footer>
     </div>
   }
