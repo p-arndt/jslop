@@ -1,6 +1,12 @@
 type Subscriber = {
   run: () => void;
-  deps: Set<Cell<unknown>>;
+  // Ordered list of cells read during the last run. Re-runs walk this list
+  // with `depsIdx`; positions that match are already-subscribed and skipped.
+  // When a read diverges from the expected position we switch to building
+  // `newDeps`, and after the run reconcile (unsubscribe deps that fell off).
+  deps: Array<Cell<unknown>>;
+  depsIdx: number;
+  newDeps: Array<Cell<unknown>> | null;
 };
 
 let currentSubscriber: Subscriber | null = null;
@@ -44,15 +50,26 @@ export function runInScope<T>(scope: Scope, fn: () => T): T {
 export function disposeScope(scope: Scope): void {
   if (scope.disposed) return;
   scope.disposed = true;
-  for (const child of [...scope.children]) disposeScope(child);
-  scope.children.clear();
-  const cleanups = scope.cleanups.splice(0);
-  for (let i = cleanups.length - 1; i >= 0; i--) {
-    try {
-      cleanups[i]!();
-    } catch (e) {
-      console.error("[jslop] scope cleanup threw:", e);
+  // Skip the array copy when there are no children — typical for leaf scopes
+  // (e.g. one per row in a list with thousands of entries). The copy used to
+  // exist so reentrant disposeScope(child) wouldn't mutate-during-iteration,
+  // but with size===0 there's nothing to copy.
+  if (scope.children.size > 0) {
+    for (const child of [...scope.children]) disposeScope(child);
+    scope.children.clear();
+  }
+  const cleanups = scope.cleanups;
+  if (cleanups.length > 0) {
+    // Iterate in reverse and truncate after — equivalent to splice(0) but
+    // without allocating the popped-array.
+    for (let i = cleanups.length - 1; i >= 0; i--) {
+      try {
+        cleanups[i]!();
+      } catch (e) {
+        console.error("[jslop] scope cleanup threw:", e);
+      }
     }
+    cleanups.length = 0;
   }
   if (scope.parent) {
     scope.parent.children.delete(scope);
@@ -79,9 +96,27 @@ export function cell<T>(initial: T): Cell<T> {
   const c: Cell<T> = {
     kind: "cell",
     get() {
-      if (currentSubscriber) {
-        subscribers.add(currentSubscriber);
-        currentSubscriber.deps.add(c as Cell<unknown>);
+      const s = currentSubscriber;
+      if (s !== null) {
+        const cu = c as Cell<unknown>;
+        if (s.newDeps !== null) {
+          // Divergence already detected this run — append if not present.
+          if (s.newDeps.indexOf(cu) === -1) {
+            s.newDeps.push(cu);
+            subscribers.add(s);
+          }
+        } else if (s.depsIdx < s.deps.length && s.deps[s.depsIdx] === cu) {
+          // Matches expected position — already subscribed, just advance.
+          s.depsIdx++;
+        } else {
+          // Divergence: fork into newDeps, copying the prefix we matched.
+          const nd = s.deps.slice(0, s.depsIdx);
+          if (nd.indexOf(cu) === -1) {
+            nd.push(cu);
+            subscribers.add(s);
+          }
+          s.newDeps = nd;
+        }
       }
       return value;
     },
@@ -106,6 +141,30 @@ export function cell<T>(initial: T): Cell<T> {
   return c;
 }
 
+function commitDeps(s: Subscriber): void {
+  if (s.newDeps !== null) {
+    // Some deps changed. Unsubscribe from old deps that aren't in newDeps.
+    const oldDeps = s.deps;
+    const newDeps = s.newDeps;
+    for (let i = 0; i < oldDeps.length; i++) {
+      const d = oldDeps[i]!;
+      if (newDeps.indexOf(d) === -1) {
+        const subs = (d as unknown as { __subs: Set<Subscriber> }).__subs;
+        subs.delete(s);
+      }
+    }
+    s.deps = newDeps;
+    s.newDeps = null;
+  } else if (s.depsIdx < s.deps.length) {
+    // Some prior deps weren't touched this run — unsubscribe and truncate.
+    for (let i = s.depsIdx; i < s.deps.length; i++) {
+      const subs = (s.deps[i] as unknown as { __subs: Set<Subscriber> }).__subs;
+      subs.delete(s);
+    }
+    s.deps.length = s.depsIdx;
+  }
+}
+
 export function effect(fn: () => void | (() => void)): () => void {
   let cleanup: void | (() => void);
   // Snapshot the scope at creation time so re-runs (which may be triggered
@@ -114,14 +173,13 @@ export function effect(fn: () => void | (() => void)): () => void {
   const ownerScope = currentScope;
 
   const sub: Subscriber = {
-    deps: new Set(),
+    deps: [],
+    depsIdx: 0,
+    newDeps: null,
     run() {
       if (typeof cleanup === "function") cleanup();
-      for (const dep of sub.deps) {
-        const subs = (dep as unknown as { __subs: Set<Subscriber> }).__subs;
-        subs.delete(sub);
-      }
-      sub.deps.clear();
+      sub.depsIdx = 0;
+      sub.newDeps = null;
       const prevSub = currentSubscriber;
       const prevScope = currentScope;
       currentSubscriber = sub;
@@ -131,6 +189,7 @@ export function effect(fn: () => void | (() => void)): () => void {
       } finally {
         currentSubscriber = prevSub;
         currentScope = prevScope;
+        commitDeps(sub);
       }
     },
   };
@@ -142,11 +201,11 @@ export function effect(fn: () => void | (() => void)): () => void {
     if (disposed) return;
     disposed = true;
     if (typeof cleanup === "function") cleanup();
-    for (const dep of sub.deps) {
-      const subs = (dep as unknown as { __subs: Set<Subscriber> }).__subs;
+    for (let i = 0; i < sub.deps.length; i++) {
+      const subs = (sub.deps[i] as unknown as { __subs: Set<Subscriber> }).__subs;
       subs.delete(sub);
     }
-    sub.deps.clear();
+    sub.deps.length = 0;
   };
   if (currentScope && !currentScope.disposed) currentScope.cleanups.push(dispose);
   return dispose;

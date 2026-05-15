@@ -17,12 +17,31 @@ class StubElement {
   }
   static _nextId = 1;
   appendChild(c) {
+    // DocumentFragment: transfer its children, not the fragment itself.
+    if (c.nodeType === 11) {
+      const kids = c.children.slice();
+      c.children.length = 0;
+      for (const k of kids) {
+        k.parent = this;
+        this.children.push(k);
+      }
+      return c;
+    }
     if (c.parent) c.parent.removeChild(c);
     c.parent = this;
     this.children.push(c);
     return c;
   }
   insertBefore(c, ref) {
+    if (c.nodeType === 11) {
+      const kids = c.children.slice();
+      c.children.length = 0;
+      const refIdx = ref == null ? this.children.length : this.children.indexOf(ref);
+      const at = refIdx < 0 ? this.children.length : refIdx;
+      this.children.splice(at, 0, ...kids);
+      for (const k of kids) k.parent = this;
+      return c;
+    }
     if (c.parent) c.parent.removeChild(c);
     c.parent = this;
     if (ref == null) {
@@ -41,6 +60,11 @@ class StubElement {
   }
   get firstChild() {
     return this.children[0] ?? null;
+  }
+  get nextSibling() {
+    if (!this.parent) return null;
+    const i = this.parent.children.indexOf(this);
+    return i < 0 ? null : this.parent.children[i + 1] ?? null;
   }
   get parentNode() {
     return this.parent;
@@ -72,6 +96,15 @@ const document = {
     n.nodeType = 3;
     n._text = v;
     return n;
+  },
+  // Minimal DocumentFragment stub: appendChild moves the child to the fragment
+  // and a single fragment.appendChild on a parent transfers all its children
+  // in order. Mirrors the real browser API closely enough for the reconciler.
+  createDocumentFragment: () => {
+    const f = new StubElement("#fragment");
+    f.tagName = "#fragment";
+    f.nodeType = 11;
+    return f;
   },
   getElementById: () => null,
   querySelector: () => null,

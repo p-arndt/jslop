@@ -391,6 +391,33 @@ function attachChildList(parent: Element, viewChildren: ViewNode[], actions: Act
 interface ItemEntry {
   el: Element;
   scope: Scope;
+  // Reference to the source item, so on re-reconciliation we can detect "same
+  // key, different item object" and rebuild the entry's bindings. Without this,
+  // an immutable-style update (`rows = rows.map(...)`) produced a stale view
+  // because build()'s closures captured the original item.
+  item: unknown;
+  // True if the item's view tree contained a nested component instance.
+  // Components own their own reactive scope (props are cells they subscribe
+  // to) so we MUST NOT rebuild on item-identity change — that would destroy
+  // and recreate the child component, losing its internal state. For plain
+  // element rows we go ahead and rebuild so bind-expressions reflecting
+  // `row.field` pick up the new item.
+  hasComponents: boolean;
+}
+
+function containsComponent(views: ViewNode[]): boolean {
+  for (let i = 0; i < views.length; i++) {
+    const v = views[i]!;
+    if (v.kind === "component") return true;
+    if (v.kind === "element" && containsComponent(v.children)) return true;
+    if (v.kind === "if" && (containsComponent(v.consequent) || containsComponent(v.alternate)))
+      return true;
+    // We deliberately don't recurse into nested `each` blocks: their `build`
+    // is invoked per-item at runtime, not now, so we can't see their tree.
+    // That's fine — a nested each with components inside it manages its own
+    // reconciliation, so the OUTER each's rebuild semantics don't affect it.
+  }
+  return false;
 }
 
 function mountEach(wrapper: Element, node: EachNode, actions: Actions): void {
@@ -421,7 +448,11 @@ function mountEach(wrapper: Element, node: EachNode, actions: Actions): void {
             const itemView = node.build(item, i);
             attachChildList(itemEl, itemView, actions);
           });
-          const entry: ItemEntry = { el: itemEl, scope: itemScope };
+          // SSR-hydration path: we don't know hasComponents without inspecting
+          // the view tree. Mark as true (conservative) so we never accidentally
+          // rebuild a hydrated item. After the first reactive re-run this
+          // entry would be re-built from scratch anyway if the list changes.
+          const entry: ItemEntry = { el: itemEl, scope: itemScope, item, hasComponents: true };
           ordered.push(entry);
           if (keyed && ssrKeyed) {
             const k = String(node.key!(item, i));
@@ -451,51 +482,121 @@ function reconcileKeyed(
   byKey: Map<string, ItemEntry>,
   ordered: ItemEntry[]
 ): void {
-  const nextKeys: string[] = new Array(list.length);
-  for (let i = 0; i < list.length; i++) {
+  const nextLen = list.length;
+  const nextKeys: string[] = new Array(nextLen);
+  for (let i = 0; i < nextLen; i++) {
     nextKeys[i] = String(node.key!(list[i], i));
   }
-  const nextSet = new Set(nextKeys);
 
-  // Dispose entries that are gone.
-  for (const [k, entry] of [...byKey]) {
-    if (!nextSet.has(k)) {
-      disposeScope(entry.scope);
-      if (entry.el.parentNode === wrapper) wrapper.removeChild(entry.el);
-      byKey.delete(k);
+  // Fast path: list went to empty (clear). Dispose every scope, then nuke the
+  // wrapper's children in one assignment — far cheaper than N individual
+  // removeChild calls each invalidating layout.
+  if (nextLen === 0 && byKey.size > 0) {
+    for (const entry of byKey.values()) disposeScope(entry.scope);
+    byKey.clear();
+    ordered.length = 0;
+    // Modern browsers: replaceChildren() with no args is the fastest mass-clear.
+    // textContent = "" is comparable; innerHTML = "" forces a parse.
+    if (typeof (wrapper as Element & { replaceChildren?: () => void }).replaceChildren === "function") {
+      (wrapper as Element & { replaceChildren: () => void }).replaceChildren();
+    } else {
+      while (wrapper.firstChild) wrapper.removeChild(wrapper.firstChild);
+    }
+    return;
+  }
+
+  // Phase 1: dispose entries whose key is gone. Build the next-set inline by
+  // walking nextKeys once — avoids the [...byKey] copy and a separate Set
+  // allocation on the hot path.
+  if (byKey.size > 0) {
+    const nextSet = new Set(nextKeys);
+    for (const [k, entry] of byKey) {
+      if (!nextSet.has(k)) {
+        disposeScope(entry.scope);
+        if (entry.el.parentNode === wrapper) wrapper.removeChild(entry.el);
+        byKey.delete(k);
+      }
     }
   }
 
-  // Build new entries; reorder existing ones to match `nextKeys`.
-  // Simple anchor-based pass: walk left-to-right, ensure DOM child at index i
-  // matches the expected entry; if not, insertBefore to move it into place.
   ordered.length = 0;
-  for (let i = 0; i < nextKeys.length; i++) {
+
+  // Phase 2: walk the target list left-to-right with a single cursor through
+  // the wrapper's children. Per iteration:
+  //   - new key → build a new entry, insertBefore(cursor)
+  //   - existing key with same item → leave it in place (or move into position)
+  //   - existing key, NEW item → rebuild contents into the same el (preserves
+  //     DOM position, just re-attaches bindings against the new closures)
+  //
+  // For the bulk-create case (wrapper starts empty) every entry is new; we
+  // batch them into a DocumentFragment so the browser does layout/style work
+  // once instead of N times.
+  const allNew = byKey.size === 0;
+  const frag = allNew ? document.createDocumentFragment() : null;
+  let cursor: Node | null = wrapper.firstChild;
+
+  for (let i = 0; i < nextLen; i++) {
     const k = nextKeys[i]!;
-    let entry = byKey.get(k);
     const item = list[i];
+    let entry = byKey.get(k);
+
     if (!entry) {
       const itemEl = document.createElement("jslop-each-item");
       itemEl.setAttribute("data-jslop-key", k);
+      // display:contents could come from a single global style rule instead of
+      // a per-element inline style, but injecting <style> into <head> at boot
+      // time conflicts with the SSR/hydration path that already sets it
+      // inline. Keep parity with the SSR markup.
       itemEl.style.display = "contents";
       const scope = createScope();
+      let hasComponents = false;
       runInScope(scope, () => {
         const itemView = node.build(item, i);
-        for (const child of itemView) {
-          const built = buildNode(child, actions);
+        hasComponents = containsComponent(itemView);
+        for (let j = 0; j < itemView.length; j++) {
+          const built = buildNode(itemView[j]!, actions);
           if (built) itemEl.appendChild(built);
         }
       });
-      entry = { el: itemEl, scope };
+      entry = { el: itemEl, scope, item, hasComponents };
       byKey.set(k, entry);
-    }
-    // Ensure correct DOM position.
-    const currentAt = wrapper.children[i] ?? null;
-    if (currentAt !== entry.el) {
-      wrapper.insertBefore(entry.el, currentAt);
+      if (frag) {
+        frag.appendChild(itemEl);
+      } else if (cursor !== itemEl) {
+        wrapper.insertBefore(itemEl, cursor);
+      }
+    } else {
+      if (entry.item !== item && !entry.hasComponents) {
+        // Same key, different item identity — bindings closed over the old
+        // `item` so we must dispose the entry's reactive scope and rebuild
+        // its contents. The element itself is preserved so siblings/order
+        // are untouched. Components are excluded (they own their own state).
+        disposeScope(entry.scope);
+        while (entry.el.firstChild) entry.el.removeChild(entry.el.firstChild);
+        const scope = createScope();
+        const el = entry.el;
+        runInScope(scope, () => {
+          const itemView = node.build(item, i);
+          for (let j = 0; j < itemView.length; j++) {
+            const built = buildNode(itemView[j]!, actions);
+            if (built) el.appendChild(built);
+          }
+        });
+        entry.scope = scope;
+        entry.item = item;
+      }
+      if (cursor === entry.el) {
+        cursor = entry.el.nextSibling;
+      } else {
+        wrapper.insertBefore(entry.el, cursor);
+        // entry.el is now at the slot before cursor; cursor still points to
+        // the next un-processed element.
+      }
     }
     ordered.push(entry);
   }
+
+  if (frag) wrapper.appendChild(frag);
 }
 
 function reconcileUnkeyed(
@@ -510,20 +611,25 @@ function reconcileUnkeyed(
     if (entry.el.parentNode === wrapper) wrapper.removeChild(entry.el);
   }
   ordered.length = 0;
+  // Batch all new items into a single DocumentFragment append — one
+  // layout/style invalidation instead of one per item.
+  const frag = document.createDocumentFragment();
   for (let i = 0; i < list.length; i++) {
+    const item = list[i];
     const itemEl = document.createElement("jslop-each-item");
     itemEl.style.display = "contents";
     const scope = createScope();
     runInScope(scope, () => {
-      const itemView = node.build(list[i], i);
-      for (const child of itemView) {
-        const built = buildNode(child, actions);
+      const itemView = node.build(item, i);
+      for (let j = 0; j < itemView.length; j++) {
+        const built = buildNode(itemView[j]!, actions);
         if (built) itemEl.appendChild(built);
       }
     });
-    wrapper.appendChild(itemEl);
-    ordered.push({ el: itemEl, scope });
+    frag.appendChild(itemEl);
+    ordered.push({ el: itemEl, scope, item, hasComponents: false });
   }
+  wrapper.appendChild(frag);
 }
 
 function mountIf(wrapper: Element, node: IfNode, actions: Actions): void {
