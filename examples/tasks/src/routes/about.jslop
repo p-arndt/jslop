@@ -20,10 +20,10 @@ component About {
         <ul class="space-y-1.5 text-sm text-[var(--color-ink-soft)]">
           <li><b class="text-[var(--color-ink)]">state / derived</b> — input fields, dirty tracking</li>
           <li><b class="text-[var(--color-ink)]">bind:value</b> — the new-task input</li>
-          <li><b class="text-[var(--color-ink)]">load &#123; &#125;</b> — list, single task, layout counts (with url.searchParams for filters)</li>
+          <li><b class="text-[var(--color-ink)]">load {"{ }"}</b> — list, single task, layout counts (with url.searchParams for filters)</li>
           <li><b class="text-[var(--color-ink)]">notFound()</b> — bad task id renders the real 404</li>
-          <li><b class="text-[var(--color-ink)]">head &#123; &#125;</b> — per-task &lt;title&gt;</li>
-          <li><b class="text-[var(--color-ink)]">style &#123; &#125;</b> — scoped styles on every component</li>
+          <li><b class="text-[var(--color-ink)]">head {"{ }"}</b> — per-task {"<title>"}</li>
+          <li><b class="text-[var(--color-ink)]">style {"{ }"}</b> — scoped styles on every component</li>
           <li><b class="text-[var(--color-ink)]">SPA navigation</b> — every link, every mutation refresh</li>
           <li><b class="text-[var(--color-ink)]">layout load</b> — task counts injected into the topbar from the root layout</li>
         </ul>
@@ -32,7 +32,7 @@ component About {
       <section class="space-y-3">
         <h2 class="text-sm uppercase tracking-widest text-[var(--color-ink-muted)]">Still missing from the framework</h2>
         <ul class="space-y-1.5 text-sm text-[var(--color-ink-soft)]">
-          <li>An <b class="text-[var(--color-ink)]">action &#123; &#125;</b> block. Mutations live in serve.mjs as hand-written /api/* handlers — a framework primitive for declaring server actions inside .jslop files would replace src/api.js entirely.</li>
+          <li>An <b class="text-[var(--color-ink)]">action {"{ }"}</b> block. Mutations live in serve.mjs as hand-written /api/* handlers — a framework primitive for declaring server actions inside .jslop files would replace src/api.js entirely.</li>
           <li>Optimistic mutations. Today every action waits for the round-trip then re-fetches via SPA navigation. Workable, but a bit jumpy.</li>
         </ul>
       </section>
