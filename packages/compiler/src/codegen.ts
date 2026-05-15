@@ -14,11 +14,22 @@ export interface CodegenOptions {
   runtimeImport?: string;
   /** Rewrite imports of `./Foo.jslop` into the compiled file extension. Defaults to `.compiled.mjs`. */
   compiledExtension?: string;
+  /**
+   * When `true`, also emit a top-level `__actions` export containing the real
+   * server-side bodies of every `action` declaration in the file. When `false`
+   * (the default), only the client stubs are emitted — keeping action bodies
+   * and any imports they alone reach out of the client bundle.
+   *
+   * The Vite plugin sets this from the `ssr` flag of its `transform` hook so
+   * `.jslop` files compile into different output for the client vs SSR builds.
+   */
+  ssr?: boolean;
 }
 
 export function generate(input: ParsedFile | ParsedComponent, opts: CodegenOptions = {}): string {
   const runtimeImport = opts.runtimeImport ?? "@jslop/runtime";
   const compiledExt = opts.compiledExtension ?? ".compiled.mjs";
+  const ssr = opts.ssr === true;
   // Accept a bare ParsedComponent as shorthand for "single-component file with
   // no imports" — keeps small-test ergonomics working without forcing every
   // caller through parseFile.
@@ -31,6 +42,26 @@ export function generate(input: ParsedFile | ParsedComponent, opts: CodegenOptio
   const blocks = file.components
     .map((c) => generateComponent(c, styleRegistrations))
     .join("\n\n");
+
+  // Aggregate action declarations from every component in the file under one
+  // `__actions` namespace. The dispatcher addresses them as `__actions[name]`
+  // — collisions across components would silently shadow, so reject them at
+  // compile time rather than at the first weird POST.
+  const allActions: Array<{ name: string; params: string; body: string; component: string }> = [];
+  for (const c of file.components) {
+    for (const a of c.actions) {
+      const dup = allActions.find((x) => x.name === a.name);
+      if (dup) {
+        throw new Error(
+          `duplicate action '${a.name}' (declared in components '${dup.component}' and '${c.name}'). ` +
+            `Action names share a single dispatch namespace per route file; rename one of them.`
+        );
+      }
+      allActions.push({ ...a, component: c.name });
+    }
+  }
+  const actionsExport =
+    ssr && allActions.length > 0 ? emitActionsExport(allActions) : "";
   // The first declared component is the file's default — keeps single-component
   // files (the existing convention, including all routes/layouts) working
   // unchanged when a consumer does `import Comp from "./File.jslop"`.
@@ -55,7 +86,35 @@ ${blocks}
 
 ${defaultLine}
 ${loadLine}
+${actionsExport}
 `;
+}
+
+/**
+ * Emit the server-only `__actions` export, mapping action name → async fn.
+ * Each fn takes the source-declared positional params followed by a single
+ * `__ctx` object; the body sees `params`, `url`, and `request` via a tiny
+ * destructuring prelude so authors don't have to repeat the boilerplate.
+ *
+ * Bodies are emitted verbatim — they're plain JS, not view code, so the
+ * cell/derived rewriter doesn't apply. Authors who need to touch reactive
+ * client state from an action can't (and shouldn't): actions run per-request
+ * on the server with no component instance attached.
+ */
+function emitActionsExport(
+  actions: Array<{ name: string; params: string; body: string }>
+): string {
+  const entries = actions
+    .map((a) => {
+      const trailing = a.params.trim().length > 0 ? `${a.params}, __ctx` : "__ctx";
+      return `  ${JSON.stringify(a.name)}: async function (${trailing}) {
+    const { params, url, request } = __ctx;
+    void params; void url; void request;
+${a.body}
+  }`;
+    })
+    .join(",\n");
+  return `\nexport const __actions = {\n${entries}\n};\n`;
 }
 
 function emitImport(imp: ParsedImport, compiledExt: string): string {
@@ -130,7 +189,25 @@ function generateComponent(comp: ParsedComponent, styleRegistrations: string[]):
     )
     .join("\n");
 
-  const actionEntries = comp.fns.map((f) => `      ${f.name}`).join(",\n");
+  // Action stubs: thin wrappers that delegate to globalThis.__jslop_callAction,
+  // installed by @jslop/client's boot(). The stub keeps the same name as the
+  // action so event handlers (`onclick={create}`) and inline calls
+  // (`create({...})`) both work without further rewriting.
+  const actionStubDecls = comp.actions
+    .map(
+      (a) =>
+        `    const ${a.name} = async (...args) => {\n` +
+        `      const fn = globalThis.__jslop_callAction;\n` +
+        `      if (typeof fn !== "function") throw new Error("[jslop] action '${a.name}' invoked but client runtime is not booted (server actions only run from the browser).");\n` +
+        `      return fn(${JSON.stringify(a.name)}, args);\n` +
+        `    };`
+    )
+    .join("\n");
+
+  const actionEntries = [
+    ...comp.fns.map((f) => `      ${f.name}`),
+    ...comp.actions.map((a) => `      ${a.name}`),
+  ].join(",\n");
 
   const childCtx: ChildCtx = { counter: 0, decls: [], inlineDecls: null };
   const rootView = scopeClass ? injectScopeClass(comp.view, scopeClass) : comp.view;
@@ -163,6 +240,7 @@ ${letDecls}
 ${stateDecls}
 ${derivedDecls}
 ${fnDecls}
+${actionStubDecls}
     const actions = {
 ${actionEntries}
     };

@@ -1,5 +1,3 @@
-import { createTask, updateTask, deleteTask } from "../api.js"
-
 component Inbox {
   prop tasks = []
   prop activeStatus = "all"
@@ -14,11 +12,16 @@ component Inbox {
   }
 
   load {
-    const { listTasks } = await import(/* @vite-ignore */ "../store.js")
+    const { listTasks } = await import("../store.js")
     const wantStatus = url.searchParams.get("status") ?? "all"
     const all = await listTasks()
     const tasks = wantStatus === "all" ? all : all.filter(t => t.status === wantStatus)
     return { tasks, activeStatus: wantStatus }
+  }
+
+  action create(input) {
+    const { createTask } = await import("../store.js")
+    return await createTask(input)
   }
 
   function submit(e) {
@@ -27,7 +30,7 @@ component Inbox {
     const title = newTitle.trim()
     if (!title) return
     busy = true
-    createTask(title, newPriority).finally(() => { busy = false })
+    create({ title, priority: newPriority }).finally(() => { busy = false })
     newTitle = ""
   }
 
@@ -156,16 +159,29 @@ component TaskRow {
     .del:hover { color: #b1283e; background: #fee2e2; }
   }
 
+  // Actions live on the Inbox route, not here. Inline mutations on a row
+  // are wired through the row's own `setStatus` / `remove` actions below,
+  // which the framework compiles into the same per-route endpoint.
+  action setStatus(id, status) {
+    const { updateTask } = await import("../store.js")
+    return await updateTask(id, { status })
+  }
+
+  action remove(id) {
+    const { deleteTask } = await import("../store.js")
+    await deleteTask(id)
+  }
+
   function cycle() {
     const order = ["todo", "doing", "done"]
     const next = order[(order.indexOf(task.status) + 1) % order.length]
-    updateTask(task.id, { status: next })
+    setStatus(task.id, next)
   }
 
-  function remove(e) {
+  function onDelete(e) {
     e.preventDefault()
     e.stopPropagation()
-    deleteTask(task.id)
+    remove(task.id)
   }
 
   view {
@@ -180,7 +196,7 @@ component TaskRow {
         {task.title}
       </a>
       <span class={`pri pri-${task.priority}`}>{task.priority}</span>
-      <button type="button" onclick={remove} class="del">Delete</button>
+      <button type="button" onclick={onDelete} class="del">Delete</button>
     </li>
   }
 }

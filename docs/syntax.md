@@ -33,6 +33,7 @@ component Sibling {
 | `head { ... }`     | —          | —          | per-component `<head>` fragment (`<title>`, meta, …)   |
 | `style { ... }`    | —          | —          | scoped CSS for this component                          |
 | `load { ... }`     | —          | —          | server-side data fetching for routes/layouts           |
+| `action f(p) {}`   | —          | —          | server-only mutation handler (POST endpoint)           |
 
 → [Components](./components.md)
 
@@ -80,6 +81,23 @@ component PostPage {
 ```
 
 Runs on the server before render; returned object merges into props (URL params → layout loads → route load). May be `async`. Call `notFound()` from `@jslop/runtime` to trigger the 404 chain. → [Routing → `load`](./routing.md#load-----running-code-before-render)
+
+## `action { ... }` — server mutation handler
+
+```tsx
+component Inbox {
+  action create(input) {
+    const { createTask } = await import("../store.js")
+    return await createTask(input)
+  }
+
+  function submit(e) { e.preventDefault(); create({ title: "buy milk" }) }
+
+  view { <form onsubmit={submit}>…</form> }
+}
+```
+
+Body runs **only on the server**. The compiler emits a client stub that POSTs to the route URL with header `x-jslop-action: <name>`. On success the route's `load { ... }` re-runs and the new HTML swaps in. Throw `redirect(url)` from `@jslop/runtime` to navigate elsewhere instead (useful after a delete that would 404 the current page). The body sees `params`, `url`, and `request` in scope. → [Actions](./actions.md)
 
 ## `style { ... }` — scoped CSS
 
@@ -206,6 +224,6 @@ The view is emitted as a tree of node descriptors (`element`, `text`, `bind`, `i
 
 ## Not in the DSL yet
 
-`server function` · `mount`/`cleanup` blocks · `{#await}` · `{#snippet}` · `{:else if}` · catch-all routes · fragments · spread props (parsed, partial impl) · `style Name { variants: ... }` first-class variants.
+Typed `server function` (split-bundled RPC with auth context) · `mount`/`cleanup` blocks · `{#await}` · `{#snippet}` · `{:else if}` · catch-all routes · fragments · spread props (parsed, partial impl) · `style Name { variants: ... }` first-class variants. (The boring `action { ... }` block above is the shipping stepping stone; the full typed-RPC story still belongs to a future release.)
 
 → [Roadmap](./roadmap.md)

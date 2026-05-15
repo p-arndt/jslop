@@ -15,6 +15,8 @@ export interface CompileOptions extends CodegenOptions {
   filename?: string;
 }
 
+export { rewriteExpr, rewriteFnBody, rewriteInitExpr, rewritePropExpr } from "./rewrite.js";
+
 export function compile(source: string, opts?: CompileOptions): string {
   try {
     return generate(parseFile(source), opts);

@@ -65,9 +65,79 @@ export function boot(modules: Record<string, JSlopModule>): void {
   // First boot also wires up the SPA navigation layer (link interception +
   // popstate). Re-booting after a navigate() reuses the same modules without
   // re-installing those listeners.
-  if (!bootedModules) installNavigationHandlers();
+  if (!bootedModules) {
+    installNavigationHandlers();
+    installActionDispatcher();
+  }
   bootedModules = modules;
   bootCurrentPage(modules);
+}
+
+/* ------------------------------------------------------------------ *
+ * Server actions — the client side of `action name(params) { … }`
+ * declarations. The compiler emits per-component stubs that call
+ * `globalThis.__jslop_callAction(name, args)` (instead of importing a
+ * helper, which would force every compiled file to import @jslop/client
+ * even on SSR). We install the dispatcher here at boot.
+ * ------------------------------------------------------------------ */
+
+function installActionDispatcher(): void {
+  if (typeof window === "undefined") return;
+  // Idempotent: re-boot (e.g. after navigate) should not reinstall.
+  if (typeof (globalThis as Record<string, unknown>).__jslop_callAction === "function") return;
+  (globalThis as Record<string, unknown>).__jslop_callAction = async (
+    name: string,
+    args: unknown[]
+  ): Promise<unknown> => {
+    const here = window.location.pathname + window.location.search;
+    let res: Response;
+    try {
+      res = await fetch(here, {
+        method: "POST",
+        headers: {
+          "x-jslop-action": name,
+          "content-type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ args }),
+      });
+    } catch (err) {
+      throw new Error(`[jslop] action '${name}' network error: ${(err as Error).message}`);
+    }
+    let data: { ok?: boolean; result?: unknown; error?: string; redirect?: string } | null = null;
+    try {
+      data = (await res.json()) as { ok?: boolean; result?: unknown; error?: string; redirect?: string };
+    } catch {
+      // Non-JSON response (e.g. an HTML error page).
+    }
+    if (!res.ok || !data || data.ok === false) {
+      const msg = data?.error ?? `HTTP ${res.status}`;
+      throw new Error(`[jslop] action '${name}' failed: ${msg}`);
+    }
+    // Action signalled a redirect (typically via `redirect("/somewhere")` in
+    // the action body — useful after a delete that would 404 the current
+    // route). Honor it with a real navigation entry.
+    if (typeof data.redirect === "string") {
+      await navigate(data.redirect, { push: true });
+      return data.result;
+    }
+    // Auto-refresh: re-fetch the current page so the route's load() re-runs
+    // and the new DOM swaps in. Replaces (not pushes) so the back-button
+    // history doesn't grow with every mutation.
+    await navigate(here, { push: false });
+    return data.result;
+  };
+}
+
+/**
+ * Trigger a route-data refresh without changing the URL. Useful when an
+ * external mutation lands (e.g. a websocket push) and you want the current
+ * route's load() to re-run and props to refresh. After server actions this
+ * already happens automatically — call refresh() only for out-of-band updates.
+ */
+export async function refresh(): Promise<void> {
+  if (typeof window === "undefined") return;
+  await navigate(window.location.pathname + window.location.search, { push: false });
 }
 
 function bootCurrentPage(modules: Record<string, JSlopModule>): void {

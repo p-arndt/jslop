@@ -17,7 +17,7 @@ A component block has:
 - A **name** in PascalCase (`Hello`, `UserCard`, `PostList`).
 - An optional body of declarations: `prop`, `state`, `derived`, `let`, `function`, in any order.
 - Exactly one `view { ... }` block, with exactly one root element.
-- Optional `head { ... }`, `style { ... }`, and (for routes/layouts) `load { ... }` blocks. `head` and `style` are covered below; `load` is server-side data fetching, documented in [Routing → `load { ... }`](./routing.md#load-----running-code-before-render).
+- Optional `head { ... }`, `style { ... }`, and (for routes/layouts) `load { ... }` and `action name(...) { ... }` declarations. `head` and `style` are covered below; `load` is server-side data fetching, documented in [Routing → `load { ... }`](./routing.md#load-----running-code-before-render); `action` is the server mutation primitive, documented in [Actions](./actions.md).
 
 You can declare **as many components as you like in a single file**. The first one is the default export, and every component becomes a named export.
 
@@ -53,7 +53,8 @@ Sibling components in the same file can reference each other directly — `<Card
 | `state x`     | yes      | yes            | anything the view reads — counters, drafts, lists, toggles            |
 | `derived x`   | yes (read-only) | recomputed | memoized value derived from `state` / `prop` / other `derived`     |
 | `let x`       | no       | no             | per-instance bookkeeping the view never reads (caches, IDs, timers)   |
-| `function f`  | —        | —              | event handlers, actions, derived helpers                              |
+| `function f`  | —        | —              | event handlers, view helpers, local async work                        |
+| `action f`    | —        | server only    | route POST endpoints — see [Actions](./actions.md)                    |
 
 The next sections cover each, plus the optional `head` and `style` blocks.
 

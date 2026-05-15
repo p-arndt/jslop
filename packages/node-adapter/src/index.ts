@@ -21,9 +21,23 @@ export interface RenderResult {
   headers: Record<string, string>;
 }
 
+/** Shape of the optional `executeAction` export from the SSR entry. */
+export type ExecuteActionFn = (
+  url: string,
+  name: string,
+  args: unknown[],
+  ctx: { request: IncomingMessage }
+) => Promise<{ status: number; body: unknown; headers: Record<string, string> }>;
+
 export interface NodeAdapterOptions {
   /** The bundled `render` function from `dist/server/entry-server.js`. */
   render: RenderFn;
+  /**
+   * Optional `executeAction` function from the same SSR entry. When provided,
+   * the adapter dispatches POST requests carrying the `x-jslop-action` header
+   * to it. Omit to keep the static behaviour of older builds.
+   */
+  executeAction?: ExecuteActionFn;
   /** Absolute path to the client build dir (typically `dist/client`). */
   clientDir: string;
   /** Optional title generator passed through to render(). */
@@ -73,6 +87,23 @@ export function createHandler(
       const url = req.url ?? "/";
       const pathname = url.split("?")[0] || "/";
 
+      // Server-action dispatch: POST + x-jslop-action header → executeAction.
+      // Falls through to render() if no executeAction is configured.
+      const actionHeader = req.headers["x-jslop-action"];
+      if (
+        req.method === "POST" &&
+        typeof actionHeader === "string" &&
+        opts.executeAction
+      ) {
+        const body = await readJsonBody(req);
+        const args = Array.isArray(body?.args) ? (body.args as unknown[]) : [];
+        const out = await opts.executeAction(url, actionHeader, args, { request: req });
+        res.statusCode = out.status;
+        for (const [k, v] of Object.entries(out.headers)) res.setHeader(k, v);
+        res.end(JSON.stringify(out.body));
+        return;
+      }
+
       // Try a static file under clientDir first if the path looks like an
       // asset (has an extension, isn't a route).
       const ext = extname(pathname);
@@ -99,6 +130,23 @@ export function createHandler(
       res.end("internal server error");
     }
   };
+}
+
+async function readJsonBody(req: IncomingMessage): Promise<{ args?: unknown } | null> {
+  return await new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (c: Buffer) => chunks.push(c));
+    req.on("end", () => {
+      const txt = Buffer.concat(chunks).toString("utf8");
+      if (!txt) return resolve({});
+      try {
+        resolve(JSON.parse(txt));
+      } catch (e) {
+        reject(e);
+      }
+    });
+    req.on("error", reject);
+  });
 }
 
 async function tryServeStatic(

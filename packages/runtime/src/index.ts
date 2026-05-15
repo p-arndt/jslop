@@ -259,6 +259,35 @@ export function isNotFoundError(err: unknown): err is NotFoundError {
   );
 }
 
+/* ------------------------------------------------------------------ *
+ * Server-action helpers — actions can throw `redirect(url)` to signal
+ * "navigate the client to a different URL instead of re-running this
+ * route's load()". Used e.g. after a delete that would 404 the current
+ * page. The framework's action dispatcher catches this and surfaces it
+ * to the client stub, which calls `navigate(url, { push: true })`.
+ * ------------------------------------------------------------------ */
+
+export class RedirectError extends Error {
+  readonly __jslop_redirect = true;
+  readonly url: string;
+  constructor(url: string) {
+    super(`redirect to ${url}`);
+    this.name = "RedirectError";
+    this.url = url;
+  }
+}
+
+export function redirect(url: string): never {
+  throw new RedirectError(url);
+}
+
+export function isRedirectError(err: unknown): err is RedirectError {
+  return (
+    err instanceof RedirectError ||
+    (typeof err === "object" && err !== null && (err as { __jslop_redirect?: unknown }).__jslop_redirect === true)
+  );
+}
+
 export function isReactive(v: unknown): v is Reactive<unknown> {
   return (
     typeof v === "object" &&

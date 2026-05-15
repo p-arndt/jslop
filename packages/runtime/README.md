@@ -25,7 +25,9 @@ See [`docs/cdn.md`](../../docs/cdn.md) and the [`examples/cdn.html`](./examples/
 ```ts
 import {
   cell, derived, effect, batch, untrack, isReactive,
-  type Cell, type Derived, type Reactive,
+  notFound, isNotFoundError, redirect, isRedirectError,
+  createScope, runInScope, disposeScope, onCleanup,
+  type Cell, type Derived, type Reactive, type Scope,
 } from "@jslop/runtime";
 ```
 
@@ -89,6 +91,37 @@ const c = derived(() => a.get() + untrack(() => b.get()));
 ### `isReactive(v): v is Reactive<unknown>`
 
 Type guard used by compiled components for prop forwarding.
+
+### `notFound(message?): never` and `isNotFoundError(err)`
+
+Throw from inside a route's `load { ... }` block to render the 404 chain instead of the matched route. The server-side runner catches the resulting `NotFoundError` and serves `_404.jslop` with status 404.
+
+```ts
+import { notFound } from "@jslop/runtime";
+
+load {
+  const post = await findPost(params.slug);
+  if (!post) notFound();
+  return { post };
+}
+```
+
+### `redirect(url): never` and `isRedirectError(err)`
+
+Throw from inside an `action { ... }` body to send the client to a different URL instead of re-running the current route's `load { ... }`. The dispatcher catches the resulting `RedirectError` and surfaces `{ ok: true, redirect: url }` to the client stub, which calls `navigate(url, { push: true })`. Useful after a delete that would 404 the current page.
+
+```ts
+import { redirect } from "@jslop/runtime";
+
+action remove() {
+  await deleteTask(params.id);
+  redirect("/");
+}
+```
+
+### `registerStyles(componentName, scope, css)` / `getRegisteredStyle(name)`
+
+Internal: components with a `style { ... }` block call this at module load. The SSR renderer reads from the same registry. You shouldn't need to touch it directly.
 
 ## Design notes
 

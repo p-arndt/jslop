@@ -264,7 +264,7 @@ navigate("/posts/hello", { push: false });  // replace current entry instead
 > - Catch-all routes (`[...slug]`)
 > - Optional segments
 > - Route groups (`(group)/`)
-> - `server function name(...) { }` actions (typed RPC) — separate from the `load { }` block above, which is server-only data fetching for the initial render
+> - Typed `server function` (split-bundled RPC with auto-generated client signatures and auth context). The stepping stone — untyped `action { ... }` blocks driving a POST endpoint per route — *is* shipped, see [Actions](./actions.md).
 
 ## See also
 

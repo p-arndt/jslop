@@ -2,7 +2,7 @@ import type { Plugin, PluginOption, UserConfig } from "vite";
 import { compile } from "@jslop/compiler";
 import { scanRoutes, matchRoute, type RouteManifest } from "@jslop/router";
 import { renderPage, type JSlopComponent } from "@jslop/server";
-import { isNotFoundError } from "@jslop/runtime";
+import { isNotFoundError, isRedirectError } from "@jslop/runtime";
 import { resolve, posix, isAbsolute } from "node:path";
 
 export interface JSlopPluginOptions {
@@ -68,9 +68,17 @@ export default function jslop(opts: JSlopPluginOptions = {}): PluginOption[] {
   const transformPlugin: Plugin = {
     name: "jslop:transform",
     enforce: "pre",
-    transform(code, id) {
+    transform(code, id, options) {
       if (!id.endsWith(".jslop")) return null;
-      const out = compile(code, { compiledExtension: ".jslop", filename: id });
+      // Compile differently for SSR vs client: SSR also gets the `__actions`
+      // export (real bodies), client gets only the dispatch stubs (and so any
+      // server-only imports the actions reach for stay out of the client
+      // bundle, modulo tree-shaking).
+      const out = compile(code, {
+        compiledExtension: ".jslop",
+        filename: id,
+        ssr: options?.ssr === true,
+      });
       return { code: out, map: null };
     },
   };
@@ -195,6 +203,51 @@ export default function jslop(opts: JSlopPluginOptions = {}): PluginOption[] {
     },
   };
 
+  const handleActionRequest = async (
+    req: import("node:http").IncomingMessage,
+    res: import("node:http").ServerResponse,
+    url: string,
+    server: import("vite").ViteDevServer
+  ): Promise<void> => {
+    const sendJson = (status: number, body: unknown): void => {
+      res.statusCode = status;
+      res.setHeader("content-type", "application/json; charset=utf-8");
+      res.end(JSON.stringify(body));
+    };
+    try {
+      const name = String(req.headers["x-jslop-action"]);
+      const manifest = await loadManifest();
+      const pathOnly = url.split("?")[0] || "/";
+      const match = matchRoute(pathOnly, manifest.routes);
+      if (!match) return sendJson(404, { ok: false, error: "no route matches " + pathOnly });
+      const body = await readJsonBody(req);
+      const args = Array.isArray(body?.args) ? (body.args as unknown[]) : [];
+      const mod = await server.ssrLoadModule(resolve(routesDir, match.route.relPath));
+      const actions = (mod as { __actions?: Record<string, unknown> }).__actions;
+      const fn = actions && typeof actions[name] === "function" ? (actions[name] as (...a: unknown[]) => unknown) : null;
+      if (!fn) return sendJson(404, { ok: false, error: `no action '${name}' on route ${match.route.pattern}` });
+      const ctx = {
+        params: match.params,
+        url: new URL(url, "http://localhost"),
+        request: req,
+      };
+      try {
+        const result = await fn(...args, ctx);
+        sendJson(200, { ok: true, result });
+      } catch (inner) {
+        if (isRedirectError(inner)) {
+          sendJson(200, { ok: true, redirect: (inner as { url: string }).url });
+          return;
+        }
+        throw inner;
+      }
+    } catch (err) {
+      server.ssrFixStacktrace(err as Error);
+      const msg = (err as Error)?.message ?? String(err);
+      sendJson(500, { ok: false, error: msg });
+    }
+  };
+
   const ssrPlugin: Plugin = {
     name: "jslop:ssr",
     configureServer(server) {
@@ -210,6 +263,14 @@ export default function jslop(opts: JSlopPluginOptions = {}): PluginOption[] {
                 /\.[a-z0-9]+(\?|$)/i.test(url))
             ) {
               return next();
+            }
+
+            // Server-action dispatch: POST + x-jslop-action header. The
+            // browser stub installed by @jslop/client targets the route URL
+            // directly, so we match using the same router as SSR.
+            if (req.method === "POST" && typeof req.headers["x-jslop-action"] === "string") {
+              await handleActionRequest(req, res, url, server);
+              return;
             }
             // Normalize index.html requests (Vite's spa fallback turns "/" into "/index.html")
             if (url.endsWith("/index.html")) {
@@ -374,6 +435,25 @@ async function loadTailwindPlugin(): Promise<PluginOption> {
   }
 }
 
+async function readJsonBody(
+  req: import("node:http").IncomingMessage
+): Promise<{ args?: unknown } | null> {
+  return await new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (c: Buffer) => chunks.push(c));
+    req.on("end", () => {
+      const txt = Buffer.concat(chunks).toString("utf8");
+      if (!txt) return resolve({});
+      try {
+        resolve(JSON.parse(txt));
+      } catch (e) {
+        reject(e);
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
 function toImportPath(routesDir: string, relPath: string): string {
   return posix.join(routesDir.split(/[\\/]/).join("/"), relPath.split(/[\\/]/).join("/"));
 }
@@ -425,7 +505,7 @@ function generateServerEntry(
       const idx = indexOf(r.relPath);
       return `  { pattern: ${JSON.stringify(r.pattern)}, paramNames: ${JSON.stringify(
         r.paramNames
-      )}, component: M${idx}.default, load: M${idx}.load, layouts: [${layoutEntries}] }`;
+      )}, component: M${idx}.default, load: M${idx}.load, __module: M${idx}, layouts: [${layoutEntries}] }`;
     })
     .join(",\n");
 
@@ -441,7 +521,7 @@ function generateServerEntry(
 
   return `import { renderPage } from "@jslop/server";
 import { matchRoute } from "@jslop/router";
-import { isNotFoundError } from "@jslop/runtime";
+import { isNotFoundError, isRedirectError } from "@jslop/runtime";
 import { readFile } from "node:fs/promises";
 import { dirname, join, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -607,6 +687,64 @@ export async function render(rawUrl, opts = {}) {
     stylesheets,
   });
   return { status: 200, html, headers: { "content-type": "text/html; charset=utf-8" } };
+}
+
+/**
+ * Dispatch a server action.
+ *
+ * @param {string} rawUrl - Route URL (path or full).
+ * @param {string} name - Action name (matches the \`action <name>(...)\` declaration).
+ * @param {unknown[]} args - Positional args forwarded from the client stub.
+ * @param {object} ctx - Additional context. \`request\` is forwarded into the
+ *   action body; \`params\` and \`url\` are derived from rawUrl + the matched route.
+ * @returns {Promise<{ status: number, body: object, headers: Record<string,string> }>}
+ */
+export async function executeAction(rawUrl, name, args, ctx = {}) {
+  const url = normalizeUrl(rawUrl);
+  const match = matchRoute(url, routes);
+  if (!match) {
+    return {
+      status: 404,
+      body: { ok: false, error: "no route matches " + url },
+      headers: { "content-type": "application/json; charset=utf-8" },
+    };
+  }
+  const mod = match.route.__module;
+  const actions = mod && mod.__actions;
+  const fn = actions && typeof actions[name] === "function" ? actions[name] : null;
+  if (!fn) {
+    return {
+      status: 404,
+      body: { ok: false, error: "no action '" + name + "' on route " + match.route.pattern },
+      headers: { "content-type": "application/json; charset=utf-8" },
+    };
+  }
+  try {
+    const fullCtx = {
+      params: match.params,
+      url: new URL(rawUrl || "/", "http://localhost"),
+      request: ctx.request,
+    };
+    const result = await fn(...(Array.isArray(args) ? args : []), fullCtx);
+    return {
+      status: 200,
+      body: { ok: true, result },
+      headers: { "content-type": "application/json; charset=utf-8" },
+    };
+  } catch (err) {
+    if (isRedirectError(err)) {
+      return {
+        status: 200,
+        body: { ok: true, redirect: err.url },
+        headers: { "content-type": "application/json; charset=utf-8" },
+      };
+    }
+    return {
+      status: 500,
+      body: { ok: false, error: (err && err.message) || String(err) },
+      headers: { "content-type": "application/json; charset=utf-8" },
+    };
+  }
 }
 
 export const __jslop = { routes, notFound };

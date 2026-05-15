@@ -31,8 +31,9 @@ Welcome. These docs cover the **currently implemented** surface of JSlop. Aspira
 ## Apps
 
 10. **[Routing](./routing.md)** — file-system routes, dynamic `[param]` segments, layouts, 404.
-11. **[SSR & resumability](./ssr-and-resumability.md)** — how state survives the network without re-rendering.
-12. **[Building & deploying](./building.md)** — the two-pass production build and `@jslop/node-adapter`.
+11. **[Actions](./actions.md)** — `action name(params) { ... }` for server mutations from a route.
+12. **[SSR & resumability](./ssr-and-resumability.md)** — how state survives the network without re-rendering.
+13. **[Building & deploying](./building.md)** — the two-pass production build and `@jslop/node-adapter`.
 
 ## Reference
 

@@ -30,6 +30,14 @@ export interface ParsedComponent {
   /** Plain non-reactive bindings, declared with `let`. */
   lets: Array<{ name: string; init: string }>;
   fns: Array<{ name: string; params: string; body: string }>;
+  /**
+   * Server-side mutation handlers, declared with `action name(params) { body }`.
+   * Compiled into two pieces: a client-side stub callable from event handlers
+   * (which POSTs to the route URL), and — when codegen is invoked with
+   * `ssr: true` — a `__actions` export the server dispatches POSTs to.
+   * Bodies see `params`, `url`, `request` in scope (the load-style context).
+   */
+  actions: Array<{ name: string; params: string; body: string }>;
   view: ViewNode;
   /**
    * Optional document-head fragment. SSR merges these into the page <head>;
@@ -363,6 +371,7 @@ function parseComponentBody(c: Cursor): ParsedComponent {
   const deriveds: ParsedComponent["deriveds"] = [];
   const lets: ParsedComponent["lets"] = [];
   const fns: ParsedComponent["fns"] = [];
+  const actions: ParsedComponent["actions"] = [];
   const props: ParsedProp[] = [];
   let view: ViewNode | null = null;
   let head: ViewNode[] | null = null;
@@ -419,6 +428,15 @@ function parseComponentBody(c: Cursor): ParsedComponent {
       inner.skipWs();
       const fbody = readBalanced(inner, "{", "}");
       fns.push({ name: fname, params, body: fbody });
+    } else if (inner.consumeKeyword("action")) {
+      inner.skipWs();
+      const aname = inner.matchIdent();
+      if (!aname) throw inner.err("expected action name");
+      inner.skipWs();
+      const params = readBalanced(inner, "(", ")");
+      inner.skipWs();
+      const abody = readBalanced(inner, "{", "}");
+      actions.push({ name: aname, params, body: abody });
     } else if (inner.consumeKeyword("view")) {
       inner.skipWs();
       const viewBody = readBalanced(inner, "{", "}");
@@ -436,7 +454,7 @@ function parseComponentBody(c: Cursor): ParsedComponent {
     } else {
       throw inner.err(
         "unknown declaration in component body",
-        "Inside a component body, the only valid statements are: `prop`, `state`, `derived`, `let`, `function`, `view`, `head`, `style`, and `load`. Plain JavaScript statements go inside a `function` block."
+        "Inside a component body, the only valid statements are: `prop`, `state`, `derived`, `let`, `function`, `action`, `view`, `head`, `style`, and `load`. Plain JavaScript statements go inside a `function` block."
       );
     }
   }
@@ -447,7 +465,7 @@ function parseComponentBody(c: Cursor): ParsedComponent {
       { offset: 0, source: c.src, hint: "Every component needs a `view { <root/> }` block describing what to render." }
     );
   }
-  return { name, props, states, deriveds, lets, fns, view, head, style, load };
+  return { name, props, states, deriveds, lets, fns, actions, view, head, style, load };
 }
 
 function parseHeadFragment(src: string): ViewNode[] {

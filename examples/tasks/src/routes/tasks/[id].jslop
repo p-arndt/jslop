@@ -1,4 +1,4 @@
-import { updateTask, deleteTask } from "../../api.js"
+import { redirect } from "@jslop/runtime"
 
 component TaskDetail {
   prop id = ""
@@ -13,10 +13,27 @@ component TaskDetail {
   }
 
   load {
-    const { getTask } = await import(/* @vite-ignore */ "../../store.js")
+    const { getTask } = await import("../../store.js")
     const task = await getTask(params.id)
     if (!task) notFound()
     return { task }
+  }
+
+  action save(patch) {
+    const { updateTask } = await import("../../store.js")
+    return await updateTask(params.id, patch)
+  }
+
+  action setStatus(status) {
+    const { updateTask } = await import("../../store.js")
+    return await updateTask(params.id, { status })
+  }
+
+  action remove() {
+    const { deleteTask } = await import("../../store.js")
+    await deleteTask(params.id)
+    // After deletion, the current URL would 404. Hop to the inbox instead.
+    redirect("/")
   }
 
   function onTitleInput(e) {
@@ -29,21 +46,21 @@ component TaskDetail {
     savingDirty = title.trim() !== task.title || priority !== task.priority
   }
 
-  function save(e) {
+  function onSave(e) {
     e.preventDefault()
     if (!savingDirty) return
-    updateTask(task.id, { title: title.trim(), priority })
+    save({ title: title.trim(), priority })
   }
 
   function cycle() {
     const order = ["todo", "doing", "done"]
     const next = order[(order.indexOf(task.status) + 1) % order.length]
-    updateTask(task.id, { status: next })
+    setStatus(next)
   }
 
-  function remove() {
+  function onRemove() {
     if (!confirm(`Delete "${task.title}"?`)) return
-    deleteTask(task.id, "/")
+    remove()
   }
 
   view {
@@ -57,7 +74,7 @@ component TaskDetail {
         <h1 class="text-2xl font-bold tracking-tight">{task.title}</h1>
       </section>
 
-      <form onsubmit={save} class="space-y-5 rounded-lg ring-line bg-white p-5">
+      <form onsubmit={onSave} class="space-y-5 rounded-lg ring-line bg-white p-5">
         <label class="block space-y-2">
           <span class="text-xs uppercase tracking-wider text-[var(--color-ink-muted)]">Title</span>
           <input
@@ -98,7 +115,7 @@ component TaskDetail {
           <span class="flex-1"></span>
           <button
             type="button"
-            onclick={remove}
+            onclick={onRemove}
             class="px-4 py-2 rounded-md text-sm text-[var(--color-ink-muted)] hover:text-[#b1283e] hover:bg-[#fee2e2]"
           >
             Delete
