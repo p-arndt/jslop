@@ -69,6 +69,81 @@ const BOOLEAN_ATTRS = new Set([
   "open", "reversed", "default",
 ]);
 
+// Attributes whose values are URLs. Values rendered into these attributes are
+// passed through `safeUrl()` so that `javascript:` / `data:` / `vbscript:` and
+// other script-bearing schemes can never reach the browser's URL parser. The
+// list is the set of standard URL-bearing HTML attributes; if a future feature
+// introduces a new URL attribute, add it here.
+const URL_ATTRS = new Set([
+  "href", "src", "action", "formaction", "poster", "data",
+  "background", "cite", "longdesc", "manifest", "ping", "srcdoc",
+  "usemap", "icon", "xlink:href",
+]);
+
+// Tags forbidden inside head fragments — these are raw-text / script-bearing
+// elements where naïve string escaping is insufficient. Authors who need
+// inline JS/CSS must inject it through opts.head with their own escaping.
+const FORBIDDEN_HEAD_TAGS = new Set([
+  "script", "style", "noscript", "iframe", "object", "embed",
+]);
+
+// HTML attribute names must match this pattern. Used as a defense-in-depth
+// guard against any future codepath that lets a template/spread produce an
+// arbitrary attribute name. Permissive enough to cover real attributes
+// (`data-*`, `aria-*`, `xlink:href`) but rejects whitespace, quotes, `=`, `/`,
+// `>`, etc., that would let a name break out of the attribute syntax.
+const SAFE_ATTR_NAME = /^[A-Za-z_:][A-Za-z0-9_:.\-]*$/;
+
+function isSafeAttrName(name: string): boolean {
+  return SAFE_ATTR_NAME.test(name);
+}
+
+/**
+ * Filter a URL destined for an HTML URL attribute (href/src/action/…). Any
+ * scheme that isn't a known-safe data scheme is replaced with `about:blank`
+ * so that an attacker-controlled value cannot execute script via
+ * `javascript:`, `vbscript:`, `data:text/html`, etc.
+ *
+ * Allowed:
+ *   - Relative URLs (no scheme), including protocol-relative `//host/…`,
+ *     fragment-only `#x`, query-only `?x`, absolute paths `/x`.
+ *   - http: / https: / mailto: / tel: / ftp: / sms:
+ *   - data:image/* (common safe use case for inline images/favicons).
+ * Everything else (including any `javascript:` form, leading whitespace
+ * tricks, control-character smuggling) is neutralized.
+ */
+function safeUrl(input: string): string {
+  // Strip control characters (\x00-\x1F and \x7F) which browsers historically
+  // tolerate inside the scheme and which can be used to disguise `javascript:`
+  // as `java\tscript:` etc. Then trim surrounding whitespace.
+  // eslint-disable-next-line no-control-regex
+  const cleaned = input.replace(/[\x00-\x1F\x7F]/g, "").trim();
+  if (cleaned === "") return "";
+  // Relative URL: no scheme. The first character is not an ASCII letter, or
+  // there is no `:` before the first `/`, `?`, or `#`.
+  const schemeMatch = /^([A-Za-z][A-Za-z0-9+.\-]*):/.exec(cleaned);
+  if (!schemeMatch) return cleaned;
+  const scheme = schemeMatch[1]!.toLowerCase();
+  if (scheme === "http" || scheme === "https" || scheme === "mailto" ||
+      scheme === "tel" || scheme === "ftp" || scheme === "sms") {
+    return cleaned;
+  }
+  if (scheme === "data") {
+    // Only allow image data: URLs (common for favicons / inline thumbnails).
+    // Block `data:text/html`, `data:application/*`, etc., which can execute
+    // script via top-level navigation or iframe srcdoc-like contexts.
+    if (/^data:image\/(png|jpe?g|gif|webp|avif|svg\+xml|x-icon|vnd\.microsoft\.icon)[;,]/i.test(cleaned)) {
+      // SVG can contain script — refuse svg+xml unless explicitly base64-encoded
+      // and even then it's risky in some contexts, but base64-svg via <img>
+      // is generally safe. We allow it; authors using it in <object>/<iframe>
+      // are accepting the risk.
+      return cleaned;
+    }
+    return "about:blank";
+  }
+  return "about:blank";
+}
+
 export function renderComponent(
   component: JSlopComponent,
   props: Record<string, unknown> = {},
@@ -109,11 +184,22 @@ function renderHeadNode(node: RenderNode): string {
   if (node.kind === "text") return escapeHtml(node.value);
   if (node.kind === "bind") return escapeHtml(node.get());
   if (node.kind === "element") {
+    // Raw-text / script-bearing elements need context-specific escaping
+    // that plain HTML escaping doesn't provide. Forbid them in head fragments;
+    // authors who need them can inject via opts.head with their own escaping.
+    if (FORBIDDEN_HEAD_TAGS.has(node.tag.toLowerCase())) {
+      throw new Error(
+        `head fragments may not contain <${node.tag}> — inject it via opts.head with explicit escaping`
+      );
+    }
     const attrParts: string[] = [];
     for (const [k, v] of Object.entries(node.attrs)) {
-      if (typeof v === "string") attrParts.push(`${k}="${escapeAttr(v)}"`);
-      else if (v.kind === "bind") attrParts.push(`${k}="${escapeAttr(v.get())}"`);
-      else if (v.kind === "prop") attrParts.push(`${k}="${escapeAttr(String(v.get() ?? ""))}"`);
+      if (!isSafeAttrName(k)) continue;
+      const isUrl = URL_ATTRS.has(k.toLowerCase());
+      const filter = (raw: string) => escapeAttr(isUrl ? safeUrl(raw) : raw);
+      if (typeof v === "string") attrParts.push(`${k}="${filter(v)}"`);
+      else if (v.kind === "bind") attrParts.push(`${k}="${filter(v.get())}"`);
+      else if (v.kind === "prop") attrParts.push(`${k}="${filter(String(v.get() ?? ""))}"`);
     }
     const open = `<${node.tag}${attrParts.length ? " " + attrParts.join(" ") : ""}>`;
     if (VOID_ELEMENTS.has(node.tag)) return open;
@@ -231,11 +317,18 @@ function renderElement(
 ): string {
   const attrParts: string[] = [];
   for (const [k, v] of Object.entries(node.attrs)) {
+    // Reject any attribute name that contains characters which could break
+    // out of the `name="value"` syntax. The compiler today only emits valid
+    // identifiers, but this is defense-in-depth against future spread/
+    // computed-attribute features.
+    if (!isSafeAttrName(k)) continue;
+    const isUrl = URL_ATTRS.has(k.toLowerCase());
+    const filter = (raw: string) => escapeAttr(isUrl ? safeUrl(raw) : raw);
     if (typeof v === "string") {
-      attrParts.push(`${k}="${escapeAttr(v)}"`);
+      attrParts.push(`${k}="${filter(v)}"`);
     } else if (v.kind === "bind") {
       const val = v.get();
-      attrParts.push(`${k}="${escapeAttr(val)}" data-jslop-attr-${k}=""`);
+      attrParts.push(`${k}="${filter(val)}" data-jslop-attr-${k}=""`);
     } else {
       // kind: "prop" — boolean attributes render presence-based, others
       // stringify their value into the attribute.
@@ -243,11 +336,16 @@ function renderElement(
       if (BOOLEAN_ATTRS.has(k)) {
         if (val) attrParts.push(`${k}="" data-jslop-prop-${k}=""`);
       } else {
-        attrParts.push(`${k}="${escapeAttr(String(val ?? ""))}" data-jslop-prop-${k}=""`);
+        attrParts.push(`${k}="${filter(String(val ?? ""))}" data-jslop-prop-${k}=""`);
       }
     }
   }
   for (const evt of Object.keys(node.events)) {
+    // Event names are emitted into the attribute *name* position
+    // (`data-jslop-on-<evt>`), so they must be strictly validated. Only
+    // lowercase alphanumeric plus the `:` namespace separator used by
+    // bind:value etc. is allowed.
+    if (!/^[a-z][a-z0-9]*(?::[a-z0-9]+)*$/.test(evt)) continue;
     attrParts.push(`data-jslop-on-${evt}=""`);
   }
   if (marker.cid) {
@@ -283,10 +381,11 @@ export function renderPage(opts: {
           layoutProps: opts.layoutProps ?? {},
         })
       : renderComponent(opts.component, opts.props ?? {});
-  const capsuleJson = JSON.stringify(capsule).replace(/</g, "\\u003c");
+  const capsuleJson = serializeForScript(capsule);
   const linkTags = (opts.stylesheets ?? [])
-    .map((href) => `<link rel="stylesheet" href="${escapeAttr(href)}">`)
+    .map((href) => `<link rel="stylesheet" href="${escapeAttr(safeUrl(href))}">`)
     .join("");
+  const appScriptUrl = escapeAttr(safeUrl(opts.appScriptUrl));
   const extraHead = opts.head ?? "";
   // If the component emitted its own <title>, use it as the document title and
   // suppress the fallback (browsers honor the *last* <title>, but emitting two
@@ -314,7 +413,7 @@ ${fallbackTitle}${linkTags}${componentStyles}${componentHead}${extraHead}</head>
 <body>
 <div id="app">${html}</div>
 <script type="application/jslop+json" id="__jslop_capsule">${capsuleJson}</script>
-<script type="module" src="${opts.appScriptUrl}"></script>
+<script type="module" src="${appScriptUrl}"></script>
 </body>
 </html>`;
 }
@@ -330,5 +429,28 @@ function escapeAttr(s: string): string {
   return s
     .replace(/&/g, "&amp;")
     .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;");
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/**
+ * Serialize a value for embedding inside a `<script>` tag. Escapes:
+ *   - `<` → < so `</script>` cannot break out of the script element.
+ *   - `>` → > for symmetry / belt-and-braces against parser quirks.
+ *   - `&` → & so HTML entity decoding in attribute-like contexts is inert.
+ *   - U+2028 / U+2029 →  /  so the JSON remains a valid JS string
+ *     literal if the embedding context is ever changed to `text/javascript`.
+ *
+ * The capsule is embedded in `<script type="application/jslop+json">` today,
+ * which browsers treat as inert data — but this serializer is also safe for
+ * future call sites that embed JSON into JS contexts directly.
+ */
+function serializeForScript(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(//g, "\\u2028")
+    .replace(//g, "\\u2029");
 }
