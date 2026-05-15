@@ -237,10 +237,15 @@ function readBalanced(c: Cursor, open: string, close: string): string {
       const q = ch;
       c.i++;
       while (!c.eof() && c.peek() !== q) {
+        // JS '/" strings cannot contain raw newlines. If we hit one, the
+        // quote was JSX text (e.g. "You've") not a string opener — bail
+        // out and resume brace counting from here. Template literals can
+        // span lines, so the rule only applies to '/".
+        if (q !== "`" && c.peek() === "\n") break;
         if (c.peek() === "\\") c.i++;
         c.i++;
       }
-      c.i++;
+      if (!c.eof() && c.peek() === q) c.i++;
     } else if (ch === "/" && c.peek(1) === "/") {
       while (!c.eof() && c.peek() !== "\n") c.i++;
     } else if (ch === open) { depth++; c.i++; }

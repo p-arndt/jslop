@@ -1,8 +1,14 @@
 {
   "name": "@jslop/vite",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Vite plugin for JSlop. Compiles .jslop modules, provides the dev SSR middleware, exposes virtual route/client entries, and wires the two-pass production build.",
-  "keywords": ["jslop", "vite", "vite-plugin", "ssr", "framework"],
+  "keywords": [
+    "jslop",
+    "vite",
+    "vite-plugin",
+    "ssr",
+    "framework"
+  ],
   "license": "MIT",
   "author": "p-arndt",
   "homepage": "https://github.com/p-arndt/jslop#readme",
@@ -12,7 +18,9 @@
     "directory": "packages/vite"
   },
   "bugs": "https://github.com/p-arndt/jslop/issues",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,8 +30,13 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepublishOnly": "pnpm build"
@@ -41,8 +54,12 @@
     "tailwindcss": "^4.0.0"
   },
   "peerDependenciesMeta": {
-    "@tailwindcss/vite": { "optional": true },
-    "tailwindcss": { "optional": true }
+    "@tailwindcss/vite": {
+      "optional": true
+    },
+    "tailwindcss": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^25.7.0",

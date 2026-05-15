@@ -1,8 +1,14 @@
 {
   "name": "@jslop/router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "File-based router for JSlop apps. Scans a routes directory, matches URLs with [param] segments, composes _layout.jslop chains, and orchestrates per-route load() loaders.",
-  "keywords": ["jslop", "router", "file-based", "layouts", "framework"],
+  "keywords": [
+    "jslop",
+    "router",
+    "file-based",
+    "layouts",
+    "framework"
+  ],
   "license": "MIT",
   "author": "p-arndt",
   "homepage": "https://github.com/p-arndt/jslop#readme",
@@ -12,7 +18,9 @@
     "directory": "packages/router"
   },
   "bugs": "https://github.com/p-arndt/jslop/issues",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "sideEffects": false,
   "type": "module",
   "main": "./dist/index.js",
@@ -23,8 +31,13 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepublishOnly": "pnpm build"

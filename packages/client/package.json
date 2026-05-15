@@ -1,8 +1,14 @@
 {
   "name": "@jslop/client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Browser runtime for JSlop. Boots from the SSR state capsule, walks the view tree, attaches event handlers, and reconciles keyed/unkeyed lists.",
-  "keywords": ["jslop", "client", "hydration", "ssr", "framework"],
+  "keywords": [
+    "jslop",
+    "client",
+    "hydration",
+    "ssr",
+    "framework"
+  ],
   "license": "MIT",
   "author": "p-arndt",
   "homepage": "https://github.com/p-arndt/jslop#readme",
@@ -12,7 +18,9 @@
     "directory": "packages/client"
   },
   "bugs": "https://github.com/p-arndt/jslop/issues",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,8 +30,13 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepublishOnly": "pnpm build"

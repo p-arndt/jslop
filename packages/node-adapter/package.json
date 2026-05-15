@@ -1,8 +1,14 @@
 {
   "name": "@jslop/node-adapter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Node.js adapter for JSlop production builds. Serves the SSR render() bundle plus static assets from dist/client with long-cache headers for hashed files.",
-  "keywords": ["jslop", "node", "adapter", "ssr", "framework"],
+  "keywords": [
+    "jslop",
+    "node",
+    "adapter",
+    "ssr",
+    "framework"
+  ],
   "license": "MIT",
   "author": "p-arndt",
   "homepage": "https://github.com/p-arndt/jslop#readme",
@@ -12,7 +18,9 @@
     "directory": "packages/node-adapter"
   },
   "bugs": "https://github.com/p-arndt/jslop/issues",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,8 +30,13 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepublishOnly": "pnpm build"

@@ -1,8 +1,14 @@
 {
   "name": "create-jslop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Scaffold a new JSlop app. Run `npm create jslop@latest my-app` or `pnpm create jslop my-app`.",
-  "keywords": ["jslop", "create", "scaffold", "starter", "framework"],
+  "keywords": [
+    "jslop",
+    "create",
+    "scaffold",
+    "starter",
+    "framework"
+  ],
   "license": "MIT",
   "author": "p-arndt",
   "homepage": "https://github.com/p-arndt/jslop#readme",
@@ -12,13 +18,21 @@
     "directory": "packages/create-jslop"
   },
   "bugs": "https://github.com/p-arndt/jslop/issues",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "bin": {
     "create-jslop": "./dist/index.js"
   },
-  "files": ["dist", "templates", "README.md"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"import('node:fs').then(fs => fs.chmodSync('dist/index.js', 0o755))\"",
     "prepublishOnly": "pnpm build"
