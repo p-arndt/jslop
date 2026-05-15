@@ -1,6 +1,19 @@
 {
   "name": "@jslop/runtime",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Core reactive primitives (cell / derived / effect / batch / untrack / scopes) for the JSlop framework. Tiny, dependency-free, browser- and Node-friendly.",
+  "keywords": ["jslop", "reactive", "signals", "cell", "framework", "runtime"],
+  "license": "MIT",
+  "author": "p-arndt",
+  "homepage": "https://github.com/p-arndt/jslop#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/p-arndt/jslop.git",
+    "directory": "packages/runtime"
+  },
+  "bugs": "https://github.com/p-arndt/jslop/issues",
+  "engines": { "node": ">=20" },
+  "sideEffects": false,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,9 +27,11 @@
     },
     "./global": "./dist/jslop-runtime.global.min.js"
   },
-  "files": ["dist", "src"],
+  "files": ["dist", "README.md"],
+  "publishConfig": { "access": "public" },
   "scripts": {
-    "build": "tsc -p tsconfig.json && node build-cdn.mjs"
+    "build": "tsc -p tsconfig.json && node build-cdn.mjs",
+    "prepublishOnly": "pnpm build"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

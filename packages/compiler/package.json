@@ -1,6 +1,19 @@
 {
   "name": "@jslop/compiler",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Compiler for .jslop component files. Parses the DSL, AST-rewrites identifiers to reactive cell reads/writes, and emits JavaScript modules consumed by @jslop/server and @jslop/client.",
+  "keywords": ["jslop", "compiler", "dsl", "framework"],
+  "license": "MIT",
+  "author": "p-arndt",
+  "homepage": "https://github.com/p-arndt/jslop#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/p-arndt/jslop.git",
+    "directory": "packages/compiler"
+  },
+  "bugs": "https://github.com/p-arndt/jslop/issues",
+  "engines": { "node": ">=20" },
+  "sideEffects": false,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,9 +23,11 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "src"],
+  "files": ["dist", "README.md"],
+  "publishConfig": { "access": "public" },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "pnpm build"
   },
   "dependencies": {
     "acorn": "^8.14.0",

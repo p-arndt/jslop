@@ -1,0 +1,23 @@
+{
+  "name": "__PROJECT_NAME__",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && vite build --ssr",
+    "preview": "vite preview",
+    "serve": "node serve.mjs"
+  },
+  "dependencies": {
+    "@jslop/client": "__JSLOP_VERSION__",
+    "@jslop/node-adapter": "__JSLOP_VERSION__",
+    "@jslop/router": "__JSLOP_VERSION__",
+    "@jslop/runtime": "__JSLOP_VERSION__",
+    "@jslop/server": "__JSLOP_VERSION__"
+  },
+  "devDependencies": {
+    "@jslop/vite": "__JSLOP_VERSION__",
+    "vite": "^7.0.0"
+  }
+}

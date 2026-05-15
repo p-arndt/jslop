@@ -1,6 +1,18 @@
 {
   "name": "@jslop/server",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Server-side renderer for JSlop. Renders components to HTML and emits a serialized state capsule that @jslop/client consumes on hydration.",
+  "keywords": ["jslop", "ssr", "server", "framework"],
+  "license": "MIT",
+  "author": "p-arndt",
+  "homepage": "https://github.com/p-arndt/jslop#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/p-arndt/jslop.git",
+    "directory": "packages/server"
+  },
+  "bugs": "https://github.com/p-arndt/jslop/issues",
+  "engines": { "node": ">=20" },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,12 +22,14 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "src"],
+  "files": ["dist", "README.md"],
+  "publishConfig": { "access": "public" },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "pnpm build"
   },
   "dependencies": {
-    "@jslop/runtime": "workspace:*"
+    "@jslop/runtime": "workspace:^"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

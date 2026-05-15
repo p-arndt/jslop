@@ -9,9 +9,13 @@
     "dev:counter": "pnpm --filter @jslop/example-counter run dev",
     "dev:neon": "pnpm --filter @jslop/example-neon-lab run dev",
     "dev:tasks": "pnpm --filter @jslop/example-tasks run dev",
-    "bench": "pnpm --filter @jslop/benchmarks run bench"
+    "bench": "pnpm --filter @jslop/benchmarks run bench",
+    "changeset": "changeset",
+    "version-packages": "changeset version && pnpm install --lockfile-only",
+    "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.31.0",
     "esbuild": "^0.24.0",
     "typescript": "^5.6.3"
   },

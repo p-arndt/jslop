@@ -1,6 +1,18 @@
 {
   "name": "@jslop/vite",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Vite plugin for JSlop. Compiles .jslop modules, provides the dev SSR middleware, exposes virtual route/client entries, and wires the two-pass production build.",
+  "keywords": ["jslop", "vite", "vite-plugin", "ssr", "framework"],
+  "license": "MIT",
+  "author": "p-arndt",
+  "homepage": "https://github.com/p-arndt/jslop#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/p-arndt/jslop.git",
+    "directory": "packages/vite"
+  },
+  "bugs": "https://github.com/p-arndt/jslop/issues",
+  "engines": { "node": ">=20" },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,16 +22,18 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "src"],
+  "files": ["dist", "README.md"],
+  "publishConfig": { "access": "public" },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "pnpm build"
   },
   "dependencies": {
-    "@jslop/client": "workspace:*",
-    "@jslop/compiler": "workspace:*",
-    "@jslop/router": "workspace:*",
-    "@jslop/runtime": "workspace:*",
-    "@jslop/server": "workspace:*"
+    "@jslop/client": "workspace:^",
+    "@jslop/compiler": "workspace:^",
+    "@jslop/router": "workspace:^",
+    "@jslop/runtime": "workspace:^",
+    "@jslop/server": "workspace:^"
   },
   "peerDependencies": {
     "vite": "^5.0.0 || ^6.0.0 || ^7.0.0",

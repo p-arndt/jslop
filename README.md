@@ -202,6 +202,10 @@ JSlop is pre-1.0 and the API surface is still moving. If you want to hack on it:
 
 Each package has its own README explaining what it does and how it's tested.
 
+### Cutting a release
+
+The publish flow (first `0.1.0`, subsequent Changesets-driven releases, troubleshooting) lives in [`docs/publishing.md`](./docs/publishing.md).
+
 ---
 
 ## License
