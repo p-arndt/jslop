@@ -91,11 +91,84 @@ class Cursor {
     this.i += m[0].length;
     return m[0];
   }
-  err(msg: string): Error {
-    const before = this.src.slice(Math.max(0, this.i - 30), this.i);
-    const after = this.src.slice(this.i, this.i + 30);
-    return new Error(`Parse error at offset ${this.i}: ${msg}\n... ${before}<HERE>${after} ...`);
+  err(msg: string, hint?: string): JSlopParseError {
+    return new JSlopParseError(msg, { offset: this.i, source: this.src, hint });
   }
+}
+
+/**
+ * Structured parse error. Carries the offset into the *source string the parser
+ * was working on* (which may be a sub-slice of the original file body — see the
+ * `source` field) plus an optional `hint` with a remediation suggestion.
+ *
+ * To turn one of these into a human-friendly file:line:col + code-frame
+ * message, call `formatParseError(err, originalSource, filename?)`.
+ */
+export class JSlopParseError extends Error {
+  offset: number;
+  hint: string | undefined;
+  source: string;
+  constructor(msg: string, opts: { offset: number; source: string; hint?: string }) {
+    super(msg);
+    this.name = "JSlopParseError";
+    this.offset = opts.offset;
+    this.source = opts.source;
+    this.hint = opts.hint;
+  }
+}
+
+function offsetToLineCol(src: string, offset: number): { line: number; column: number } {
+  const clamped = Math.max(0, Math.min(offset, src.length));
+  let line = 1, column = 1;
+  for (let i = 0; i < clamped; i++) {
+    if (src.charCodeAt(i) === 10) { line++; column = 1; }
+    else column++;
+  }
+  return { line, column };
+}
+
+function codeFrame(src: string, line: number, column: number): string {
+  const lines = src.split("\n");
+  const start = Math.max(1, line - 2);
+  const end = Math.min(lines.length, line + 2);
+  const gutter = String(end).length;
+  const out: string[] = [];
+  for (let n = start; n <= end; n++) {
+    const marker = n === line ? ">" : " ";
+    const num = String(n).padStart(gutter, " ");
+    out.push(`${marker} ${num} | ${lines[n - 1] ?? ""}`);
+    if (n === line) {
+      const pad = " ".repeat(gutter + 2 + 1 + Math.max(0, column - 1));
+      out.push(`  ${" ".repeat(gutter)} | ${" ".repeat(Math.max(0, column - 1))}^`);
+      void pad;
+    }
+  }
+  return out.join("\n");
+}
+
+/**
+ * Render a `JSlopParseError` as a file:line:col message with a code frame and
+ * (when present) a hint. The `source` argument should be the full original file
+ * text — the formatter resolves the error's offset against it directly when the
+ * error came from the top-level parser, or falls back to the error's own
+ * captured slice when it came from an inner cursor (e.g. a component body).
+ */
+export function formatParseError(err: JSlopParseError, source: string, filename?: string): string {
+  // Inner cursors parse a sub-slice (e.g. a component body). Their offsets
+  // index into that slice, not the original source. Detect this by checking
+  // whether the error's captured `source` matches the file source — if not,
+  // resolve the error against its own slice and label coordinates accordingly.
+  const useSource = source.includes(err.source) ? source : err.source;
+  let absoluteOffset = err.offset;
+  if (useSource === source && err.source !== source) {
+    const idx = source.indexOf(err.source);
+    if (idx >= 0) absoluteOffset = idx + err.offset;
+  }
+  const { line, column } = offsetToLineCol(useSource, absoluteOffset);
+  const fname = filename ?? "<input>";
+  const head = `${fname}:${line}:${column}: ${err.message}`;
+  const frame = codeFrame(useSource, line, column);
+  return err.hint ? `${head}\n\n${frame}\n\nhint: ${err.hint}` : `${head}\n\n${frame}`;
 }
 
 // Read a declaration initializer that ends at a top-level newline or ';'. Tracks
@@ -174,7 +247,12 @@ function readBalanced(c: Cursor, open: string, close: string): string {
     else if (ch === close) { depth--; c.i++; }
     else c.i++;
   }
-  if (depth !== 0) throw c.err(`unbalanced ${open}${close}`);
+  if (depth !== 0) {
+    throw c.err(
+      `unbalanced '${open}…${close}' — reached end of input with ${depth} unclosed '${open}'`,
+      `Check for a missing '${close}'. Counts can also drift if a string literal is unterminated.`
+    );
+  }
   return c.src.slice(start, c.i - 1);
 }
 
@@ -233,11 +311,16 @@ export function parseFile(src: string): ParsedFile {
   while (true) {
     c.skipWs();
     if (c.eof()) break;
-    if (!c.consumeKeyword("component")) throw c.err("expected 'component'");
+    if (!c.consumeKeyword("component")) {
+      throw c.err(
+        "expected 'component' at top level",
+        "JSlop files contain `import` lines followed by one or more `component Name { … }` blocks. Each file must declare at least one component."
+      );
+    }
     components.push(parseComponentBody(c));
   }
 
-  if (components.length === 0) throw new Error("file must declare at least one component");
+  if (components.length === 0) throw new JSlopParseError("file must declare at least one component", { offset: 0, source: src });
   return { imports, components };
 }
 
@@ -346,11 +429,19 @@ function parseComponentBody(c: Cursor): ParsedComponent {
       inner.skipWs();
       load = readBalanced(inner, "{", "}");
     } else {
-      throw inner.err("unknown declaration; expected 'prop', 'state', 'derived', 'let', 'function', 'view', 'head', 'style', or 'load'");
+      throw inner.err(
+        "unknown declaration in component body",
+        "Inside a component body, the only valid statements are: `prop`, `state`, `derived`, `let`, `function`, `view`, `head`, `style`, and `load`. Plain JavaScript statements go inside a `function` block."
+      );
     }
   }
 
-  if (!view) throw new Error(`component ${name} missing view`);
+  if (!view) {
+    throw new JSlopParseError(
+      `component ${name} missing view`,
+      { offset: 0, source: c.src, hint: "Every component needs a `view { <root/> }` block describing what to render." }
+    );
+  }
   return { name, props, states, deriveds, lets, fns, view, head, style, load };
 }
 
@@ -528,7 +619,12 @@ function parseChildrenUntil(c: Cursor, isEnd: (c: Cursor) => boolean, parentTag:
         const endMatch = /^[A-Za-z][A-Za-z0-9-]*/.exec(c.rest());
         if (!endMatch) throw c.err("expected closing tag name");
         c.i += endMatch[0].length;
-        if (endMatch[0] !== parentTag) throw c.err(`closing tag mismatch: ${endMatch[0]} vs ${parentTag}`);
+        if (endMatch[0] !== parentTag) {
+          throw c.err(
+            `closing tag </${endMatch[0]}> does not match opening <${parentTag}>`,
+            `Tags must be balanced. Either close <${parentTag}> with </${parentTag}>, or self-close it as <${parentTag}/>.`
+          );
+        }
         c.skipWs();
         c.expect(">");
       }
@@ -558,7 +654,12 @@ function parseChildrenUntil(c: Cursor, isEnd: (c: Cursor) => boolean, parentTag:
     buf += c.peek();
     c.i++;
   }
-  if (parentTag !== null) throw c.err(`unterminated children of <${parentTag}>`);
+  if (parentTag !== null) {
+    throw c.err(
+      `unterminated children of <${parentTag}> — reached end of input without finding </${parentTag}>`,
+      `Did you forget to close <${parentTag}>, or are you missing a {/if} or {/each} block inside it?`
+    );
+  }
   return out;
 }
 

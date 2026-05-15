@@ -84,9 +84,11 @@ test("serializeState covers state but not let", () => {
   assert.doesNotMatch(out, /"cache" in s/);
 });
 
-test("unknown declaration mentions state and let", () => {
+test("unknown declaration mentions state and let in its hint", () => {
   assert.throws(
     () => parseComponent(`component X { bogus foo = 1; view { <p/> } }`),
-    /'prop', 'state', 'derived', 'let'/
+    (err) =>
+      /unknown declaration/.test(err.message) &&
+      /`prop`, `state`, `derived`, `let`/.test(err.hint ?? "")
   );
 });

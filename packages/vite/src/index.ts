@@ -70,7 +70,7 @@ export default function jslop(opts: JSlopPluginOptions = {}): PluginOption[] {
     enforce: "pre",
     transform(code, id) {
       if (!id.endsWith(".jslop")) return null;
-      const out = compile(code, { compiledExtension: ".jslop" });
+      const out = compile(code, { compiledExtension: ".jslop", filename: id });
       return { code: out, map: null };
     },
   };
