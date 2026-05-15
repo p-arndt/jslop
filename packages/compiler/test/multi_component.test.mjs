@@ -50,10 +50,14 @@ test("named import syntax is parsed and re-emitted", () => {
 test("default + named combined import is supported", () => {
   const file = parseFile(`
     import Page, { Display } from './widgets.jslop'
-    component X { view { <p/> } }
+    component X { view { <div><Page/><Display/></div> } }
   `);
   assert.equal(file.imports[0].defaultName, "Page");
   assert.deepEqual(file.imports[0].named, [{ imported: "Display", local: "Display" }]);
+  // Use ssr:true here so client-mode import elision (which would drop unused
+  // bindings) doesn't second-guess the test's intent. The references inside
+  // the view above keep both names live in client mode too — verified
+  // separately.
   const out = generate(file);
   assert.match(out, /import Page, \{ Display \} from "\.\/widgets\.compiled\.mjs";/);
 });

@@ -1,3 +1,5 @@
+import { listTasks, createTask, updateTask, deleteTask } from "../store.js"
+
 component Inbox {
   prop tasks = []
   prop activeStatus = "all"
@@ -12,7 +14,6 @@ component Inbox {
   }
 
   load {
-    const { listTasks } = await import("../store.js")
     const wantStatus = url.searchParams.get("status") ?? "all"
     const all = await listTasks()
     const tasks = wantStatus === "all" ? all : all.filter(t => t.status === wantStatus)
@@ -20,7 +21,6 @@ component Inbox {
   }
 
   action create(input) {
-    const { createTask } = await import("../store.js")
     return await createTask(input)
   }
 
@@ -159,16 +159,13 @@ component TaskRow {
     .del:hover { color: #b1283e; background: #fee2e2; }
   }
 
-  // Actions live on the Inbox route, not here. Inline mutations on a row
-  // are wired through the row's own `setStatus` / `remove` actions below,
-  // which the framework compiles into the same per-route endpoint.
+  // Inline mutations on a row are wired through the row's own `setStatus` /
+  // `remove` actions, which compile into the same per-route POST endpoint.
   action setStatus(id, status) {
-    const { updateTask } = await import("../store.js")
     return await updateTask(id, { status })
   }
 
   action remove(id) {
-    const { deleteTask } = await import("../store.js")
     await deleteTask(id)
   }
 

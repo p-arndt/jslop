@@ -1,4 +1,5 @@
 import { redirect } from "@jslop/runtime"
+import { getTask, updateTask, deleteTask } from "../../store.js"
 
 component TaskDetail {
   prop id = ""
@@ -13,24 +14,20 @@ component TaskDetail {
   }
 
   load {
-    const { getTask } = await import("../../store.js")
     const task = await getTask(params.id)
     if (!task) notFound()
     return { task }
   }
 
   action save(patch) {
-    const { updateTask } = await import("../../store.js")
     return await updateTask(params.id, patch)
   }
 
   action setStatus(status) {
-    const { updateTask } = await import("../../store.js")
     return await updateTask(params.id, { status })
   }
 
   action remove() {
-    const { deleteTask } = await import("../../store.js")
     await deleteTask(params.id)
     // After deletion, the current URL would 404. Hop to the inbox instead.
     redirect("/")

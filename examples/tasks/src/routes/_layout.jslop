@@ -1,3 +1,5 @@
+import { listTasks } from "../store.js"
+
 component Layout {
   prop counts = { all: 0, todo: 0, doing: 0, done: 0 }
 
@@ -52,7 +54,6 @@ component Layout {
   }
 
   load {
-    const { listTasks } = await import(/* @vite-ignore */ "../store.js")
     const tasks = await listTasks()
     const counts = { all: tasks.length, todo: 0, doing: 0, done: 0 }
     for (const t of tasks) counts[t.status] = (counts[t.status] ?? 0) + 1

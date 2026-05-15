@@ -36,7 +36,17 @@ export function generate(input: ParsedFile | ParsedComponent, opts: CodegenOptio
   const file: ParsedFile =
     "components" in input ? input : { imports: [], components: [input] };
 
-  const importLines = file.imports.map((imp) => emitImport(imp, compiledExt)).join("\n");
+  // For client-mode builds, elide any import binding that's only used inside
+  // server-only blocks (load / action). This is what makes
+  //   import { createTask } from "../store.js"
+  //   action create(input) { return await createTask(input) }
+  // ergonomic: the static import vanishes from the client bundle so the
+  // server-only module (and its node:* friends) never leak into the browser.
+  // Conservative on purpose — when a name is used in *any* client-reachable
+  // position (function bodies, view, state/derived/let inits, prop defaults),
+  // the binding stays.
+  const filteredImports = ssr ? file.imports : elideServerOnlyImports(file);
+  const importLines = filteredImports.map((imp) => emitImport(imp, compiledExt)).join("\n");
 
   const styleRegistrations: string[] = [];
   const blocks = file.components
@@ -549,6 +559,111 @@ function scopeCss(css: string, scope: string): string {
 
   processBlock("");
   return out.join("");
+}
+
+/**
+ * Strip import bindings that are only referenced inside server-only blocks
+ * (`load`, `action`). Detection is occurrence-based using word-boundary regex
+ * over each scope's source: if a binding's local name shows up anywhere in
+ * client-reachable code (function bodies, view expressions, prop defaults,
+ * state/derived/let initializers), the binding is preserved. Otherwise the
+ * binding is dropped from the import. An import whose every binding is dropped
+ * is removed entirely.
+ *
+ * False positives only keep an import alive (a name in a comment or string
+ * inside a function body would conservatively pin its import), which is the
+ * safe direction — we'd rather ship an extra import than break a build.
+ */
+function elideServerOnlyImports(file: ParsedFile): ParsedImport[] {
+  if (file.imports.length === 0) return file.imports;
+
+  // Pool every chunk of source that runs on the client. Headers are markup
+  // (their {expr} are reactive) and styles never reference JS bindings, so
+  // they're excluded — but a head fragment's expression text isn't directly
+  // accessible here, so we treat the whole head node's interpolation list as
+  // client-reachable to be conservative. We don't actually walk head/view
+  // trees per-node; the pooled source already covers them via init/body
+  // strings the parser captured.
+  const clientChunks: string[] = [];
+  for (const c of file.components) {
+    for (const p of c.props) if (p.defaultExpr) clientChunks.push(p.defaultExpr);
+    for (const s of c.states) clientChunks.push(s.init);
+    for (const d of c.deriveds) clientChunks.push(d.init);
+    for (const l of c.lets) clientChunks.push(l.init);
+    for (const f of c.fns) clientChunks.push(f.body);
+    // View and head trees — serialize to string for a coarse occurrence check.
+    clientChunks.push(serializeViewForScan(c.view));
+    if (c.head) for (const n of c.head) clientChunks.push(serializeViewForScan(n));
+  }
+  const clientPool = clientChunks.join("\n");
+
+  const usedClientSide = (local: string): boolean => {
+    const re = new RegExp(`(?<![A-Za-z0-9_$])${escapeRegex(local)}(?![A-Za-z0-9_$])`);
+    return re.test(clientPool);
+  };
+
+  const out: ParsedImport[] = [];
+  for (const imp of file.imports) {
+    const keepDefault = imp.defaultName ? usedClientSide(imp.defaultName) : false;
+    const keepNamed = imp.named.filter((s) => usedClientSide(s.local));
+    if (!keepDefault && keepNamed.length === 0) continue;
+    out.push({
+      defaultName: keepDefault ? imp.defaultName : null,
+      named: keepNamed,
+      path: imp.path,
+    });
+  }
+  return out;
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Flatten a view subtree into a string for binding-name occurrence checks.
+ * Attribute/event/expr/text payloads are joined together; the structural
+ * wrappers (`<tag>`, kind names) don't matter for identifier detection.
+ */
+function serializeViewForScan(node: ViewNode): string {
+  if (node.kind === "text") return node.value;
+  if (node.kind === "expr") return node.expr;
+  if (node.kind === "children") return "";
+  if (node.kind === "if") {
+    return [
+      node.test,
+      ...node.consequent.map(serializeViewForScan),
+      ...node.alternate.map(serializeViewForScan),
+    ].join("\n");
+  }
+  if (node.kind === "each") {
+    return [
+      node.each,
+      node.key ?? "",
+      ...node.children.map(serializeViewForScan),
+    ].join("\n");
+  }
+  if (node.kind === "component") {
+    // Include the component's tag name itself: a PascalCase tag in the view
+    // is a binding reference (often to an import) and must pin its import in
+    // client-mode elision.
+    return [
+      node.name,
+      ...Object.values(node.props).map((v) => (v.startsWith("__expr:") ? v.slice("__expr:".length) : v)),
+      ...node.children.map(serializeViewForScan),
+    ].join("\n");
+  }
+  // element
+  const attrChunks = Object.values(node.attrs).map((v) =>
+    v.startsWith("__expr:") ? v.slice("__expr:".length) :
+    v.startsWith("__prop:") ? v.slice("__prop:".length) : v
+  );
+  const eventChunks = Object.values(node.events);
+  return [
+    ...attrChunks,
+    ...eventChunks,
+    ...node.children.map(serializeViewForScan),
+  ].join("\n");
 }
 
 /** Tiny FNV-1a 32-bit. Deterministic, dependency-free, good enough for css ids. */

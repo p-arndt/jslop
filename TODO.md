@@ -87,37 +87,57 @@ Honest status of what's built, what's broken, and what's missing. Compared again
 
 ## Server functions (the PLAN.md "killer protocol")
 
-- ❌ `server function rename(id, name) { ... }` syntax in `.jslop`
-- ❌ Compiler split: server bodies stripped from client bundle; replaced with typed RPC stubs
-- ❌ Transport: explicit action IDs, JSON-only, no executable payload (per PLAN's "boring protocol" stance after RSC RCE)
-- ❌ Built-in `requireUser()`, auth context plumbing
-- ❌ `invalidate(server_value)` for reactive refetch
+The interim `action` block (above) covers the untyped-stepping-stone shape:
+per-route POST endpoints, client stubs, auto-refresh, server-only import
+elision. The full PLAN.md item still adds:
+
+- ❌ `server function rename(id, name) { ... }` syntax — typed RPC at the
+  module level (not just per-route), with generated client signatures from the
+  server body's parameter types.
+- 🟡 Compiler split: server bodies stripped from client bundle. The action
+  block already does this for `.jslop` files (bodies stripped, imports
+  per-specifier elided when only used in `load`/`action`). Generalizing to
+  arbitrary modules / typed RPC stubs is the remaining work.
+- 🟡 Transport: explicit action IDs, JSON-only, no executable payload (per
+  PLAN's "boring protocol" stance after RSC RCE). The action dispatcher is
+  exactly this — JSON in, JSON out, name-as-header. Carries over to typed RPC.
+- ❌ Built-in `requireUser()`, auth context plumbing.
+- ❌ `invalidate(server_value)` for reactive refetch — today the action stub
+  forces a full HTML re-fetch.
 
 ### Interim: server-side mutation primitive
 
-The tasks demo (`examples/tasks/`) surfaced an obvious smaller gap on the way
-to server functions. Today, mutations live in `serve.mjs` as hand-written
-`/api/*` HTTP handlers plus a parallel dev middleware in `vite.config.mjs`,
-and the client calls them via a hand-written `src/api.js`. That's a lot of
-plumbing for the most common reason to have a server.
-
-- ❌ `action { create(input) { … } }` block declared inside a `.jslop` route
-  alongside `load`. Compiled into named POST endpoints, callable from the
-  client by name (`actions.create({...})`) without writing `/api/*` glue.
-- ❌ On success, auto re-runs the route's `load` so the page reflects the
-  mutation. (Today the tasks demo accomplishes this by calling
-  `navigate(window.location.pathname + window.location.search)` after each
-  mutation — workable but expensive: a full HTML round-trip per click.)
+- ✅ `action name(params) { ... }` declaration inside a `.jslop` route alongside
+  `load`. Compiled into a single POST endpoint per route, dispatched on header
+  `x-jslop-action: <name>`. Each declared action is callable from event handlers
+  as a bare name — the compiler emits a per-action client stub that POSTs to the
+  route URL. Server bodies see `{ params, url, request }`. Names share a single
+  per-route namespace; duplicates throw at compile time. Covered by 14
+  compiler tests (`action.test.mjs`).
+- ✅ Auto re-runs the route's `load` on success: the client stub calls
+  `navigate(currentURL, { push: false })` after the POST resolves. Same cost as
+  the previous hand-rolled HTML round-trip, but the user writes none of it.
+- ✅ `redirect(url)` primitive from `@jslop/runtime`. Throwing it from an action
+  body signals the dispatcher to respond `{ ok: true, redirect: url }`; the
+  client honors it with `navigate(url, { push: true })`. Used for the
+  delete-then-go-elsewhere pattern (would otherwise 404 the current route).
+- ✅ Split-bundling without the dynamic-`import()` dance: client-mode codegen
+  *elides* any import specifier that's only referenced from `load` / `action`
+  bodies. So `import { createTask } from "../store.js"` at the top of a route
+  works — the import disappears from the client bundle along with everything
+  it transitively reaches. `examples/tasks/` is migrated; the previous
+  `src/api.js`, hand-written `/api/*` handlers in `serve.mjs`, and the parallel
+  dev middleware in `vite.config.mjs` are all deleted.
 - ❌ Optimistic-update story: a way to apply a local diff before the round
   trip resolves and reconcile on response. Without it every mutation has a
   visible latency.
-- ❌ `?ssr` (or similar) module convention for server-only code, so
-  `src/store.js` doesn't need the current dance of dynamic imports inside
-  function bodies + `@vite-ignore` to stay out of the client bundle.
+- ❌ Skip the second HTML round-trip on auto-refresh: have the action endpoint
+  return the new prop bag alongside the result, and have the client set prop
+  cells directly instead of re-fetching the page. Today both the action POST
+  and the follow-up GET hit the server.
 
-This is meant as a stepping stone, not a replacement: it can ship without
-the split-bundling / typed-RPC / auth-context machinery the full "server
-functions" item demands.
+This is meant as a stepping stone, not a replacement for the typed-RPC /
+auth-context machinery that the full "server functions" item demands.
 
 ## Local-first / data primitives
 
@@ -206,7 +226,7 @@ If I had to pick a north star, in order:
 3. ~~**Two-way binding sugar** (`bind:value={cell}` / `bind:checked={cell}`)~~ — done. Counter example migrated.
 4. ~~**Layouts + 404 routes**~~ — done. `_layout.jslop` chains compose outermost-first via `<children/>`; `_404.jslop` at routes root serves with status 404 and wears the same layout chrome. `examples/site` demonstrates both.
 5. ~~**Production build path** (`vite build` → SSR bundle + Node adapter)~~ — done. Two-pass build (client + ssr), `@jslop/node-adapter` for serving, manifest-driven asset URL discovery. Static prerender and Bun/edge adapters still TODO.
-6. **Interim server-action block** (`action { … }` inside `.jslop`, plus a server-only module convention). Surfaced by the `examples/tasks/` CRUD demo: today every mutation needs hand-written `/api/*` handlers in `serve.mjs` AND a parallel dev middleware in `vite.config.mjs` AND a client-side `src/api.js`. An action block + auto-refetch on success would delete all three. Scoped to be tractable; stepping stone to (7), not a replacement.
+6. ~~**Interim server-action block** (`action name(params) { … }` inside `.jslop`)~~ — done. Each route gets a single POST endpoint dispatched by header; the compiler emits client stubs that POST and auto-refresh. `redirect(url)` from `@jslop/runtime` covers the delete-then-go-elsewhere case. Client-mode codegen elides server-only imports automatically, so static `import { createTask } from "../store.js"` Just Works without leaking into the browser bundle. `examples/tasks/` migrated end-to-end; the previous `/api/*` plumbing, `src/api.js`, and dev-middleware are all deleted. Documented in [`docs/actions.md`](./docs/actions.md). Optimistic updates and skipping the second HTML round-trip on auto-refresh are deferred.
 7. **`pnpm create jslop` scaffolding CLI** + published `@jslop/*` packages. Right now the only path to a working app is "clone the monorepo and edit an example." Every framework that's been adopted in the last decade has a 30-second quickstart; without one, the value of (5)/(6) is invisible to anyone who hasn't already decided to try JSlop. See the **Onboarding / startup experience** section for the full punch list.
 8. **Server functions** — the PLAN.md "killer protocol." Big scope but the most distinctive feature. Needs split bundling, RPC transport, security defaults.
 9. **Schema-native forms** — second killer feature from PLAN.md. Depends on server functions being landed first.

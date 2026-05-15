@@ -111,6 +111,64 @@ test("event handler referring to an action by name leaves the name as-is", () =>
   assert.match(out, /save\(count\.(get|peek)\(\)\)/);
 });
 
+test("client mode elides imports only used inside action bodies", () => {
+  const out = generate(
+    parseFile(`import { createTask } from "../store.js"
+    import { redirect } from "@jslop/runtime"
+    component X {
+      action create(input) { return await createTask(input) }
+      action remove() { redirect("/") }
+      view { <p/> }
+    }`),
+    { ssr: false }
+  );
+  // Server-only import gone from the client bundle.
+  assert.doesNotMatch(out, /from "\.\.\/store\.js"/);
+  // `redirect` from runtime is similarly server-only here.
+  assert.doesNotMatch(out, /import \{ redirect \} from "@jslop\/runtime"/);
+});
+
+test("ssr mode keeps server-only imports intact", () => {
+  const out = generate(
+    parseFile(`import { createTask } from "../store.js"
+    component X {
+      action create(input) { return await createTask(input) }
+      view { <p/> }
+    }`),
+    { ssr: true }
+  );
+  assert.match(out, /from "\.\.\/store\.js"/);
+});
+
+test("client mode keeps imports used in event handlers", () => {
+  const out = generate(
+    parseFile(`import { greet } from "./util.js"
+    component X {
+      action save() { return 1 }
+      function click() { greet("hi") }
+      view { <button onclick={click}/> }
+    }`),
+    { ssr: false }
+  );
+  assert.match(out, /from "\.\/util\.js"/);
+});
+
+test("partial elision: drop named specifiers used only server-side, keep the rest", () => {
+  const out = generate(
+    parseFile(`import { a, b } from "./mod.js"
+    component X {
+      state s = a()
+      action srv() { return b() }
+      view { <p>{s}</p> }
+    }`),
+    { ssr: false }
+  );
+  // a kept (state init), b dropped (only in action body).
+  assert.match(out, /import \{ a \} from "\.\/mod\.js"/);
+  assert.doesNotMatch(out, /\{ a, b \}/);
+  assert.doesNotMatch(out, /\bb\b.*from "\.\/mod\.js"/);
+});
+
 test("action with no args parses with newlines between body statements", () => {
   const c = parseComponent(`component X {
     action complex() {

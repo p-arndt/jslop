@@ -7,16 +7,16 @@ If you've written a JSlop app before action blocks landed, you probably had a `s
 ## At a glance
 
 ```tsx
+import { listTasks, createTask } from "../store.js"
+
 component Inbox {
   prop tasks = []
 
   load {
-    const { listTasks } = await import("../store.js")
     return { tasks: await listTasks() }
   }
 
   action create(input) {
-    const { createTask } = await import("../store.js")
     return await createTask(input)
   }
 
@@ -56,21 +56,23 @@ action name(params) {
 - Multiple actions per component are fine. Names must be unique across **every component in the file** (they share a single dispatch namespace per route).
 
 ```tsx
+import { updateTask, deleteTask } from "../store.js"
+
 component TaskDetail {
   prop task = null
 
   action save(patch) {
-    const { updateTask } = await import("../store.js")
     return await updateTask(params.id, patch)
   }
 
   action remove() {
-    const { deleteTask } = await import("../store.js")
     await deleteTask(params.id)
     redirect("/")            // see below
   }
 }
 ```
+
+You can import helpers statically at the top of the file even when those helpers reach into Node-only modules (`node:fs`, a database driver, anything). The compiler watches which names are referenced from client-reachable code (function bodies, view, state/derived/let inits) versus server-only blocks (`load`, `action`). Bindings used only on the server side are **elided from the client bundle entirely** — both the static import and any code referring to it. The dynamic `await import("…")` pattern you may have seen in older examples isn't necessary.
 
 ## Redirecting away
 
@@ -100,10 +102,15 @@ This is wired by the Vite plugin via the `ssr` flag on `transform`. As an author
 In practice that means you can write code like this without leaking it to the browser:
 
 ```tsx
-action createTask(input) {
-  // node:* imports are fine here — the client never sees this body.
-  const { writeFile } = await import("node:fs/promises")
-  /* … */
+import { writeFile } from "node:fs/promises"
+
+component Notes {
+  action append(line) {
+    // The compiler sees that `writeFile` is only referenced inside an action
+    // body and drops the import from the client bundle. Safe to write
+    // straight against Node APIs.
+    await writeFile("notes.log", line + "\n", { flag: "a" })
+  }
 }
 ```
 
