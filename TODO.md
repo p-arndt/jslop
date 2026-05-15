@@ -147,7 +147,7 @@ functions" item demands.
   - 🟡 SSR snapshot tests (7 — keyed/unkeyed `<jslop-each>` rendering, child component inside each, prop-bind boolean+escape)
   - 🟡 Client tests (8 keyed/unkeyed reconciliation, leak prevention, child-instance reuse across reorders, two-way property bind, against a hand-rolled stub DOM — replace with happy-dom)
   - ✅ Runtime scope tests (5)
-  - ❌ Router unit tests
+  - 🟡 Router unit tests (4 — `scan` happy paths; layouts/404/dynamic-segment edges still uncovered)
   - ❌ E2E via Playwright against `pnpm dev`
 - ❌ Error boundaries
 - 🟡 Bundle size budget / measurement — `benchmarks/bundle-size/` builds the counter fixture in both JSlop and Svelte 5 via the same esbuild config and reports raw/gzip/brotli. No budget enforced in CI yet.
@@ -161,8 +161,8 @@ functions" item demands.
 - ✅ Per-package READMEs (compiler, runtime, server, client, router, vite, node-adapter)
 - ❌ CHANGELOG
 - ✅ License file (MIT)
-- ❌ CI (lint, typecheck, test, build the examples)
-- ❌ `pnpm test` script at root that runs all package tests
+- 🟡 CI: GitHub Actions workflow (`.github/workflows/ci.yml`) installs, builds, and runs `pnpm test` (122 tests across compiler/runtime/server/client/router) on push to `main` and on PRs. Lint/typecheck/example-build steps not yet wired.
+- ✅ `pnpm test` script at root — builds all packages, then runs `pnpm -r run test`. Per-package `test` scripts use `node --test "test/*.test.mjs"` (compiler, runtime, server, client, router).
 - ❌ Pruning: the `examples/counter/smoke.mjs` hand-rolled DOM stub is fragile and now redundant with Vite; replace with happy-dom-backed tests
 
 ## Onboarding / startup experience

@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r --filter \"./packages/*\" run build",
+    "test": "pnpm build && pnpm -r --filter \"./packages/*\" run test",
     "dev:counter": "pnpm --filter @jslop/example-counter run dev",
     "dev:neon": "pnpm --filter @jslop/example-neon-lab run dev",
     "dev:tasks": "pnpm --filter @jslop/example-tasks run dev",

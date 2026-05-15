@@ -44,7 +44,7 @@ test("unkeyed each renders without data-jslop-keyed/data-jslop-key", () => {
   assert.ok(html.includes('data-jslop-count="2"'));
   assert.ok(!html.includes("data-jslop-keyed"));
   assert.ok(!html.includes("data-jslop-key="));
-  assert.ok(html.includes("<jslop-each-item>A</jslop-each-item>"));
+  assert.ok(html.includes('<jslop-each-item style="display:contents">A</jslop-each-item>'));
 });
 
 test("keyed each renders data-jslop-keyed and per-item data-jslop-key", () => {
@@ -121,8 +121,8 @@ test("each containing a child component renders the component's HTML per item", 
   const { html } = renderComponent(Parent, {
     items: [{ id: "a", label: "A" }, { id: "b", label: "B" }],
   });
-  assert.match(html, /<jslop-each-item data-jslop-key="a"><span data-id="a" data-jslop-component="Child">A<\/span><\/jslop-each-item>/);
-  assert.match(html, /<jslop-each-item data-jslop-key="b"><span data-id="b" data-jslop-component="Child">B<\/span><\/jslop-each-item>/);
+  assert.match(html, /<jslop-each-item data-jslop-key="a" style="display:contents"><span data-id="a" data-jslop-component="Child">A<\/span><\/jslop-each-item>/);
+  assert.match(html, /<jslop-each-item data-jslop-key="b" style="display:contents"><span data-id="b" data-jslop-component="Child">B<\/span><\/jslop-each-item>/);
 });
 
 test("keyed each escapes key values for the HTML attribute", () => {

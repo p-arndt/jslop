@@ -11,6 +11,7 @@ class StubElement {
     this.listeners = {};
     this._text = "";
     this.nodeType = 1;
+    this.style = {};
     // Tag a stable id for assertion convenience.
     this.__id = StubElement._nextId++;
   }

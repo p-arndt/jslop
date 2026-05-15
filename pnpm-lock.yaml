@@ -62,31 +62,6 @@ importers:
         specifier: ^7.0.0
         version: 7.3.3(@types/node@25.7.0)(jiti@2.7.0)(lightningcss@1.32.0)
 
-  examples/my-app:
-    dependencies:
-      '@jslop/client':
-        specifier: ^0.1.0
-        version: 0.1.0
-      '@jslop/node-adapter':
-        specifier: ^0.1.0
-        version: 0.1.0
-      '@jslop/router':
-        specifier: ^0.1.0
-        version: 0.1.0
-      '@jslop/runtime':
-        specifier: ^0.1.0
-        version: 0.1.0
-      '@jslop/server':
-        specifier: ^0.1.0
-        version: 0.1.0
-    devDependencies:
-      '@jslop/vite':
-        specifier: ^0.1.0
-        version: 0.1.0(@tailwindcss/vite@4.3.0(vite@7.3.3(@types/node@25.7.0)(jiti@2.7.0)(lightningcss@1.32.0)))(tailwindcss@4.3.0)(vite@7.3.3(@types/node@25.7.0)(jiti@2.7.0)(lightningcss@1.32.0))
-      vite:
-        specifier: ^7.0.0
-        version: 7.3.3(@types/node@25.7.0)(jiti@2.7.0)(lightningcss@1.32.0)
-
   examples/neon-lab:
     dependencies:
       '@jslop/client':
@@ -693,43 +668,6 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
-
-  '@jslop/client@0.1.0':
-    resolution: {integrity: sha512-GB9/zuLH5ZP/5CT0cbEWE8qF+PX51Jg1R3FxA3Z3J7jLmWVXsSX2x/W/hioYO0SIF+RoJbonSXTAGDN+R8Uwbw==}
-    engines: {node: '>=20'}
-
-  '@jslop/compiler@0.1.0':
-    resolution: {integrity: sha512-ToxfbuWO2+o/0ZbtGPH+Bn+EiRZElR+x/nI7lQTUKjI9oBayJS79b2A3HZJgiv5frqxHYDHyPcKRyEml/2P3yw==}
-    engines: {node: '>=20'}
-
-  '@jslop/node-adapter@0.1.0':
-    resolution: {integrity: sha512-mU5o5z4NxrXDBBcZFVQUjWCQNm+/HJD0j8zhVrQVbVgJya8FeKKRQd4du+fXHZnXn9TaajD3p0AfG7zDEiyLZg==}
-    engines: {node: '>=20'}
-
-  '@jslop/router@0.1.0':
-    resolution: {integrity: sha512-0N8Fl0llI2/c2YbVugxEio8y0PljSUPOs3f/A79gRWZp3DNIyUtcpAgTCsqWqCdaOAsB64ol3EqOg+ybR4jtsw==}
-    engines: {node: '>=20'}
-
-  '@jslop/runtime@0.1.0':
-    resolution: {integrity: sha512-dCZMNWbOEHM8HdXjN9xS8eQJUMr8ec8H6xAylNj2q9950w3z/9+AEoUQLy0CXvW0DiehgZHMDTDRDFdJpEHI6w==}
-    engines: {node: '>=20'}
-
-  '@jslop/server@0.1.0':
-    resolution: {integrity: sha512-De0gjPIdgy1ziA/N727aWshQqovYdr/mdV1++0x5fNKp2B49ibtnkGlXxKM6jHKo709VdnmNQLmA+mrhASQTww==}
-    engines: {node: '>=20'}
-
-  '@jslop/vite@0.1.0':
-    resolution: {integrity: sha512-tAnGhMOrjTxE4+pyzy4WaCgkGqtKXmSLPxl8i+PCFwi5Asg8HHPC+sciLINJwqACMB6E3fEoRX1pm5d9NhU7uA==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      '@tailwindcss/vite': ^4.0.0
-      tailwindcss: ^4.0.0
-      vite: ^5.0.0 || ^6.0.0 || ^7.0.0
-    peerDependenciesMeta:
-      '@tailwindcss/vite':
-        optional: true
-      tailwindcss:
-        optional: true
 
   '@manypkg/find-root@1.1.0':
     resolution: {integrity: sha512-mki5uBvhHzO8kYYix/WRy2WX8S3B5wdVSc9D6KcU5lQNglP2yt58/VfLuAK49glRXChosY8ap2oJ1qgma3GUVA==}
@@ -1855,38 +1793,6 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
-
-  '@jslop/client@0.1.0':
-    dependencies:
-      '@jslop/runtime': 0.1.0
-
-  '@jslop/compiler@0.1.0':
-    dependencies:
-      acorn: 8.16.0
-      acorn-walk: 8.3.5
-      magic-string: 0.30.21
-
-  '@jslop/node-adapter@0.1.0': {}
-
-  '@jslop/router@0.1.0': {}
-
-  '@jslop/runtime@0.1.0': {}
-
-  '@jslop/server@0.1.0':
-    dependencies:
-      '@jslop/runtime': 0.1.0
-
-  '@jslop/vite@0.1.0(@tailwindcss/vite@4.3.0(vite@7.3.3(@types/node@25.7.0)(jiti@2.7.0)(lightningcss@1.32.0)))(tailwindcss@4.3.0)(vite@7.3.3(@types/node@25.7.0)(jiti@2.7.0)(lightningcss@1.32.0))':
-    dependencies:
-      '@jslop/client': 0.1.0
-      '@jslop/compiler': 0.1.0
-      '@jslop/router': 0.1.0
-      '@jslop/runtime': 0.1.0
-      '@jslop/server': 0.1.0
-      vite: 7.3.3(@types/node@25.7.0)(jiti@2.7.0)(lightningcss@1.32.0)
-    optionalDependencies:
-      '@tailwindcss/vite': 4.3.0(vite@7.3.3(@types/node@25.7.0)(jiti@2.7.0)(lightningcss@1.32.0))
-      tailwindcss: 4.3.0
 
   '@manypkg/find-root@1.1.0':
     dependencies:

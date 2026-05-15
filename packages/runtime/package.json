@@ -45,6 +45,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && node build-cdn.mjs",
+    "test": "node --test \"test/*.test.mjs\"",
     "prepublishOnly": "pnpm build"
   },
   "devDependencies": {
