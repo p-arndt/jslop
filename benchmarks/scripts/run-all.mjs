@@ -10,6 +10,7 @@ const root = resolve(here, "..");
 const steps = [
   { label: "Bundle size", script: "bundle-size/measure.mjs" },
   { label: "Reactivity",  script: "reactivity/run.mjs" },
+  { label: "DOM",         script: "dom/run.mjs" },
 ];
 
 for (const step of steps) {

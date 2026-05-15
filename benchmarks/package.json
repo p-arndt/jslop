@@ -8,16 +8,19 @@
     "bench": "node scripts/run-all.mjs",
     "bench:bundle": "node bundle-size/measure.mjs",
     "bench:reactivity": "node reactivity/run.mjs",
+    "bench:dom": "node dom/run.mjs",
     "build:jslop": "node bundle-size/jslop-app/build.mjs",
     "build:svelte": "node bundle-size/svelte-app/build.mjs"
   },
   "dependencies": {
     "@jslop/client": "workspace:*",
     "@jslop/compiler": "workspace:*",
-    "@jslop/runtime": "workspace:*"
+    "@jslop/runtime": "workspace:*",
+    "@jslop/server": "workspace:*"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",
+    "playwright": "^1.60.0",
     "svelte": "^5.0.0"
   }
 }
