@@ -167,22 +167,18 @@ functions" item demands.
 
 ## Onboarding / startup experience
 
-Today, starting a new JSlop app means: clone this repo, run `pnpm install`, `pnpm build`, then either edit one of the examples in place or hand-copy `package.json` + `vite.config.mjs` + `src/app.css` + a routes folder and rewire the workspace dep paths into a new project. That's enough friction to lose every drive-by visitor.
+The 30-second path now exists: `pnpm create jslop my-app && cd my-app && pnpm install && pnpm dev`. Below is what's done and what's still rough.
 
-- 🟡 `npm create jslop@latest` (and `pnpm create jslop` / `bun create jslop`) scaffolding CLI. Built as `packages/create-jslop`: takes a project name (positional arg or prompt) and a template (`--template=<name>`, prompts when ambiguous), copies the chosen template, rewrites `__JSLOP_VERSION__` to its own version (so the scaffold tracks the CLI release), and renames `_gitignore` → `.gitignore` to dodge npm's tarball-strip. One template shipped (`minimal`: routes/index.jslop with `state` + `bind:value` + `{#if}`, Vite config, Node `serve.mjs`). Not yet on npm — once `create-jslop@0.1.0` is published, `npm create jslop my-app` works. Open: Tailwind and CRUD templates.
-- 🟡 Published npm packages for `@jslop/{client,compiler,node-adapter,router,runtime,server,vite}`. Versions bumped to `0.1.0`, metadata + `publishConfig.access: "public"` + `prepublishOnly` + slim `files` + `engines` + `sideEffects` in place, cross-package deps switched from `workspace:*` to `workspace:^` so `pnpm publish` rewrites to real ranges. Changesets installed at the root (`pnpm changeset` / `pnpm release`) with all framework packages in a single `fixed` version group. All packages build clean and `npm pack --dry-run` reports sane tarballs. Remaining step is the actual `pnpm release` (or first manual `pnpm -r build && pnpm publish -r --access public`) against the `@jslop` npm scope.
+- ✅ `npm create jslop@latest` / `pnpm create jslop` / `bun create jslop` scaffolding CLI. Published as `create-jslop` on npm. Takes a project name (positional or prompt) and a template (`--template=<name>`, prompts when ambiguous), copies the chosen template, rewrites `__JSLOP_VERSION__` and `__PROJECT_NAME__` placeholders, renames `_gitignore` → `.gitignore` to dodge npm's tarball strip. One template shipped (`minimal`).
+- ✅ Published npm packages for `@jslop/{client,compiler,node-adapter,router,runtime,server,vite}` at `0.1.0`. Cross-package deps use `workspace:^` so `pnpm publish` rewrites to real ranges; Changesets at the root drives subsequent releases (single `fixed` group so the framework versions move together). Publish flow documented in [`docs/publishing.md`](./docs/publishing.md).
 - ❌ A "Try it in StackBlitz / CodeSandbox" badge in the README pointing at a runnable fork of `examples/tasks` (or a hosted preview at e.g. `jslop.dev`). Removes even the "do I have Node installed?" step for the first 30 seconds.
-- ❌ One-line install for the scaffold target. Today's quickstart in `docs/getting-started.md` is 3 commands; ideally:
-  ```bash
-  pnpm create jslop my-app && cd my-app && pnpm dev
-  ```
-  ... and they're staring at a working SSR'd page on `localhost:5173`.
-- ❌ First-run experience inside a fresh scaffold: a `routes/index.jslop` that's actually useful as a starting point (not a Hello World), plus inline comments pointing at each primitive (`state`, `load`, `head`, `style`).
+- 🟡 First-run experience inside a fresh scaffold. The shipped `minimal` template covers `state`, `bind:value`, `{#if}`, plus the Vite config and the Node `serve.mjs`. Still missing: templates that show off `load` / `head` / scoped `style` / layouts (probably a `tailwind` template and a `tasks-crud` template), and inline comments pointing at each primitive.
+- ❌ Tailwind and CRUD templates for `create-jslop`. Today there's only `minimal`; add `tailwind` (drop-in @tailwindcss/vite setup) and `tasks-crud` (a stripped-down fork of `examples/tasks/`).
 - 🟡 Error-on-first-mistake quality: the diagnostic engine is now in place (file:line:col, code frame, remediation hints — see the Compiler section). What's left to land for novices is (a) hints on the *codegen* side (rewriter / write-guard errors don't yet go through the same pipeline), (b) wiring the formatted message into a Vite overlay rather than the default error wrapper, and (c) extending hint coverage to common JS-inside-view mistakes (e.g. using `count` instead of `count.get()` when reaching for the value).
 
 ## Distribution / CDN usage
 
-Today the only way to use JSlop is to clone the monorepo (or, once the create-jslop scaffold lands, run a Node-based scaffold + Vite dev server). There is no path to "drop a `<script>` tag into an HTML file and write a component." That cuts off three groups of users: people who want to sprinkle reactivity into an existing static site, REPL/playground/embed-in-a-blog-post use cases, and anyone who wants to try the framework without installing Node.
+The Node-and-Vite path is shipped (`pnpm create jslop` + the published `@jslop/*` packages). What's still missing is a "drop a `<script>` tag into an HTML file and write a component" path. That cuts off three groups of users: people who want to sprinkle reactivity into an existing static site, REPL/playground/embed-in-a-blog-post use cases, and anyone who wants to try the framework without installing Node.
 
 Three flavors, roughly in order of cost:
 
@@ -194,7 +190,7 @@ Three flavors, roughly in order of cost:
 
 Cross-cutting prerequisites:
 
-- ❌ Published npm packages for `@jslop/{runtime,compiler}` (also a prerequisite for the scaffold — tracked in **Onboarding**).
+- ✅ Published npm packages for `@jslop/{runtime,compiler}` — done as part of the Onboarding push, both at `0.1.0` on npm.
 - ❌ A "standalone" build target in `packages/runtime` and `packages/compiler` that produces browser-ready ESM + UMD with no Node built-ins. Today both are authored as Node ESM and consumed via workspace deps.
 - ❌ A docs page (`docs/cdn.md`) with copy-pasteable HTML for each flavor, plus a CodePen/StackBlitz embed.
 - ❌ A REPL page (probably part of the eventual `jslop.dev` site) that uses the in-browser compiler — doubles as the canonical try-it-in-30-seconds entry point and the smoke test for flavor 2.

@@ -1,18 +1,61 @@
 # Getting started
 
-This page walks you through installing JSlop, running the example apps, and writing your first component.
+This page walks you through creating a new JSlop app, running the example apps from the repo, and writing your first component.
 
 ## Prerequisites
 
 - **Node** 20 or newer
-- **pnpm** 11 or newer (the workspace is pnpm-only)
+- A package manager: **pnpm** ≥ 11 (recommended), **npm** ≥ 10, or **bun** ≥ 1.
 
-> [!IMPORTANT]
-> Use **pnpm**, not npm or yarn. The workspace will not resolve correctly with other package managers.
+## Start a new app
 
-## Install
+The fastest path is the scaffolding CLI:
 
-From the repo root:
+```bash
+pnpm create jslop my-app
+# or:  npm create jslop@latest my-app
+# or:  bun create jslop my-app
+```
+
+It will prompt for a project name (if you didn't pass one) and a template, then drop a ready-to-run app into `./my-app/`. After it finishes:
+
+```bash
+cd my-app
+pnpm install        # or: npm install / bun install
+pnpm dev            # http://localhost:5173
+```
+
+Edit `src/routes/index.jslop` and save — the dev server reloads. Build for production with `pnpm build` (emits `dist/client/` + `dist/server/`) and serve with `pnpm serve` (Node + `@jslop/node-adapter`).
+
+### Templates
+
+Pass `--template=<name>` to skip the picker:
+
+| Template  | What you get |
+|-----------|--------------|
+| `minimal` | A single route with `state`, two-way `bind:value`, `{#if}`, plus `vite.config.mjs` and a Node `serve.mjs`. The starting point for everything below. |
+
+More templates (Tailwind, CRUD) will land alongside future releases.
+
+### What just got installed
+
+The scaffold's `package.json` pins real semver ranges against the published packages:
+
+- `@jslop/runtime` — reactive primitives
+- `@jslop/compiler` — `.jslop` → JS (loaded transitively via `@jslop/vite`)
+- `@jslop/server` — SSR
+- `@jslop/client` — browser boot + reconciliation
+- `@jslop/router` — file-based routes
+- `@jslop/vite` — dev server + virtual modules + production build
+- `@jslop/node-adapter` — Node HTTP wrapper for the production build
+
+You don't import any of these from your `.jslop` files — the compiler wires them up. They're just the runtime moving parts your app needs in `node_modules`.
+
+---
+
+## Running the repo's examples (contributors)
+
+If you cloned this monorepo to hack on JSlop itself:
 
 ```bash
 pnpm install
@@ -21,7 +64,7 @@ pnpm build
 
 `pnpm build` runs the TypeScript build in every workspace package (`packages/*`). You need this once before the examples can resolve `@jslop/client`, `@jslop/runtime`, etc. from each package's `dist/`.
 
-## Run the counter example
+### Run the counter example
 
 ```bash
 pnpm dev:counter
@@ -35,7 +78,7 @@ Vite boots with the `@jslop/vite` plugin against `examples/counter`. Open the UR
 
 Edit `examples/counter/src/routes/index.jslop` and the page reloads. (HMR currently triggers a full page reload, not partial component reload.)
 
-## Run the site example
+### Run the site example
 
 ```bash
 pnpm --filter @jslop/example-site run dev
@@ -43,7 +86,7 @@ pnpm --filter @jslop/example-site run dev
 
 This one uses Tailwind v4 via `@tailwindcss/vite`, layouts, dynamic routes, and a 404 page. It's a small but complete demo.
 
-## Run the tasks CRUD example
+### Run the tasks CRUD example
 
 ```bash
 pnpm dev:tasks
@@ -119,10 +162,6 @@ component Search {
 ```
 
 Rule of thumb: **if the view reads it, use `state`. Otherwise, use `let`** — it's cheaper, doesn't bloat the SSR capsule, and behaves like normal JavaScript.
-
-## Bootstrapping a fresh app
-
-There's no `create-jslop-app` yet. The fastest path: copy `examples/counter/` somewhere, rename, and start editing. The full file inventory is in [Project structure](./project-structure.md).
 
 ## Next steps
 

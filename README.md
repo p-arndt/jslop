@@ -77,28 +77,27 @@ See [docs/syntax.md](./docs/syntax.md) for the full DSL reference.
 ## Quickstart
 
 ```bash
+pnpm create jslop my-app
+# or:  npm create jslop@latest my-app
+# or:  bun create jslop my-app
+
+cd my-app
 pnpm install
-pnpm build
-pnpm dev:counter
+pnpm dev
 ```
 
-Open the URL Vite prints. You'll see the counter example SSR'd from `examples/counter/src/routes/index.jslop`, hydrated by `@jslop/client`.
+Open the URL Vite prints (usually `http://localhost:5173`). You'll see an SSR'd page from `src/routes/index.jslop`, hydrated by `@jslop/client`. Edit the file and save — the dev server reloads.
 
-To run the marketing-site example with Tailwind v4:
+Build and serve a production bundle (SSR + hashed client + static assets via `@jslop/node-adapter`):
 
 ```bash
-pnpm --filter @jslop/example-site run dev
+pnpm build      # vite build && vite build --ssr
+pnpm serve      # node serve.mjs → http://localhost:3000
 ```
 
-To build and serve a production bundle (SSR + hashed client + static assets via `@jslop/node-adapter`):
+### Hacking on JSlop itself
 
-```bash
-pnpm --filter @jslop/example-counter run build   # vite build && vite build --ssr
-pnpm --filter @jslop/example-counter run serve   # node serve.mjs
-```
-
-> [!IMPORTANT]
-> Use **pnpm**, not npm or yarn — the workspace is pnpm-only.
+If you cloned this monorepo to work on the framework rather than build an app on top of it, the workflow is the older `pnpm install && pnpm build && pnpm dev:counter` — see [Contributing](#contributing) below. The workspace is pnpm-only.
 
 ---
 
